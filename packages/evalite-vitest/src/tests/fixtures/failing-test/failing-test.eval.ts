@@ -8,8 +8,6 @@ evalite("Failing", {
       },
     ];
   },
-  task: (input) => {
-    throw new Error("This is a failing test");
-  },
+  task: [import("./failing.js"), "failing"],
   scorers: [Levenshtein],
 });

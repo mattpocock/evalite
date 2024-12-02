@@ -10,10 +10,6 @@ evalite("Multiple 2", {
       },
     ];
   },
-  task: async (input) => {
-    // To test whether duration is calculated properly
-    await setTimeout(10);
-    return input + "def";
-  },
+  task: [import("./multi.js"), "multi"],
   scorers: [Levenshtein],
 });

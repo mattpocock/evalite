@@ -32,9 +32,15 @@ const runTask = async <TInput, TExpected>(opts: {
   };
 };
 
-export const evalite = <TInput, TExpected>(
+export const evalite = <
+  TInput,
+  TExpected,
+  TImport extends Record<string, any>,
+  TKey extends keyof TImport,
+  TExample = TImport[TKey],
+>(
   testName: string,
-  opts: Evalite.RunnerOpts<TInput, TExpected>
+  opts: Evalite.RunnerOpts<TInput, TExpected, TImport, TKey>
 ) => {
   return it(testName, async ({ task }) => {
     if (opts.scorers.length === 0) {
@@ -42,6 +48,8 @@ export const evalite = <TInput, TExpected>(
     }
 
     const sourceCodeHash = inject("evaliteInputHash");
+
+    const resolvedTask = ((await opts.task[0]) as any)[opts.task[1]];
 
     const data = await opts.data();
     const start = performance.now();
@@ -51,7 +59,7 @@ export const evalite = <TInput, TExpected>(
           expected,
           input,
           scores: opts.scorers,
-          task: opts.task,
+          task: resolvedTask,
         });
 
         return {

@@ -47,11 +47,28 @@ export declare namespace Evalite {
     opts: ScoreInput<TExpected>
   ) => MaybePromise<Score>;
 
-  export type RunnerOpts<TInput, TExpected> = {
+  export type RunnerOpts<
+    TInput,
+    TExpected,
+    TImport extends Record<string, any>,
+    TKey extends keyof TImport,
+  > = {
     data: () => MaybePromise<{ input: TInput; expected?: TExpected }[]>;
-    task: (input: TInput) => MaybePromise<TExpected>;
+    task: TImport[TKey] extends (input: TInput) => MaybePromise<TExpected>
+      ? readonly [Promise<TImport>, TKey]
+      : ErrorMessageForRunnerOpts<TInput, TExpected, TImport[TKey]>;
     scorers: Scorer<TExpected>[];
   };
+
+  export type ErrorMessageForRunnerOpts<
+    TInput,
+    TExpected,
+    TFunc extends (input: any) => any,
+  > = TFunc extends (input: TInput) => any
+    ? "Return type of function does not match expected value of task"
+    : TFunc extends (input: any) => PromiseLike<TExpected>
+      ? "Input type of task does not match the dataset passed."
+      : "The task passed does not match the type definition for a task.";
 }
 
 export * from "./json-db.js";
