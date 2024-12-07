@@ -197,7 +197,7 @@ export default class EvaliteReporter extends BasicReporter {
       this.renderTable(
         evals[0].meta.evalite!.results.map((result) => ({
           input: result.input,
-          output: result.result,
+          output: result.output,
           score: average(result.scores, (s) => s.score ?? 0),
         }))
       );

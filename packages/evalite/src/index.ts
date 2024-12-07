@@ -49,7 +49,7 @@ const runTask = async <TInput, TExpected>(opts: {
   scores: Evalite.Scorer<TInput, TExpected>[];
 }) => {
   const start = performance.now();
-  const result = await executeTask(opts.task, opts.input);
+  const output = await executeTask(opts.task, opts.input);
   const duration = Math.round(performance.now() - start);
 
   const scores = await Promise.all(
@@ -57,14 +57,14 @@ const runTask = async <TInput, TExpected>(opts: {
       async (scorer) =>
         await scorer({
           input: opts.input,
-          output: result,
+          output,
           expected: opts.expected,
         })
     )
   );
 
   return {
-    result,
+    output,
     scores,
     duration,
   };
@@ -83,7 +83,7 @@ export const evalite = <TInput, TExpected>(
       data.map(async ({ input, expected }): Promise<Evalite.Result> => {
         const traces: Evalite.StoredTrace[] = [];
         reportTraceLocalStorage.enterWith((trace) => traces.push(trace));
-        const { result, scores, duration } = await runTask({
+        const { output, scores, duration } = await runTask({
           expected,
           input,
           scores: opts.scorers,
@@ -92,7 +92,7 @@ export const evalite = <TInput, TExpected>(
 
         return {
           input,
-          result,
+          output,
           scores,
           duration,
           expected,
