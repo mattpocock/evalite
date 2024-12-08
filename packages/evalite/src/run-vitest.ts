@@ -96,4 +96,14 @@ export const runVitest = async (opts: {
   if (!vitest.shouldKeepServer()) {
     return await vitest.exit();
   }
+
+  if (opts.mode === "watch-for-file-changes") {
+    process.stdin.setRawMode(true);
+    process.stdin.on("data", async (data) => {
+      if (data.toString() === "q") {
+        await vitest.exit();
+        process.exit(0);
+      }
+    });
+  }
 };
