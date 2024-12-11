@@ -27,6 +27,8 @@ describe("getEvalsAverageScores", () => {
                     evalite: {
                       duration: 100,
                       result: {
+                        evalName: "task 1",
+                        filepath: "/path/to/file",
                         order: 1,
                         input: "input",
                         duration: 100,

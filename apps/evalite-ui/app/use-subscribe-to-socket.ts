@@ -41,9 +41,20 @@ export const useSubscribeToTestServer = (serverState: Evalite.ServerState) => {
 
     const isRunningFilepath = (filepath: string) =>
       filePathSet.has(filepath) && state.type === "running";
+
+    const isRunningEvalName = (name: string) =>
+      state.type === "running" && state.evalNamesRunning.includes(name);
+
+    const isRunningResultId = (resultId: number | bigint) => {
+      return (
+        state.type === "running" && state.resultIdsRunning.includes(resultId)
+      );
+    };
     return {
       state,
       isRunningFilepath,
+      isRunningEvalName,
+      isRunningResultId,
     };
   }, [state]);
 };

@@ -207,9 +207,9 @@ export const saveRun = (
           for (const score of scores) {
             db.prepare(
               `
-                  INSERT INTO scores (result_id, name, score, description, metadata)
-                  VALUES (@resultId, @name, @score, @description, @metadata)
-                `
+                INSERT INTO scores (result_id, name, score, description, metadata)
+                VALUES (@resultId, @name, @score, @description, @metadata)
+              `
             ).run({
               resultId,
               name: score.name,

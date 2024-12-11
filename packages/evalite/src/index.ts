@@ -1,5 +1,5 @@
 import type { Evalite } from "@evalite/core";
-import { afterEach, beforeEach, describe, inject, it } from "vitest";
+import { describe, it } from "vitest";
 import { reportTraceLocalStorage } from "./traces.js";
 
 declare module "vitest" {
@@ -75,16 +75,24 @@ const runTask = async <TInput, TExpected>(opts: {
 };
 
 export const evalite = <TInput, TExpected = TInput>(
-  testName: string,
+  evalName: string,
   opts: Evalite.RunnerOpts<TInput, TExpected>
 ) => {
-  return describe(testName, async () => {
+  return describe(evalName, async () => {
     const dataset = await opts.data();
 
-    let index = 0;
-    for (const data of dataset) {
-      index++;
-      it(`${testName} ${index}`, { concurrent: true }, async ({ task }) => {
+    for (const [order, data] of Object.entries(dataset)) {
+      it(`${evalName} ${order}`, { concurrent: true }, async ({ task }) => {
+        task.meta.evalite = {
+          duration: undefined,
+          initialResult: {
+            evalName: evalName,
+            filepath: task.file.filepath,
+            input: data.input,
+            expected: data.expected,
+            order: Number(order),
+          },
+        };
         const start = performance.now();
 
         const traces: Evalite.Trace[] = [];
@@ -98,7 +106,9 @@ export const evalite = <TInput, TExpected = TInput>(
         });
         task.meta.evalite = {
           result: {
-            order: index,
+            evalName: evalName,
+            filepath: task.file.filepath,
+            order: Number(order),
             duration,
             expected: data.expected,
             input: data.input,

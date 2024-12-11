@@ -1,12 +1,12 @@
 import { type Evalite } from "@evalite/core";
 import { saveRun, type SQLiteDatabase } from "@evalite/core/db";
+import { getTests } from "@vitest/runner/utils";
 import { table } from "table";
 import c from "tinyrainbow";
 import { inspect } from "util";
 import type { RunnerTask, RunnerTestFile, TaskResultPack, Test } from "vitest";
 import { BasicReporter } from "vitest/reporters";
-import { average, sum } from "./utils.js";
-import { getSuites, getTasks, getTests } from "@vitest/runner/utils";
+import { average } from "./utils.js";
 
 export interface EvaliteReporterOptions {
   isWatching: boolean;
@@ -39,7 +39,52 @@ type ReporterEvent =
     }
   | {
       type: "RUN_ENDED";
+    }
+  | {
+      type: "RESULT_SUBMITTED";
+      result: Evalite.Result;
+    }
+  | {
+      type: "RESULT_STARTED";
+      initialResult: Evalite.InitialResult;
     };
+
+const createEvalIfNotExists = (
+  db: SQLiteDatabase,
+  opts: {
+    runId: number | bigint;
+    name: string;
+    filepath: string;
+  }
+): number | bigint => {
+  let evaluationId: number | bigint | undefined = db
+    .prepare<{ name: string; runId: number | bigint }, { id: number }>(
+      `
+        SELECT id
+        FROM evals
+        WHERE name = @name AND run_id = @runId
+      `
+    )
+    .get({ name: opts.name, runId: opts.runId })?.id;
+
+  if (!evaluationId) {
+    evaluationId = db
+      .prepare<{}, { id: number }>(
+        `
+          INSERT INTO evals (run_id, name, filepath, duration)
+          VALUES (@runId, @name, @filepath, @duration)
+        `
+      )
+      .run({
+        runId: opts.runId,
+        name: opts.name,
+        filepath: opts.filepath,
+        duration: 0,
+      }).lastInsertRowid;
+  }
+
+  return evaluationId;
+};
 
 export default class EvaliteReporter extends BasicReporter {
   private opts: EvaliteReporterOptions;
@@ -82,20 +127,211 @@ export default class EvaliteReporter extends BasicReporter {
    * Handles the state management for the reporter
    */
   sendEvent(event: ReporterEvent): void {
-    switch (event.type) {
-      case "RUN_BEGUN":
-        this.updateState({
-          filepaths: event.filepaths,
-          runType: event.runType,
-          type: "running",
-        });
-        break;
-      case "RUN_ENDED":
-        this.updateState({ type: "idle" });
-        break;
-      default:
-        event satisfies never;
-        throw new Error("Unknown event type");
+    switch (this.state.type) {
+      case "running":
+        switch (event.type) {
+          case "RUN_ENDED":
+            this.updateState({ type: "idle" });
+            break;
+          case "RESULT_STARTED":
+            {
+              const evalId = createEvalIfNotExists(this.opts.db, {
+                filepath: event.initialResult.filepath,
+                name: event.initialResult.evalName,
+                runId: this.state.runId,
+              });
+
+              const resultId = this.opts.db
+                .prepare<{}, { id: number }>(
+                  `
+                  INSERT INTO results (eval_id, col_order, input, expected, duration, output)
+                  VALUES (@eval_id, @col_order, @input, @expected, @duration, @output)
+                `
+                )
+                .run({
+                  eval_id: evalId,
+                  col_order: event.initialResult.order,
+                  input: JSON.stringify(event.initialResult.input),
+                  expected: JSON.stringify(event.initialResult.expected),
+                  output: JSON.stringify(null),
+                  duration: 0,
+                }).lastInsertRowid;
+
+              this.updateState({
+                ...this.state,
+                evalNamesRunning: [
+                  ...this.state.evalNamesRunning,
+                  event.initialResult.evalName,
+                ],
+                resultIdsRunning: [...this.state.resultIdsRunning, resultId],
+              });
+            }
+
+            break;
+          case "RESULT_SUBMITTED":
+            {
+              const evalId = createEvalIfNotExists(this.opts.db, {
+                filepath: event.result.filepath,
+                name: event.result.evalName,
+                runId: this.state.runId,
+              });
+
+              let existingResultId: number | bigint | undefined = this.opts.db
+                .prepare<{}, { id: number }>(
+                  `
+                  SELECT id
+                  FROM results
+                  WHERE eval_id = @eval_id AND col_order = @col_order
+                `
+                )
+                .get({
+                  eval_id: evalId,
+                  col_order: event.result.order,
+                })?.id;
+
+              if (existingResultId) {
+                // Update existing record with new info
+                this.opts.db
+                  .prepare<{}, { id: number }>(
+                    `
+                    UPDATE results
+                    SET output = @output, duration = @duration
+                    WHERE id = @id
+                  `
+                  )
+                  .run({
+                    id: existingResultId,
+                    output: JSON.stringify(event.result.output),
+                    duration: event.result.duration,
+                  });
+              } else {
+                // Create new record
+                existingResultId = this.opts.db
+                  .prepare<{}, { id: number }>(
+                    `
+                    INSERT INTO results (eval_id, col_order, input, expected, output, duration)
+                    VALUES (@eval_id, @col_order, @input, @expected, @output, @duration)
+                  `
+                  )
+                  .run({
+                    eval_id: evalId,
+                    col_order: event.result.order,
+                    input: JSON.stringify(event.result.input),
+                    expected: JSON.stringify(event.result.expected),
+                    output: JSON.stringify(event.result.output),
+                    duration: event.result.duration,
+                  })!.lastInsertRowid;
+              }
+
+              // Save the scores
+              for (const score of event.result.scores) {
+                this.opts.db
+                  .prepare<
+                    {
+                      result_id: number | bigint;
+                      description: string | undefined;
+                      name: string;
+                      score: number;
+                      metadata: string;
+                    },
+                    { id: number }
+                  >(
+                    `
+                    INSERT INTO scores (result_id, name, score, metadata, description)
+                    VALUES (@result_id, @name, @score, @metadata, @description)
+                  `
+                  )
+                  .run({
+                    result_id: existingResultId,
+                    description: score.description,
+                    name: score.name,
+                    score: score.score ?? 0,
+                    metadata: JSON.stringify(score.metadata),
+                  });
+              }
+              // Save the traces
+              let traceOrder = 0;
+              for (const trace of event.result.traces) {
+                traceOrder++;
+                this.opts.db
+                  .prepare<{}, { id: number }>(
+                    `
+                    INSERT INTO traces (result_id, input, output, start_time, end_time, prompt_tokens, completion_tokens, col_order)
+                    VALUES (@result_id, @input, @output, @start_time, @end_time, @prompt_tokens, @completion_tokens, @col_order)
+                  `
+                  )
+                  .run({
+                    result_id: existingResultId,
+                    input: JSON.stringify(trace.input),
+                    output: JSON.stringify(trace.output),
+                    start_time: Math.round(trace.start),
+                    end_time: Math.round(trace.end),
+                    prompt_tokens: trace.usage?.promptTokens,
+                    completion_tokens: trace.usage?.completionTokens,
+                    col_order: traceOrder,
+                  });
+              }
+
+              const allResults = this.opts.db
+                .prepare<{ eval_id: number | bigint }, { id: number }>(
+                  `
+                  SELECT id
+                  FROM results
+                  WHERE eval_id = @eval_id
+                `
+                )
+                .all({ eval_id: evalId });
+
+              const resultIdsRunning = this.state.resultIdsRunning.filter(
+                (id) => id !== existingResultId
+              );
+
+              /**
+               * The eval is complete if all results are no longer
+               * running
+               */
+              const isEvalComplete = allResults.every(
+                (result) => !resultIdsRunning.includes(result.id)
+              );
+
+              this.updateState({
+                ...this.state,
+                evalNamesRunning: isEvalComplete
+                  ? this.state.evalNamesRunning.filter(
+                      (name) => name !== event.result.evalName
+                    )
+                  : this.state.evalNamesRunning,
+                resultIdsRunning,
+              });
+            }
+
+            break;
+          default:
+            throw new Error(`${event.type} not allowed in ${this.state.type}`);
+        }
+      case "idle": {
+        switch (event.type) {
+          case "RUN_BEGUN":
+            const runId = this.opts.db
+              .prepare<{}, { runType: Evalite.RunType }>(
+                `
+                  INSERT INTO runs (runType)
+                  VALUES (@runType)
+                `
+              )
+              .run({ runType: event.runType }).lastInsertRowid;
+
+            this.updateState({
+              filepaths: event.filepaths,
+              runType: event.runType,
+              type: "running",
+              runId,
+              evalNamesRunning: [],
+              resultIdsRunning: [],
+            });
+            break;
+        }
+      }
     }
   }
 
@@ -116,8 +352,6 @@ export default class EvaliteReporter extends BasicReporter {
     this.sendEvent({
       type: "RUN_ENDED",
     });
-
-    saveRun(this.opts.db, { files, runType: this.lastRunTypeLogged });
 
     super.onFinished(files, errors);
   };
@@ -146,7 +380,7 @@ export default class EvaliteReporter extends BasicReporter {
     const failed = tests.some((t) => t.result?.state === "fail");
 
     for (const { meta } of tests) {
-      if (meta.evalite) {
+      if (meta.evalite?.result) {
         scores.push(...meta.evalite!.result.scores.map((s) => s.score ?? 0));
       }
     }
@@ -178,11 +412,10 @@ export default class EvaliteReporter extends BasicReporter {
     const tests = getTests(files);
 
     const scores = tests.flatMap((test) =>
-      test.meta.evalite?.result.scores.map((s) => s.score ?? 0)
+      test.meta.evalite?.result?.scores.map((s) => s.score ?? 0)
     );
 
-    const totalScore = sum(scores, (score) => score ?? 0);
-    const averageScore = totalScore / scores.length;
+    const averageScore = average(scores, (score) => score ?? 0);
 
     const collectTime = files.reduce((a, b) => a + (b.collectDuration || 0), 0);
     const testsTime = files.reduce((a, b) => a + (b.result?.duration || 0), 0);
@@ -227,8 +460,8 @@ export default class EvaliteReporter extends BasicReporter {
     if (totalFiles === 1 && failedTasks.length === 0) {
       this.renderTable(
         tests
-          .filter((t) => typeof t.meta.evalite === "object")
-          .map((t) => t.meta.evalite!.result)
+          .filter((t) => typeof t.meta.evalite?.result === "object")
+          .map((t) => t.meta.evalite!.result!)
           .map((result) => ({
             input: result.input,
             output: result.output,
@@ -297,11 +530,33 @@ export default class EvaliteReporter extends BasicReporter {
     );
   }
 
-  onTestStart(_test: Test) {}
-  onTestFinished(_test: Test) {}
+  onTestStart(test: Test) {
+    if (!test.meta.evalite?.initialResult) {
+      throw new Error("No initial result present");
+    }
 
-  onTestFilePrepare(_file: RunnerTestFile) {}
-  onTestFileFinished(_file: RunnerTestFile) {}
+    this.sendEvent({
+      type: "RESULT_STARTED",
+      initialResult: test.meta.evalite.initialResult,
+    });
+  }
+  onTestFinished(test: Test) {
+    if (!test.suite) {
+      throw new Error("No suite present");
+    }
+
+    if (!test.meta.evalite?.result) {
+      throw new Error("No result present");
+    }
+
+    this.sendEvent({
+      type: "RESULT_SUBMITTED",
+      result: test.meta.evalite.result,
+    });
+  }
+
+  onTestFilePrepare(file: RunnerTestFile) {}
+  onTestFileFinished(file: RunnerTestFile) {}
 
   override onTaskUpdate(packs: TaskResultPack[]) {
     const startingTestFiles: RunnerTestFile[] = [];

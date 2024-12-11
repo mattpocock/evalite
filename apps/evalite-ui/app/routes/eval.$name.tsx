@@ -9,7 +9,7 @@ import {
   useSearchParams,
   type ClientLoaderFunctionArgs,
 } from "@remix-run/react";
-import { XCircleIcon } from "lucide-react";
+import { Loader, LoaderCircleIcon, XCircleIcon } from "lucide-react";
 import React, { useContext } from "react";
 import { DisplayInput } from "~/components/display-input";
 import { InnerPageLayout } from "~/components/page-layout";
@@ -93,7 +93,7 @@ export default function Page() {
             <Score
               evalStatus={evaluation.status}
               isRunning={
-                serverState.isRunningFilepath(evaluation.filepath) &&
+                serverState.isRunningEvalName(evaluation.name) &&
                 evaluation.created_at === latestDate
               }
               score={score}
@@ -173,6 +173,9 @@ export default function Page() {
               </TableHeader>
               <TableBody>
                 {evaluation.results.map((result, index) => {
+                  const isResultRunning = serverState.isRunningResultId(
+                    result.id
+                  );
                   const Wrapper = (props: { children: React.ReactNode }) => (
                     <NavLink
                       prefetch="intent"
@@ -198,11 +201,17 @@ export default function Page() {
                         />
                       </td>
                       <td className="align-top">
-                        <DisplayInput
-                          input={result.output}
-                          shouldTruncateText
-                          Wrapper={Wrapper}
-                        />
+                        {isResultRunning ? (
+                          <div className="p-4">
+                            <LoaderCircleIcon className="animate-spin size-5 text-blue-500" />
+                          </div>
+                        ) : (
+                          <DisplayInput
+                            input={result.output}
+                            shouldTruncateText
+                            Wrapper={Wrapper}
+                          />
+                        )}
                       </td>
                       {showExpectedColumn && (
                         <td className="align-top">
@@ -220,7 +229,7 @@ export default function Page() {
                             ?.scores.find((s) => s.name === scorer.name);
                         return (
                           <td
-                            key={scorer.name}
+                            key={scorer.id}
                             className={cn(
                               index === 0 && "border-l",
                               "align-top"
@@ -229,8 +238,8 @@ export default function Page() {
                             <Wrapper>
                               <Score
                                 score={scorer.score}
-                                isRunning={serverState.isRunningFilepath(
-                                  evaluation.filepath
+                                isRunning={serverState.isRunningResultId(
+                                  result.id
                                 )}
                                 evalStatus={evaluation.status}
                                 state={getScoreState(

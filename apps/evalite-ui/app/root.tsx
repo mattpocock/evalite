@@ -132,9 +132,8 @@ export default function App() {
               <SidebarMenu>
                 {data.currentEvals.map((e) => {
                   return (
-                    <SidebarItem
+                    <EvalSidebarItem
                       key={`current-${e.name}`}
-                      filepath={e.filepath}
                       name={e.name}
                       score={e.score}
                       state={e.state}
@@ -150,9 +149,8 @@ export default function App() {
                 <SidebarMenu>
                   {data.archivedEvals.map((e) => {
                     return (
-                      <SidebarItem
+                      <EvalSidebarItem
                         key={`archived-${e.name}`}
-                        filepath={e.filepath}
                         name={e.name}
                         score={e.score}
                         state={e.state}
@@ -171,8 +169,7 @@ export default function App() {
   );
 }
 
-const SidebarItem = (props: {
-  filepath: string;
+const EvalSidebarItem = (props: {
   name: string;
   state: ScoreState;
   score: number;
@@ -183,7 +180,7 @@ const SidebarItem = (props: {
   const testServer = useContext(TestServerStateContext);
 
   if (testServer.state.type === "running") {
-    isRunning = testServer.isRunningFilepath(props.filepath);
+    isRunning = testServer.isRunningEvalName(props.name);
   }
   return (
     <SidebarMenuItem key={props.name}>

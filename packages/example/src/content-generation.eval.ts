@@ -16,7 +16,7 @@ evalite("Content generation", {
   data: async () => {
     return [
       {
-        input: "Write a TypeScript tweet",
+        input: "Write a tweet on how to type React props",
       },
       {
         input: "Write a tweet about TypeScript template literal types.",
@@ -25,7 +25,7 @@ evalite("Content generation", {
         input: 'Write a tweet about "TypeScript is a superset of JavaScript."',
       },
       {
-        input: `Write an article about TypeScript's basic types, like string and number.`,
+        input: "Write a tweet about TypeScript utility types.",
       },
     ];
   },
@@ -34,12 +34,42 @@ evalite("Content generation", {
       model: traceAISDKModel(cacheModel(openai("gpt-4o-mini"), storage)),
       prompt: input,
       system: `
-        You are a helpful social media assistant.
+        You are a social media assistant.
         You will be asked to write a tweet on a given topic.
         Return only the tweet.
         Do not use emojis.
-        Do not use hashtags.
+        Never use hashtags.
         Use code examples if needed.
+
+        <banned-phrases>
+
+        These phrases are banned from your vocabulary:
+
+        - Type safety
+        - Flexibility
+        - Code quality
+        - Maintanability
+        - Enhance code structure
+
+        </banned-phrases>
+
+        <react-advice>
+
+        1. When typing React props, do not use React.FC.
+        2. When typing React props, use interfaces.
+        3. When typing React props, I prefer not to destructure the props.
+
+        </react-advice>
+
+        <typescript-advice>
+
+        - Template literal types were released in TypeScript 4.1.
+        - The latest version of TypeScript is 5.7.
+        - Template literal types are different from template literals at runtime.
+        - You can pass a union of strings to a template literal type to get a union back.
+        - You can use Capitalize, Uppercase, Lowercase, and Uncapitalize to transform strings.
+
+        </typescript-advice>
       `,
     });
 
@@ -50,6 +80,18 @@ evalite("Content generation", {
       name: "No Hashtags",
       scorer: ({ output }) => {
         return output.includes("#") ? 0 : 1;
+      },
+    }),
+    createScorer({
+      name: "No React.FC in code examples",
+      scorer: ({ output }) => {
+        const codeExamples = output.match(/```[\s\S]*?```/g) || [];
+
+        if (codeExamples.length === 0) {
+          return 1;
+        }
+
+        return codeExamples.every((code) => !code.includes("React.FC")) ? 1 : 0;
       },
     }),
   ],
