@@ -70,30 +70,32 @@ export const clientLoader = async () => {
     serverState,
   ] = await Promise.all([getMenuItems(), getServerState()]);
 
+  function mapEvalState(evals) {
+    return evals.map((e) => ({
+      ...e,
+      state: getScoreState(e.score, e.prevScore),
+    }));
+  }
+
   return {
     serverState,
     evalStatus,
     prevScore,
     score,
-    archivedEvals: archivedEvals.map((e) => {
-      const state = getScoreState(e.score, e.prevScore);
-      return {
-        ...e,
-        state,
-      };
-    }),
-    currentEvals: currentEvals.map((e) => {
-      const state = getScoreState(e.score, e.prevScore);
-      return {
-        ...e,
-        state,
-      };
-    }),
+    archivedEvals: mapEvalState(archivedEvals),
+    currentEvals: mapEvalState(currentEvals),    
   };
 };
 
 export default function App() {
-  const data = useLoaderData<typeof clientLoader>();
+  const data = useLoaderData<typeof clientLoader>() || {
+    serverState: null,
+    evalStatus: null,
+    prevScore: 0,
+    score: 0,
+    archivedEvals: [],
+    currentEvals: [],
+  };
 
   const testServer = useSubscribeToTestServer(data.serverState);
 
@@ -128,36 +130,22 @@ export default function App() {
               </div>
             </SidebarGroup>
             <SidebarGroup>
-              <SidebarGroupLabel>Current Run</SidebarGroupLabel>
+              <SidebarGroupLabel aria-label="Current Run">Current Run</SidebarGroupLabel>
               <SidebarMenu>
                 {data.currentEvals.map((e) => {
                   return (
-                    <SidebarItem
-                      key={`current-${e.name}`}
-                      filepath={e.filepath}
-                      name={e.name}
-                      score={e.score}
-                      state={e.state}
-                      evalStatus={e.evalStatus}
-                    />
+                    <SidebarItem key={`current-${e.name}`} {...e} />
                   );
                 })}
               </SidebarMenu>
             </SidebarGroup>
             {data.archivedEvals.length > 0 && (
               <SidebarGroup>
-                <SidebarGroupLabel>Previous Runs</SidebarGroupLabel>
+                <SidebarGroupLabel aria-label="Previous Runs">Previous Runs</SidebarGroupLabel>
                 <SidebarMenu>
                   {data.archivedEvals.map((e) => {
                     return (
-                      <SidebarItem
-                        key={`archived-${e.name}`}
-                        filepath={e.filepath}
-                        name={e.name}
-                        score={e.score}
-                        state={e.state}
-                        evalStatus={e.evalStatus}
-                      />
+                      <SidebarItem key={`archived-${e.name}`} {...e} />
                     );
                   })}
                 </SidebarMenu>

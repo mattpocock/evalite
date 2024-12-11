@@ -24,7 +24,8 @@ export default function handleRequest(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   loadContext: AppLoadContext
 ) {
-  return isbot(request.headers.get("user-agent") || "")
+  const userAgent = request.headers.get("user-agent") ?? "";
+  return isbot(userAgent)
     ? handleBotRequest(
         request,
         responseStatusCode,
@@ -46,7 +47,7 @@ function handleBotRequest(
   remixContext: EntryContext
 ) {
   return new Promise((resolve, reject) => {
-    let shellRendered = false;
+    let shellRendered: boolean = false;
     const { pipe, abort } = renderToPipeableStream(
       <RemixServer
         context={remixContext}
