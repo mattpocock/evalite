@@ -19,7 +19,7 @@ declare module "vitest" {
 }
 
 export const runVitest = async (opts: {
-  path: string | undefined;
+  path?: string;
   cwd: string | undefined;
   testOutputWritable?: Writable;
   mode: "watch-for-file-changes" | "run-once-and-exit";
