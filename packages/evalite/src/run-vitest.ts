@@ -5,7 +5,6 @@ import {
 } from "@evalite/core";
 import { createDatabase } from "@evalite/core/db";
 import { createServer } from "@evalite/core/server";
-import { createHash } from "crypto";
 import { mkdir } from "fs/promises";
 import path from "path";
 import { Writable } from "stream";
@@ -23,6 +22,7 @@ export const runVitest = async (opts: {
   cwd: string | undefined;
   testOutputWritable?: Writable;
   mode: "watch-for-file-changes" | "run-once-and-exit";
+  scoreThreshold?: number;
 }) => {
   const dbLocation = path.join(opts.cwd ?? "", DB_LOCATION);
   const filesLocation = path.join(opts.cwd ?? "", FILES_LOCATION);
@@ -43,6 +43,8 @@ export const runVitest = async (opts: {
     server.start(DEFAULT_SERVER_PORT);
   }
 
+  let exitCode: number | undefined = undefined;
+
   const vitest = await createVitest(
     "test",
     {
@@ -59,6 +61,10 @@ export const runVitest = async (opts: {
           port: DEFAULT_SERVER_PORT,
           isWatching: opts.mode === "watch-for-file-changes",
           db: db,
+          scoreThreshold: opts.scoreThreshold,
+          modifyExitCode: (code) => {
+            exitCode = code;
+          },
         }),
       ],
       mode: "test",
@@ -97,6 +103,10 @@ export const runVitest = async (opts: {
 
   if (!vitest.shouldKeepServer()) {
     dispose();
-    return await vitest.exit();
+    await vitest.close();
+
+    if (typeof exitCode === "number") {
+      process.exit(exitCode);
+    }
   }
 };

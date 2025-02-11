@@ -39,17 +39,18 @@
     "./runner": "./dist/run-vitest.js"
   },
   "dependencies": {
-    "table": "^6.8.2",
-    "commander": "^12.1.0",
-    "tinyrainbow": "^1.2.0",
     "@evalite/core": "workspace:*",
+    "@stricli/auto-complete": "^1.1.1",
+    "@stricli/core": "^1.1.1",
     "@vitest/runner": "^2.1.8",
-    "file-type": "^19.6.0"
+    "file-type": "^19.6.0",
+    "table": "^6.8.2",
+    "tinyrainbow": "^1.2.0"
   },
   "devDependencies": {
     "@types/ws": "^8.5.13",
-    "unstorage": "^1.13.1",
     "ai": "^4.0.10",
-    "autoevals": "^0.0.108"
+    "autoevals": "^0.0.108",
+    "unstorage": "^1.13.1"
   }
 }

@@ -29,3 +29,15 @@ This also works for `watch` mode:
 ```bash
 evalite watch my-eval.eval.ts
 ```
+
+## Threshold
+
+You can tell Evalite that your evals must pass a specific score by passing `--threshold`:
+
+```bash
+evalite --threshold=50 # Score must be greater than or equal to 50
+
+evalite watch --threshold=70 # Also works in watch mode
+```
+
+This is useful for running on CI. If the score threshold is not met, it will fail the process.

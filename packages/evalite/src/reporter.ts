@@ -7,26 +7,37 @@ import {
   insertResult,
   insertScore,
   insertTrace,
-  saveRun,
   updateEvalStatusAndDuration,
   updateResult,
-  type Db,
   type SQLiteDatabase,
 } from "@evalite/core/db";
-import { getTests } from "@vitest/runner/utils";
+import { isEvaliteFile } from "@evalite/core/utils";
+import type { Custom } from "@vitest/runner";
+import { getTests, hasFailed } from "@vitest/runner/utils";
 import { table } from "table";
 import c from "tinyrainbow";
 import { inspect } from "util";
 import type { RunnerTask, RunnerTestFile, TaskResultPack, Test } from "vitest";
 import { BasicReporter } from "vitest/reporters";
 import { average } from "./utils.js";
-import { isEvaliteFile } from "@evalite/core/utils";
 
 export interface EvaliteReporterOptions {
   isWatching: boolean;
   port: number;
   logNewState: (event: Evalite.ServerState) => void;
   db: SQLiteDatabase;
+  scoreThreshold: number | undefined;
+  modifyExitCode: (exitCode: number) => void;
+}
+
+const BADGE_PADDING = "       ";
+
+export function withLabel(
+  color: "red" | "green" | "blue" | "cyan",
+  label: string,
+  message: string
+) {
+  return `${c.bold(c.inverse(c[color](` ${label} `)))} ${c[color](message)}`;
 }
 
 const renderers = {
@@ -66,6 +77,7 @@ type ReporterEvent =
 export default class EvaliteReporter extends BasicReporter {
   private opts: EvaliteReporterOptions;
   private state: Evalite.ServerState = { type: "idle" };
+  private didLastRunFailThreshold: "yes" | "no" | "unknown" = "unknown";
 
   // private server: Server;
   constructor(opts: EvaliteReporterOptions) {
@@ -89,8 +101,42 @@ export default class EvaliteReporter extends BasicReporter {
     });
   }
 
-  override onWatcherStart(files?: RunnerTestFile[], errors?: unknown[]): void {
-    super.onWatcherStart(files, errors);
+  override onWatcherStart(
+    files: RunnerTestFile[] = [],
+    errors: unknown[] = []
+  ): void {
+    this.log();
+
+    const failedDueToError = (errors?.length ?? 0) > 0 || hasFailed(files);
+
+    const failedDueToThreshold = this.didLastRunFailThreshold === "yes";
+
+    if (failedDueToError) {
+      this.log(
+        withLabel(
+          "red",
+          "FAIL",
+          "Errors detected in evals. Watching for file changes..."
+        )
+      );
+    } else if (failedDueToThreshold) {
+      this.log(
+        withLabel(
+          "red",
+          "FAIL",
+          `${this.opts.scoreThreshold}% threshold not met. Watching for file changes...`
+        )
+      );
+    } else {
+      this.log(withLabel("green", "PASS", "Waiting for file changes..."));
+    }
+
+    const hints = [
+      c.dim("press ") + c.bold("h") + c.dim(" to show help"),
+      c.dim("press ") + c.bold("q") + c.dim(" to quit"),
+    ];
+
+    this.log(BADGE_PADDING + hints.join(c.dim(", ")));
   }
 
   updateState(state: Evalite.ServerState) {
@@ -359,12 +405,6 @@ export default class EvaliteReporter extends BasicReporter {
      */
     const tests = getTests(files);
 
-    const scores = tests.flatMap((test) =>
-      test.meta.evalite?.result?.scores.map((s) => s.score ?? 0)
-    );
-
-    const averageScore = average(scores, (score) => score ?? 0);
-
     const collectTime = files.reduce((a, b) => a + (b.collectDuration || 0), 0);
     const testsTime = files.reduce((a, b) => a + (b.result?.duration || 0), 0);
     const setupTime = files.reduce((a, b) => a + (b.setupDuration || 0), 0);
@@ -375,6 +415,8 @@ export default class EvaliteReporter extends BasicReporter {
       return file.tasks.some((task) => task.result?.state === "fail");
     });
 
+    const averageScore = getScoreFromTests(tests);
+
     const scoreDisplay =
       failedTasks.length > 0
         ? c.red("✖ ") + c.dim(`(${failedTasks.length} failed)`)
@@ -383,6 +425,30 @@ export default class EvaliteReporter extends BasicReporter {
     this.ctx.logger.log(
       ["      ", c.dim("Score"), "  ", scoreDisplay].join("")
     );
+
+    if (typeof this.opts.scoreThreshold === "number") {
+      let thresholdScoreSuffix = "";
+
+      if (averageScore * 100 < this.opts.scoreThreshold) {
+        thresholdScoreSuffix = `${c.dim(` (failed)`)}`;
+        this.opts.modifyExitCode(1);
+        this.didLastRunFailThreshold = "yes";
+      } else {
+        thresholdScoreSuffix = `${c.dim(` (passed)`)}`;
+        this.opts.modifyExitCode(0);
+        this.didLastRunFailThreshold = "no";
+      }
+
+      this.ctx.logger.log(
+        [
+          "  ",
+          c.dim("Threshold"),
+          "  ",
+          c.bold(this.opts.scoreThreshold + "%"),
+          thresholdScoreSuffix,
+        ].join("")
+      );
+    }
 
     this.ctx.logger.log(
       [" ", c.dim("Eval Files"), "  ", files.length].join("")
@@ -576,4 +642,14 @@ const renderMaybeEvaliteFile = (input: unknown) => {
   }
 
   return input;
+};
+
+const getScoreFromTests = (tests: (Test | Custom)[]) => {
+  const scores = tests.flatMap(
+    (test) => test.meta.evalite?.result?.scores.map((s) => s.score ?? 0) || []
+  );
+
+  const averageScore = average(scores, (score) => score ?? 0);
+
+  return averageScore;
 };

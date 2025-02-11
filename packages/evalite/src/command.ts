@@ -1,45 +1,104 @@
-import { Command } from "commander";
 import { runVitest } from "./run-vitest.js";
-
+import { buildApplication, buildCommand, buildRouteMap } from "@stricli/core";
+import {
+  buildInstallCommand,
+  buildUninstallCommand,
+} from "@stricli/auto-complete";
 import { createRequire } from "node:module";
-const packageJson = createRequire(import.meta.url)("../package.json") as typeof import("../package.json");
+
+const packageJson = createRequire(import.meta.url)(
+  "../package.json"
+) as typeof import("../package.json");
+
+type ProgramOpts = {
+  path: string | undefined;
+  threshold: number | undefined;
+};
+
+const commonParameters = {
+  positional: {
+    kind: "tuple",
+    parameters: [{ parse: String, brief: "path", optional: true }],
+  },
+  flags: {
+    threshold: {
+      kind: "parsed",
+      parse: parseFloat,
+      brief:
+        "Fails the process if the score is below threshold. Specified as 0-100. Default is 100.",
+      optional: true,
+    },
+  },
+} as const;
+
+type Flags = {
+  threshold: number | undefined;
+};
 
 export const createProgram = (commands: {
-  watch: (path: string | undefined) => void;
-  runOnceAtPath: (path: string | undefined) => void;
+  watch: (opts: ProgramOpts) => void;
+  runOnceAtPath: (opts: ProgramOpts) => void;
 }) => {
-  const program = new Command();
+  const runOnce = buildCommand({
+    parameters: commonParameters,
+    func: async (flags: Flags, path: string | undefined) => {
+      return commands.runOnceAtPath({ path, threshold: flags.threshold });
+    },
+    docs: {
+      brief: "Run evals at specified path once and exit",
+    },
+  });
 
-  program.version(packageJson.version);
+  const watch = buildCommand({
+    parameters: commonParameters,
+    func: (flags: Flags, path: string | undefined) => {
+      return commands.watch({ path, threshold: flags.threshold });
+    },
+    docs: {
+      brief: "Watch evals for file changes",
+    },
+  });
 
-  program
-    .description("Run evals once and exit")
-    .action(() => commands.runOnceAtPath(undefined));
+  const routes = buildRouteMap({
+    routes: {
+      "run-once": runOnce,
+      watch,
+      install: buildInstallCommand("evalite", {
+        bash: "__evalite_bash_complete",
+      }),
+      uninstall: buildUninstallCommand("evalite", { bash: true }),
+    },
+    defaultCommand: "run-once",
+    docs: {
+      brief: "",
+      hideRoute: {
+        install: true,
+        uninstall: true,
+      },
+    },
+  });
 
-  program
-    .command("watch [path]")
-    .description("Watch evals for file changes")
-    .action((p) => commands.watch(p));
-
-  program
-    .argument("[path]", "path to eval file")
-    .description("Run evals at specified path once and exit")
-    .action((p) => commands.runOnceAtPath(p));
-
-  return program;
+  return buildApplication(routes, {
+    name: packageJson.name,
+    versionInfo: {
+      currentVersion: packageJson.version,
+    },
+  });
 };
 
 export const program = createProgram({
   watch: (path) => {
     return runVitest({
-      path,
+      path: path.path,
+      scoreThreshold: path.threshold,
       cwd: undefined,
       mode: "watch-for-file-changes",
     });
   },
   runOnceAtPath: (path) => {
     return runVitest({
-      path,
+      path: path.path,
+      scoreThreshold: path.threshold,
       cwd: undefined,
       mode: "run-once-and-exit",
     });

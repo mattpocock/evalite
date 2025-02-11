@@ -201,12 +201,15 @@ importers:
       '@evalite/core':
         specifier: workspace:*
         version: link:../evalite-core
+      '@stricli/auto-complete':
+        specifier: ^1.1.1
+        version: 1.1.1
+      '@stricli/core':
+        specifier: ^1.1.1
+        version: 1.1.1
       '@vitest/runner':
         specifier: ^2.1.8
         version: 2.1.8
-      commander:
-        specifier: ^12.1.0
-        version: 12.1.0
       file-type:
         specifier: ^19.6.0
         version: 19.6.0
@@ -1777,6 +1780,13 @@ packages:
   '@shikijs/vscode-textmate@9.3.0':
     resolution: {integrity: sha512-jn7/7ky30idSkd/O5yDBfAnVt+JJpepofP/POZ1iMOxK59cOfqIgg/Dj0eFsjOTMw+4ycJN0uhZH/Eb0bs/EUA==}
 
+  '@stricli/auto-complete@1.1.1':
+    resolution: {integrity: sha512-UGXVgdfaanfJIw5Wtv3fvZjfLTDBNcYuy3VSSSMt8RznJ9YOgK0uFZyQig4tCr2DENb1dVIGMdDAAi3f9oTLcg==}
+    hasBin: true
+
+  '@stricli/core@1.1.1':
+    resolution: {integrity: sha512-pobySbkEtm1x/Kx42EqS9pDi/7ewSfIV3l6P7pPLp1b2ehWyIqfNoLKdWb9nrwnhwrfYwYaCGQMWZgWcgj4UFg==}
+
   '@tailwindcss/typography@0.5.15':
     resolution: {integrity: sha512-AqhlCXl+8grUz8uqExv5OTtgpjuVIwFTSXTrh8y9/pw6q2ek7fJ+Y8ZEVw7EB2DCcuCOtEjf9w3+J3rzts01uA==}
     peerDependencies:
@@ -2533,10 +2543,6 @@ packages:
 
   comma-separated-tokens@2.0.3:
     resolution: {integrity: sha512-Fu4hJdvzeylCfQPp9SGWidpzrMs7tTrlu6Vb8XGaRGck8QSNZJJp538Wrb60Lax4fPwR64ViY468OIUTbRlGZg==}
-
-  commander@12.1.0:
-    resolution: {integrity: sha512-Vw8qHK3bZM9y/P10u3Vib8o/DdkvA2OtPtZvD871QKjy74Wj1WSKFILMPRPSdUSx5RFK1arlJzEtA4PkFgnbuA==}
-    engines: {node: '>=18'}
 
   commander@2.20.3:
     resolution: {integrity: sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==}
@@ -7297,6 +7303,12 @@ snapshots:
 
   '@shikijs/vscode-textmate@9.3.0': {}
 
+  '@stricli/auto-complete@1.1.1':
+    dependencies:
+      '@stricli/core': 1.1.1
+
+  '@stricli/core@1.1.1': {}
+
   '@tailwindcss/typography@0.5.15(tailwindcss@3.4.15)':
     dependencies:
       lodash.castarray: 4.4.0
@@ -8225,8 +8237,6 @@ snapshots:
       delayed-stream: 1.0.0
 
   comma-separated-tokens@2.0.3: {}
-
-  commander@12.1.0: {}
 
   commander@2.20.3:
     optional: true
