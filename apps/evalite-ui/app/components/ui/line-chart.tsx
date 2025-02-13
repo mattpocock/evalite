@@ -28,7 +28,6 @@ export function MyLineChart(props: {
       className="h-24 overflow-visible max-w-[120ch] -mb-6 w-full"
     >
       <AreaChart
-        accessibilityLayer
         data={props.data.map((s) => ({
           ...s,
           score: Math.round(s.score * 100),
