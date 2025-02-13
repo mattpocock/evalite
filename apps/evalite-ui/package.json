@@ -10,6 +10,9 @@
     "lint": "tsc",
     "test": "vitest run"
   },
+  "overrides": {
+    "react-is": "^19.0.0"
+  },
   "dependencies": {
     "@evalite/core": "workspace:*",
     "@radix-ui/react-avatar": "^1.1.1",
@@ -35,7 +38,7 @@
     "react-dom": "^19.0.0",
     "react-json-tree": "^0.19.0",
     "react-markdown": "^9.0.1",
-    "recharts": "^2.14.1",
+    "recharts": "^2.15.1",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "zod": "^3.23.8"
@@ -44,8 +47,8 @@
     "@tailwindcss/typography": "^0.5.15",
     "@tanstack/router-devtools": "^1.99.6",
     "@tanstack/router-plugin": "^1.99.6",
-    "@types/react": "^18.2.20",
-    "@types/react-dom": "^18.2.7",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
     "@typescript-eslint/eslint-plugin": "^6.7.4",
     "@typescript-eslint/parser": "^6.7.4",
     "@vitejs/plugin-react": "^4.3.4",
