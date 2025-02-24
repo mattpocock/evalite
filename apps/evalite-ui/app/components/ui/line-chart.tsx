@@ -53,6 +53,8 @@ export function MyLineChart(props: {
           dataKey="score"
           type="linear"
           className="--var"
+          fill="var(--color-score)"
+          stroke="var(--color-score)"
           strokeWidth={1}
           activeDot={({
             points,
@@ -73,7 +75,8 @@ export function MyLineChart(props: {
                   {...dotProps}
                   key={key}
                   r={6}
-                  stroke="var(--chart-1)"
+                  fill="var(--color-score)"
+                  stroke="var(--color-score)"
                   cx={dotProps.cx}
                   cy={dotProps.cy}
                   onClick={onClick}
