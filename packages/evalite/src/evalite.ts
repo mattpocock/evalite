@@ -79,12 +79,14 @@ const runTask = async <TInput, TOutput, TExpected>(
           input: opts.input,
           output,
           expected: opts.expected,
+          duration
         });
       } else {
         return createScorer(scorerOrOpts)({
           input: opts.input,
           output,
           expected: opts.expected,
+          duration
         });
       }
     })
