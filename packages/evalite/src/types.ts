@@ -83,6 +83,7 @@ export declare namespace Evalite {
     input: TInput;
     output: TOutput;
     expected?: TExpected;
+    duration?: number;
   };
 
   export type TaskMeta = {
