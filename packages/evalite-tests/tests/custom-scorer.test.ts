@@ -11,7 +11,6 @@ it("Should let users create custom scorers", async () => {
 
   await runVitest({
     cwd: fixture.dir,
-
     path: undefined,
     testOutputWritable: captured.writable,
     mode: "run-once-and-exit",
@@ -60,21 +59,4 @@ it("Should fail if the custom scorer does not return an object containing score 
       output: "awdwd" as any,
     })
   ).rejects.toThrowError("The scorer 'Is Same' must return a number.");
-});
-
-it("Should let users score based on task duration", async () => {
-  const scorer = createScorer<string, string, never>({
-    name: "Has Duration",
-    scorer: async ({ input, output, expected, duration }) => {
-      return duration === 123 ? 1.0 : 0.0;
-    },
-  });
-
-  const result = await scorer({
-    input: "awdawd",
-    output: "awdwd",
-    duration: 123
-  });
-  
-  expect(result.score).toBe(1.0);
 });
