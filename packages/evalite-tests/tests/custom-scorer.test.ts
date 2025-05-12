@@ -11,7 +11,6 @@ it("Should let users create custom scorers", async () => {
 
   await runVitest({
     cwd: fixture.dir,
-
     path: undefined,
     testOutputWritable: captured.writable,
     mode: "run-once-and-exit",
