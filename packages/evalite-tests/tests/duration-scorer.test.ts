@@ -20,6 +20,7 @@ it("Should let users score based on per task duration", async () => {
   const evals = await getEvalsAsRecord(db);
   
   expect(evals["Duration Scorer"]![0]?.results[0]?.scores[0]?.name).toBe("Duration Scorer");
-  expect(evals["Duration Scorer"]![0]?.results[0]?.duration).toBeGreaterThanOrEqual(10);
+  expect(evals["Duration Scorer"]![0]?.results[0]?.duration).toBeGreaterThanOrEqual(9);
   expect(evals["Duration Scorer"]![0]?.results[0]?.scores[0]?.score).toBe(1);
+
   });

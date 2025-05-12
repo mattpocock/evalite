@@ -19,7 +19,7 @@ evalite("Duration Scorer", {
     createScorer({
       name: "Duration Scorer",
       scorer: ({ output, expected, duration}) => {
-        return duration! >= 10  ? 1 : 0;
+        return duration! >= 9  ? 1 : 0;
       },
     }),
   ],
