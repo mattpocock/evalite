@@ -38,6 +38,7 @@ type Flags = {
 export const createProgram = (commands: {
   watch: (opts: ProgramOpts) => void;
   runOnceAtPath: (opts: ProgramOpts) => void;
+  serve: (opts: ProgramOpts) => void;
 }) => {
   const runOnce = buildCommand({
     parameters: commonParameters,
@@ -59,10 +60,21 @@ export const createProgram = (commands: {
     },
   });
 
+  const serve = buildCommand({
+    parameters: commonParameters,
+    func: (flags: Flags, path: string | undefined) => {
+      return commands.serve({ path, threshold: flags.threshold });
+    },
+    docs: {
+      brief: "Serve UI without file watching",
+    },
+  });
+
   const routes = buildRouteMap({
     routes: {
       "run-once": runOnce,
       watch,
+      serve,
       install: buildInstallCommand("evalite", {
         bash: "__evalite_bash_complete",
       }),
@@ -101,6 +113,14 @@ export const program = createProgram({
       scoreThreshold: path.threshold,
       cwd: undefined,
       mode: "run-once-and-exit",
+    });
+  },
+  serve: (path) => {
+    return runVitest({
+      path: path.path,
+      scoreThreshold: path.threshold,
+      cwd: undefined,
+      mode: "serve-without-watching",
     });
   },
 });
