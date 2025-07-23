@@ -79,7 +79,10 @@ const DisplayText = ({
             overflow: "hidden",
           }}
         >
-          <ReactMarkdown className="prose prose-sm" remarkPlugins={[remarkGfm]}>
+          <ReactMarkdown
+            className="prose dark:prose-invert prose-sm"
+            remarkPlugins={[remarkGfm]}
+          >
             {input}
           </ReactMarkdown>
         </div>

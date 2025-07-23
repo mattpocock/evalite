@@ -16,12 +16,12 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <script>
       // Set the theme to system default and listen for changes
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
       function updateTheme(e) {
-        document.documentElement.classList.toggle('dark', e.matches);
+        document.documentElement.classList.toggle("dark", e.matches);
       }
       updateTheme(mediaQuery);
-      mediaQuery.addEventListener('change', updateTheme);
+      mediaQuery.addEventListener("change", updateTheme);
     </script>
   </head>
   <body>
