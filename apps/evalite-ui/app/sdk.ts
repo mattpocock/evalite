@@ -83,3 +83,16 @@ export const serveFile = (filepath: string) => {
 export const downloadFile = (filepath: string) => {
   return `${BASE_URL}/api/file?path=${filepath}&download=true`;
 };
+
+export const triggerRun = async (): Promise<{ success: boolean; message?: string }> => {
+  return safeFetch<{ success: boolean; message?: string }>(
+    `${BASE_URL}/api/trigger-run`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}), // Add empty body to make post request work
+    }
+  );
+};

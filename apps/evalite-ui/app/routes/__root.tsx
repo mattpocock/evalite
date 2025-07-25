@@ -13,8 +13,10 @@ import {
 } from "@tanstack/react-router";
 
 import { lazy } from "react";
+import { Play } from "lucide-react";
 import Logo from "~/components/logo";
 import { getScoreState, Score, type ScoreState } from "~/components/score";
+import { Button } from "~/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
@@ -31,6 +33,7 @@ import {
 } from "~/data/queries";
 import { useSubscribeToSocket } from "~/data/use-subscribe-to-socket";
 import { useServerStateUtils } from "~/hooks/use-server-state-utils";
+import { triggerRun } from "~/sdk";
 import "../tailwind.css";
 import type { Db } from "evalite/db";
 
@@ -88,6 +91,17 @@ export default function App() {
 
   useSubscribeToSocket(queryClient);
 
+  const handleTriggerRun = async () => {
+    try {
+      const result = await triggerRun();
+      if (!result.success) {
+        console.error('Failed to trigger run:', result.message);
+      }
+    } catch (error) {
+      console.error('Error triggering run:', error);
+    }
+  };
+
   return (
     <SidebarProvider>
       <Sidebar className="border-r-0">
@@ -115,6 +129,18 @@ export default function App() {
                   evalStatus={evalStatus}
                   resultStatus={undefined}
                 />
+              </div>
+              <div className="mt-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={serverState.type === "running"}
+                  onClick={() => handleTriggerRun()}
+                  className="w-full"
+                >
+                  <Play className="size-4 mr-1" />
+                  Run all
+                </Button>
               </div>
             </div>
           </SidebarGroup>
