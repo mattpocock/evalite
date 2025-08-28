@@ -106,7 +106,7 @@ export default function App() {
               <p className="text-xs font-medium text-sidebar-foreground/70 mb-2">
                 Summary
               </p>
-              <div className="text-gray-600 font-medium text-2xl">
+              <div className="text-foreground/60 font-medium text-2xl">
                 <Score
                   isRunning={serverState.type === "running"}
                   score={score}
@@ -159,10 +159,10 @@ const EvalSidebarItem = (props: {
         to={`/eval/$name`}
         params={{ name: props.name }}
         className={
-          "flex justify-between text-sm px-2 py-1 rounded hover:bg-gray-100 transition-colors"
+          "flex justify-between text-sm px-2 py-1 rounded hover:bg-foreground/10 active:bg-foreground/20 transition-colors"
         }
         activeProps={{
-          className: "bg-gray-200 text-gray-800 hover:bg-gray-200",
+          className: "bg-foreground/20! text-foreground/80",
         }}
       >
         <span>{props.name}</span>
