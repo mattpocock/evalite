@@ -29,7 +29,7 @@ it("Should report traces from generateText using traceAISDKModel", async () => {
     text: "Hello, world!",
     toolCalls: [
       {
-        args: "{}",
+        input: "{}",
         toolCallId: "abc",
         toolName: "myToolCall",
       },

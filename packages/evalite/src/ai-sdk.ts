@@ -1,28 +1,13 @@
 import { wrapLanguageModel } from "ai";
 import type {
   LanguageModelV2,
+  LanguageModelV2CallOptions,
   LanguageModelV2Middleware,
 } from "@ai-sdk/provider";
 import { reportTrace, shouldReportTrace } from "./traces.js";
 
-type PromptContent = {
-  role: string;
-  content:
-    | string
-    | Array<{
-        type: string;
-        text?: string;
-        toolName?: string;
-        args?: unknown;
-        toolCallId?: string;
-        result?: unknown;
-        isError?: boolean;
-        content?: Array<{ type: string; text?: string }>;
-      }>;
-};
-
 const handlePromptContent = (
-  content: PromptContent["content"][number]
+  content: LanguageModelV2CallOptions["prompt"][number]["content"][number]
 ): unknown => {
   if (typeof content === "string") {
     return {
@@ -41,7 +26,7 @@ const handlePromptContent = (
     return {
       type: "tool-call" as const,
       toolName: content.toolName,
-      args: content.args,
+      input: content.input,
       toolCallId: content.toolCallId,
     };
   }
@@ -50,23 +35,8 @@ const handlePromptContent = (
     return {
       type: "tool-result" as const,
       toolCallId: content.toolCallId,
-      result: content.result,
       toolName: content.toolName,
-      isError: content.isError,
-      content: content.content?.map((c) => {
-        if (c.type === "text") {
-          return {
-            type: "text" as const,
-            text: c.text,
-          };
-        }
-
-        if (c.type === "image") {
-          throw new Error(
-            `Unsupported content type: ${c.type}. Not supported yet.`
-          );
-        }
-      }),
+      output: content.output,
     };
   }
 
@@ -76,7 +46,9 @@ const handlePromptContent = (
   );
 };
 
-const processPromptForTracing = (prompt: PromptContent[]) => {
+const processPromptForTracing = (
+  prompt: LanguageModelV2CallOptions["prompt"]
+) => {
   return prompt.map((prompt) => {
     if (!Array.isArray(prompt.content)) {
       return {
@@ -116,7 +88,7 @@ export const traceAISDKModel = (model: LanguageModelV2): LanguageModelV2 => {
           c.type === "tool-call"
             ? {
                 toolName: c.toolName,
-                args: c.input,
+                input: c.input,
                 toolCallId: c.toolCallId,
               }
             : null
