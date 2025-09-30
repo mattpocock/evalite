@@ -36,7 +36,15 @@ const handlePromptContent = (
       type: "tool-result" as const,
       toolCallId: content.toolCallId,
       toolName: content.toolName,
-      output: content.output,
+      output: (({ type, value }: typeof content.output) => {
+        if (type === "content" && value.find((item) => "media" === item.type)) {
+          throw new Error(
+            `Unsupported content type: ${content.type}. Not supported yet.`
+          );
+        }
+
+        return content.output;
+      })(content.output),
     };
   }
 
