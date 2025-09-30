@@ -157,7 +157,7 @@ export const traceAISDKModel = <T extends LanguageModel>(model: T): T => {
               part
             ): part is {
               type: "finish";
-              totalUsage: {
+              usage: {
                 inputTokens?: number;
                 outputTokens?: number;
                 totalTokens?: number;
@@ -168,7 +168,7 @@ export const traceAISDKModel = <T extends LanguageModel>(model: T): T => {
               "type" in part &&
               part.type === "finish"
           );
-          const usage = finishChunk?.totalUsage;
+          const usage = finishChunk?.usage;
 
           reportTrace({
             start,
