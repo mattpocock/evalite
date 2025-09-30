@@ -24,7 +24,7 @@ it("Should report traces from generateText using traceAISDKModel", async () => {
   expect(evals["AI SDK Traces"]![0]?.results[0]?.traces).toHaveLength(1);
 
   const trace = evals["AI SDK Traces"]![0]?.results[0]?.traces[0];
-
+  console.log(trace?.output);
   expect(trace?.output).toMatchObject({
     text: "Hello, world!",
     toolCalls: [
@@ -60,6 +60,6 @@ it("Should report traces from streamText using traceAISDKModel", async () => {
 
   assert(traces?.[0], "Expected a trace to be reported");
 
-  expect(traces?.[0].completion_tokens).toEqual(10);
-  expect(traces?.[0].prompt_tokens).toEqual(3);
+  expect(traces?.[0].output_tokens).toEqual(10);
+  expect(traces?.[0].input_tokens).toEqual(3);
 });

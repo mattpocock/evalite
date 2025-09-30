@@ -10,9 +10,11 @@
   },
   "dependencies": {
     "evalite": "workspace:*",
-    "strip-ansi": "^7.1.0",
-    "autoevals": "^0.0.108",
-    "@ai-sdk/openai": "^1.0.8",
-    "ai": "^4.0.11"
+    "strip-ansi": "^7.1.2",
+    "autoevals": "^0.0.131",
+    "@ai-sdk/openai": "^2.0.42",
+    "ai": "^5.0.59",
+    "zod": "^3.25.76",
+    "msw": "^2.8.0"
   }
 }

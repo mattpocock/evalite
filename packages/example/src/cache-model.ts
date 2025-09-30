@@ -1,21 +1,16 @@
 import {
-  experimental_wrapLanguageModel,
-  type LanguageModelV1,
-  type LanguageModelV1CallOptions,
+  wrapLanguageModel,
+  type LanguageModel,
+  type LanguageModelMiddleware,
 } from "ai";
 import { createHash } from "node:crypto";
 
-const createKey = (params: LanguageModelV1CallOptions) => {
+const createKey = (
+  params: Parameters<
+    NonNullable<LanguageModelMiddleware["wrapGenerate"]>
+  >[0]["params"]
+) => {
   return createHash("sha256").update(JSON.stringify(params)).digest("hex");
-};
-
-const createResultFromCachedObject = (
-  obj: any
-): Awaited<ReturnType<LanguageModelV1["doGenerate"]>> => {
-  if (obj?.response?.timestamp) {
-    obj.response.timestamp = new Date(obj.response.timestamp);
-  }
-  return obj as any;
 };
 
 export type StorageValue = string | number | null | object;
@@ -25,9 +20,12 @@ export type CacheStore = {
   set: (key: string, value: StorageValue) => Promise<void>;
 };
 
-export const cacheModel = (model: LanguageModelV1, storage: CacheStore) => {
-  return experimental_wrapLanguageModel({
-    model,
+export const cacheModel = <T extends LanguageModel>(
+  model: T,
+  storage: CacheStore
+): T => {
+  return wrapLanguageModel({
+    model: model as Parameters<typeof wrapLanguageModel>[0]["model"],
     middleware: {
       wrapGenerate: async (opts) => {
         const key = createKey(opts.params);
@@ -35,15 +33,43 @@ export const cacheModel = (model: LanguageModelV1, storage: CacheStore) => {
         const resultFromCache = await storage.get(key);
 
         if (resultFromCache && typeof resultFromCache === "object") {
-          const result = createResultFromCachedObject(resultFromCache);
+          // Type the cached result
+          const cachedResult = resultFromCache as {
+            content: unknown[];
+            finishReason: string;
+            usage: {
+              inputTokens: number;
+              outputTokens: number;
+              totalTokens: number;
+            };
+            providerMetadata?: unknown;
+            request?: unknown;
+            response?: {
+              timestamp?: string | Date;
+              [key: string]: unknown;
+            };
+            warnings?: unknown[];
+          };
+
+          // Convert timestamp if needed
+          if (
+            cachedResult.response?.timestamp &&
+            typeof cachedResult.response.timestamp === "string"
+          ) {
+            cachedResult.response.timestamp = new Date(
+              cachedResult.response.timestamp
+            );
+          }
 
           // Reset the tokens to 0 to show in the UI
           // that they were cached.
-          result.usage.promptTokens = 0;
-          result.usage.completionTokens = 0;
+          cachedResult.usage.inputTokens = 0;
+          cachedResult.usage.outputTokens = 0;
+          cachedResult.usage.totalTokens = 0;
 
-          return result;
+          return cachedResult as Awaited<ReturnType<typeof opts.doGenerate>>;
         }
+
         const generated = await opts.doGenerate();
 
         await storage.set(key, JSON.stringify(generated));
@@ -51,5 +77,5 @@ export const cacheModel = (model: LanguageModelV1, storage: CacheStore) => {
         return generated;
       },
     },
-  });
+  }) as T;
 };

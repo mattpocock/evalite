@@ -1,13 +1,28 @@
 import {
-  experimental_wrapLanguageModel,
-  type LanguageModelV1,
-  type LanguageModelV1StreamPart,
-  type LanguageModelV1CallOptions,
+  wrapLanguageModel,
+  type LanguageModel,
+  type LanguageModelMiddleware,
 } from "ai";
 import { reportTrace, shouldReportTrace } from "./traces.js";
 
+type PromptContent = {
+  role: string;
+  content:
+    | string
+    | Array<{
+        type: string;
+        text?: string;
+        toolName?: string;
+        args?: unknown;
+        toolCallId?: string;
+        result?: unknown;
+        isError?: boolean;
+        content?: Array<{ type: string; text?: string }>;
+      }>;
+};
+
 const handlePromptContent = (
-  content: LanguageModelV1CallOptions["prompt"][number]["content"][number]
+  content: PromptContent["content"][number]
 ): unknown => {
   if (typeof content === "string") {
     return {
@@ -38,17 +53,17 @@ const handlePromptContent = (
       result: content.result,
       toolName: content.toolName,
       isError: content.isError,
-      content: content.content?.map((content) => {
-        if (content.type === "text") {
+      content: content.content?.map((c) => {
+        if (c.type === "text") {
           return {
             type: "text" as const,
-            text: content.text,
+            text: c.text,
           };
         }
 
-        if (content.type === "image") {
+        if (c.type === "image") {
           throw new Error(
-            `Unsupported content type: ${content.type}. Not supported yet.`
+            `Unsupported content type: ${c.type}. Not supported yet.`
           );
         }
       }),
@@ -56,16 +71,12 @@ const handlePromptContent = (
   }
 
   // Unsupported content types are image and file
-  content.type satisfies "image" | "file";
-
   throw new Error(
     `Unsupported content type: ${content.type}. Not supported yet.`
   );
 };
 
-const processPromptForTracing = (
-  prompt: LanguageModelV1CallOptions["prompt"]
-) => {
+const processPromptForTracing = (prompt: PromptContent[]) => {
   return prompt.map((prompt) => {
     if (!Array.isArray(prompt.content)) {
       return {
@@ -83,62 +94,107 @@ const processPromptForTracing = (
   });
 };
 
-export const traceAISDKModel = (model: LanguageModelV1): LanguageModelV1 => {
+export const traceAISDKModel = <T extends LanguageModel>(model: T): T => {
   if (!shouldReportTrace()) return model;
-  return experimental_wrapLanguageModel({
-    model,
-    middleware: {
-      wrapGenerate: async (opts) => {
-        const start = performance.now();
-        const generated = await opts.doGenerate();
-        const end = performance.now();
 
-        reportTrace({
-          output: {
-            text: generated.text ?? "",
-            toolCalls: generated.toolCalls,
-          },
-          input: processPromptForTracing(opts.params.prompt),
-          usage: generated.usage,
-          start,
-          end,
-        });
+  const middleware: LanguageModelMiddleware = {
+    wrapGenerate: async (opts) => {
+      const start = performance.now();
+      const generated = await opts.doGenerate();
+      const end = performance.now();
 
-        return generated;
-      },
-      wrapStream: async ({ doStream, params, model }) => {
-        const start = performance.now();
-        const { stream, ...rest } = await doStream();
+      // Extract text from content array
+      const textContent = generated.content
+        .filter((c) => c.type === "text")
+        .map((c) => (c.type === "text" ? c.text : ""))
+        .join("");
 
-        const fullResponse: LanguageModelV1StreamPart[] = [];
+      // Extract tool calls from content array
+      const toolCalls = generated.content
+        .filter((c) => c.type === "tool-call")
+        .map((c) =>
+          c.type === "tool-call"
+            ? {
+                toolName: c.toolName,
+                args: c.input,
+                toolCallId: c.toolCallId,
+              }
+            : null
+        )
+        .filter((c): c is NonNullable<typeof c> => c !== null);
 
-        const transformStream = new TransformStream<
-          LanguageModelV1StreamPart,
-          LanguageModelV1StreamPart
-        >({
-          transform(chunk, controller) {
-            fullResponse.push(chunk);
-            controller.enqueue(chunk);
-          },
-          flush() {
-            const usage = fullResponse.find(
-              (part) => part.type === "finish"
-            )?.usage;
-            reportTrace({
-              start,
-              end: performance.now(),
-              input: processPromptForTracing(params.prompt),
-              output: fullResponse,
-              usage,
-            });
-          },
-        });
+      reportTrace({
+        output: {
+          text: textContent,
+          toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+        },
+        input: processPromptForTracing(opts.params.prompt),
+        usage: {
+          inputTokens: generated.usage.inputTokens ?? 0,
+          outputTokens: generated.usage.outputTokens ?? 0,
+          totalTokens: generated.usage.totalTokens ?? 0,
+        },
+        start,
+        end,
+      });
 
-        return {
-          stream: stream.pipeThrough(transformStream),
-          ...rest,
-        };
-      },
+      return generated;
     },
-  });
+    wrapStream: async ({ doStream, params }) => {
+      const start = performance.now();
+      const { stream, ...rest } = await doStream();
+
+      const fullResponse: unknown[] = [];
+
+      const transformStream = new TransformStream({
+        transform(chunk, controller) {
+          fullResponse.push(chunk);
+          controller.enqueue(chunk);
+        },
+        flush() {
+          const finishChunk = fullResponse.find(
+            (
+              part
+            ): part is {
+              type: "finish";
+              totalUsage: {
+                inputTokens?: number;
+                outputTokens?: number;
+                totalTokens?: number;
+              };
+            } =>
+              typeof part === "object" &&
+              part !== null &&
+              "type" in part &&
+              part.type === "finish"
+          );
+          const usage = finishChunk?.totalUsage;
+
+          reportTrace({
+            start,
+            end: performance.now(),
+            input: processPromptForTracing(params.prompt),
+            output: fullResponse,
+            usage: usage
+              ? {
+                  inputTokens: usage.inputTokens ?? 0,
+                  outputTokens: usage.outputTokens ?? 0,
+                  totalTokens: usage.totalTokens ?? 0,
+                }
+              : undefined,
+          });
+        },
+      });
+
+      return {
+        stream: stream.pipeThrough(transformStream),
+        ...rest,
+      };
+    },
+  };
+
+  return wrapLanguageModel({
+    model: model as Parameters<typeof wrapLanguageModel>[0]["model"],
+    middleware,
+  }) as T;
 };

@@ -1,25 +1,27 @@
-import { streamText } from "ai";
-import { MockLanguageModelV1, simulateReadableStream } from "ai/test";
+import { streamText, simulateReadableStream } from "ai";
+import { MockLanguageModelV2 } from "ai/test";
 import { Levenshtein } from "autoevals";
 import { evalite } from "evalite";
 import { traceAISDKModel } from "evalite/ai-sdk";
 
-const model = new MockLanguageModelV1({
-  doStream: async () => ({
+const model = new MockLanguageModelV2({
+  doStream: async (options) => ({
     stream: simulateReadableStream({
       chunks: [
-        { type: "text-delta", textDelta: "Hello" },
-        { type: "text-delta", textDelta: ", " },
-        { type: "text-delta", textDelta: `world!` },
+        { type: "text-delta", id: "1", delta: "Hello" },
+        { type: "text-delta", id: "1", delta: ", " },
+        { type: "text-delta", id: "1", delta: `world!` },
         {
           type: "finish",
           finishReason: "stop",
           logprobs: undefined,
-          usage: { completionTokens: 10, promptTokens: 3 },
+          usage: { outputTokens: 10, inputTokens: 3, totalTokens: 13 },
         },
       ],
     }),
     rawCall: { rawPrompt: null, rawSettings: {} },
+    request: undefined,
+    response: undefined,
   }),
 });
 

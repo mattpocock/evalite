@@ -263,8 +263,9 @@ export default class EvaliteReporter extends BasicReporter {
                   output: trace.output,
                   start: trace.start,
                   end: trace.end,
-                  promptTokens: trace.usage?.promptTokens,
-                  completionTokens: trace.usage?.completionTokens,
+                  inputTokens: trace.usage?.inputTokens,
+                  outputTokens: trace.usage?.outputTokens,
+                  totalTokens: trace.usage?.totalTokens,
                   order: traceOrder,
                 });
               }
