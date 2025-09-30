@@ -15,7 +15,7 @@ const model = new MockLanguageModelV2({
           type: "finish",
           finishReason: "stop",
           logprobs: undefined,
-          usage: { outputTokens: 10, inputTokens: 3, totalTokens: 13 },
+          usage: { outputTokens: 10, inputTokens: 3, totalTokens: 14 },
         },
       ],
     }),

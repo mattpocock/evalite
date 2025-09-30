@@ -59,6 +59,7 @@ it("Should report traces from streamText using traceAISDKModel", async () => {
 
   assert(traces?.[0], "Expected a trace to be reported");
 
-  expect(traces?.[0].output_tokens).toEqual(10);
   expect(traces?.[0].input_tokens).toEqual(3);
+  expect(traces?.[0].output_tokens).toEqual(10);
+  expect(traces?.[0].total_tokens).toEqual(14);
 });
