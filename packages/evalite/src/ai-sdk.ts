@@ -1,8 +1,8 @@
-import {
-  wrapLanguageModel,
-  type LanguageModel,
-  type LanguageModelMiddleware,
-} from "ai";
+import { wrapLanguageModel } from "ai";
+import type {
+  LanguageModelV2,
+  LanguageModelV2Middleware,
+} from "@ai-sdk/provider";
 import { reportTrace, shouldReportTrace } from "./traces.js";
 
 type PromptContent = {
@@ -94,10 +94,10 @@ const processPromptForTracing = (prompt: PromptContent[]) => {
   });
 };
 
-export const traceAISDKModel = <T extends LanguageModel>(model: T): T => {
+export const traceAISDKModel = (model: LanguageModelV2): LanguageModelV2 => {
   if (!shouldReportTrace()) return model;
 
-  const middleware: LanguageModelMiddleware = {
+  const middleware: LanguageModelV2Middleware = {
     wrapGenerate: async (opts) => {
       const start = performance.now();
       const generated = await opts.doGenerate();
@@ -194,7 +194,7 @@ export const traceAISDKModel = <T extends LanguageModel>(model: T): T => {
   };
 
   return wrapLanguageModel({
-    model: model as Parameters<typeof wrapLanguageModel>[0]["model"],
+    model,
     middleware,
-  }) as T;
+  });
 };
