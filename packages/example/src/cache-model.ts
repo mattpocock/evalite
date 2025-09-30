@@ -1,16 +1,21 @@
+import { wrapLanguageModel, type LanguageModel } from "ai";
 import {
-  wrapLanguageModel,
-  type LanguageModel,
-  type LanguageModelMiddleware,
-} from "ai";
+  type LanguageModelV2,
+  type LanguageModelV2CallOptions,
+} from "@ai-sdk/provider";
 import { createHash } from "node:crypto";
 
-const createKey = (
-  params: Parameters<
-    NonNullable<LanguageModelMiddleware["wrapGenerate"]>
-  >[0]["params"]
-) => {
+const createKey = (params: LanguageModelV2CallOptions) => {
   return createHash("sha256").update(JSON.stringify(params)).digest("hex");
+};
+
+const createResultFromCachedObject = (
+  obj: any
+): Awaited<ReturnType<LanguageModelV2["doGenerate"]>> => {
+  if (obj?.response?.timestamp) {
+    obj.response.timestamp = new Date(obj.response.timestamp);
+  }
+  return obj as any;
 };
 
 export type StorageValue = string | number | null | object;
@@ -20,12 +25,12 @@ export type CacheStore = {
   set: (key: string, value: StorageValue) => Promise<void>;
 };
 
-export const cacheModel = <T extends LanguageModel>(
-  model: T,
+export const cacheModel = (
+  model: LanguageModelV2,
   storage: CacheStore
-): T => {
+): LanguageModelV2 => {
   return wrapLanguageModel({
-    model: model as Parameters<typeof wrapLanguageModel>[0]["model"],
+    model,
     middleware: {
       wrapGenerate: async (opts) => {
         const key = createKey(opts.params);
@@ -33,41 +38,15 @@ export const cacheModel = <T extends LanguageModel>(
         const resultFromCache = await storage.get(key);
 
         if (resultFromCache && typeof resultFromCache === "object") {
-          // Type the cached result
-          const cachedResult = resultFromCache as {
-            content: unknown[];
-            finishReason: string;
-            usage: {
-              inputTokens: number;
-              outputTokens: number;
-              totalTokens: number;
-            };
-            providerMetadata?: unknown;
-            request?: unknown;
-            response?: {
-              timestamp?: string | Date;
-              [key: string]: unknown;
-            };
-            warnings?: unknown[];
-          };
-
-          // Convert timestamp if needed
-          if (
-            cachedResult.response?.timestamp &&
-            typeof cachedResult.response.timestamp === "string"
-          ) {
-            cachedResult.response.timestamp = new Date(
-              cachedResult.response.timestamp
-            );
-          }
+          const result = createResultFromCachedObject(resultFromCache);
 
           // Reset the tokens to 0 to show in the UI
           // that they were cached.
-          cachedResult.usage.inputTokens = 0;
-          cachedResult.usage.outputTokens = 0;
-          cachedResult.usage.totalTokens = 0;
+          result.usage.inputTokens = 0;
+          result.usage.outputTokens = 0;
+          result.usage.totalTokens = 0;
 
-          return cachedResult as Awaited<ReturnType<typeof opts.doGenerate>>;
+          return result as Awaited<ReturnType<typeof opts.doGenerate>>;
         }
 
         const generated = await opts.doGenerate();
@@ -77,5 +56,5 @@ export const cacheModel = <T extends LanguageModel>(
         return generated;
       },
     },
-  }) as T;
+  });
 };

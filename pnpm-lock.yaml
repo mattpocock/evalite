@@ -277,6 +277,9 @@ importers:
       '@ai-sdk/openai':
         specifier: ^2.0.42
         version: 2.0.42(zod@3.25.76)
+      '@ai-sdk/provider':
+        specifier: ^2.0.0
+        version: 2.0.0
       ai:
         specifier: ^5.0.59
         version: 5.0.59(zod@3.25.76)
