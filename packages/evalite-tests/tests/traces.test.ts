@@ -35,6 +35,7 @@ it("Should report traces from reportTrace", async () => {
             start_time: 0,
             output_tokens: 1,
             input_tokens: 1,
+            total_tokens: 2,
           },
         ],
       },

@@ -12,9 +12,10 @@ it("Should report traces from generateText using traceAISDKModel", async () => {
 
   await runVitest({
     cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
     mode: "run-once-and-exit",
+    path: undefined,
+    scoreThreshold: 50,
+    testOutputWritable: captured.writable,
   });
 
   const db = createDatabase(fixture.dbLocation);
@@ -24,14 +25,12 @@ it("Should report traces from generateText using traceAISDKModel", async () => {
   expect(evals["AI SDK Traces"]![0]?.results[0]?.traces).toHaveLength(1);
 
   const trace = evals["AI SDK Traces"]![0]?.results[0]?.traces[0];
-  console.log(trace?.output);
   expect(trace?.output).toMatchObject({
     text: "Hello, world!",
     toolCalls: [
       {
         args: "{}",
         toolCallId: "abc",
-        toolCallType: "function",
         toolName: "myToolCall",
       },
     ],
