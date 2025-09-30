@@ -32,19 +32,20 @@ const handlePromptContent = (
   }
 
   if (content.type === "tool-result") {
+    const output = content.output;
+
+    // Check for unsupported media content
+    if (output.type === "content" && output.value.find((item) => item.type === "media")) {
+      throw new Error(
+        `Unsupported content type: media in tool-result. Not supported yet.`
+      );
+    }
+
     return {
       type: "tool-result" as const,
       toolCallId: content.toolCallId,
       toolName: content.toolName,
-      output: (({ type, value }: typeof content.output) => {
-        if (type === "content" && value.find((item) => "media" === item.type)) {
-          throw new Error(
-            `Unsupported content type: ${content.type}. Not supported yet.`
-          );
-        }
-
-        return content.output;
-      })(content.output),
+      output: content.output,
     };
   }
 
