@@ -3,6 +3,7 @@ import type {
   LanguageModelV2,
   LanguageModelV2CallOptions,
   LanguageModelV2Middleware,
+  LanguageModelV2StreamPart,
 } from "@ai-sdk/provider";
 import { reportTrace, shouldReportTrace } from "./traces.js";
 
@@ -35,7 +36,10 @@ const handlePromptContent = (
     const output = content.output;
 
     // Check for unsupported media content
-    if (output.type === "content" && output.value.find((item) => item.type === "media")) {
+    if (
+      output.type === "content" &&
+      output.value.find((item) => item.type === "media")
+    ) {
       throw new Error(
         `Unsupported content type: media in tool-result. Not supported yet.`
       );
@@ -85,13 +89,11 @@ export const traceAISDKModel = (model: LanguageModelV2): LanguageModelV2 => {
         const generated = await opts.doGenerate();
         const end = performance.now();
 
-        // Extract text from content array
         const textContent = generated.content
           .filter((c) => c.type === "text")
-          .map((c) => (c.type === "text" ? c.text : ""))
+          .map((c) => c.text)
           .join("");
 
-        // Extract tool calls from content array
         const toolCalls = generated.content
           .filter((c) => c.type === "tool-call")
           .map((c) =>
@@ -103,12 +105,12 @@ export const traceAISDKModel = (model: LanguageModelV2): LanguageModelV2 => {
                 }
               : null
           )
-          .filter((c): c is NonNullable<typeof c> => c !== null);
+          .filter(Boolean);
 
         reportTrace({
           output: {
             text: textContent,
-            toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+            toolCalls,
           },
           input: processPromptForTracing(opts.params.prompt),
           usage: {
@@ -126,31 +128,20 @@ export const traceAISDKModel = (model: LanguageModelV2): LanguageModelV2 => {
         const start = performance.now();
         const { stream, ...rest } = await doStream();
 
-        const fullResponse: unknown[] = [];
+        const fullResponse: LanguageModelV2StreamPart[] = [];
 
-        const transformStream = new TransformStream({
+        const transformStream = new TransformStream<
+          LanguageModelV2StreamPart,
+          LanguageModelV2StreamPart
+        >({
           transform(chunk, controller) {
             fullResponse.push(chunk);
             controller.enqueue(chunk);
           },
           flush() {
-            const finishChunk = fullResponse.find(
-              (
-                part
-              ): part is {
-                type: "finish";
-                usage: {
-                  inputTokens?: number;
-                  outputTokens?: number;
-                  totalTokens?: number;
-                };
-              } =>
-                typeof part === "object" &&
-                part !== null &&
-                "type" in part &&
-                part.type === "finish"
-            );
-            const usage = finishChunk?.usage;
+            const usage = fullResponse.find(
+              (part) => part.type === "finish"
+            )?.usage;
 
             reportTrace({
               start,

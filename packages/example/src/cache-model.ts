@@ -46,7 +46,7 @@ export const cacheModel = (
           result.usage.outputTokens = 0;
           result.usage.totalTokens = 0;
 
-          return result as Awaited<ReturnType<typeof opts.doGenerate>>;
+          return result;
         }
 
         const generated = await opts.doGenerate();
