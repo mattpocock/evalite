@@ -1,9 +1,17 @@
-import { mkdir } from "fs/promises";
+import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { Writable } from "stream";
 import { createVitest, registerConsoleShortcuts } from "vitest/node";
 import EvaliteReporter from "./reporter.js";
-import { createDatabase } from "./db.js";
+import {
+  createDatabase,
+  getMostRecentRun,
+  getEvals,
+  getEvalsAverageScores,
+  type SQLiteDatabase,
+  getResults,
+  getScores,
+} from "./db.js";
 import { createServer } from "./server.js";
 import { DEFAULT_SERVER_PORT } from "./constants.js";
 import { DB_LOCATION, FILES_LOCATION } from "./backend-only-constants.js";
@@ -14,12 +22,67 @@ declare module "vitest" {
   }
 }
 
+const exportResultsToJSON = async (opts: {
+  db: SQLiteDatabase;
+  outputPath: string;
+  cwd: string;
+}) => {
+  const latestFullRun = getMostRecentRun(opts.db, "full");
+
+  if (!latestFullRun) {
+    console.warn("No completed run found to export");
+    return;
+  }
+
+  const allEvals = getEvals(opts.db, [latestFullRun.id], ["fail", "success"]);
+  const evalResults = getResults(
+    opts.db,
+    allEvals.map((e) => e.id).filter((i) => typeof i === "number"),
+  );
+
+  const scores = getScores(
+    opts.db,
+    evalResults.map((r) => r.id),
+  );
+
+  const evalsAverageScores = getEvalsAverageScores(
+    opts.db,
+    allEvals.map((e) => e.id),
+  );
+
+  const results = evalResults.map((result) => {
+    return {
+      ...result,
+      average: evalsAverageScores.find((e) => e.eval_id === result.eval_id)
+        ?.average,
+      scores: scores.filter((s) => s.result_id === result.id),
+    };
+  });
+
+  const outputData = {
+    runId: latestFullRun.id,
+    runType: latestFullRun.runType,
+    created_at: latestFullRun.created_at,
+    evals: results,
+  };
+
+  const absolutePath = path.isAbsolute(opts.outputPath)
+    ? opts.outputPath
+    : path.join(opts.cwd, opts.outputPath);
+
+  await mkdir(path.dirname(absolutePath), { recursive: true });
+  await writeFile(absolutePath, JSON.stringify(outputData, null, 2), "utf-8");
+
+  console.log(`\nResults exported to: ${absolutePath}`);
+};
+
 export const runVitest = async (opts: {
   path: string | undefined;
   cwd: string | undefined;
   testOutputWritable?: Writable;
   mode: "watch-for-file-changes" | "run-once-and-exit";
   scoreThreshold?: number;
+  outputPath?: string;
 }) => {
   const dbLocation = path.join(opts.cwd ?? "", DB_LOCATION);
   const filesLocation = path.join(opts.cwd ?? "", FILES_LOCATION);
@@ -28,7 +91,7 @@ export const runVitest = async (opts: {
 
   const db = createDatabase(dbLocation);
   const filters = opts.path ? [opts.path] : undefined;
-
+  console.log("here", opts.outputPath);
   process.env.EVALITE_REPORT_TRACES = "true";
 
   let server: ReturnType<typeof createServer> | undefined = undefined;
@@ -85,7 +148,7 @@ export const runVitest = async (opts: {
     {
       stdout: opts.testOutputWritable || process.stdout,
       stderr: opts.testOutputWritable || process.stderr,
-    }
+    },
   );
 
   vitest.provide("cwd", opts.cwd ?? "");
@@ -95,12 +158,20 @@ export const runVitest = async (opts: {
   const dispose = registerConsoleShortcuts(
     vitest,
     process.stdin,
-    process.stdout
+    process.stdout,
   );
 
   if (!vitest.shouldKeepServer()) {
     dispose();
     await vitest.close();
+
+    if (opts.outputPath) {
+      await exportResultsToJSON({
+        db,
+        outputPath: opts.outputPath,
+        cwd: opts.cwd ?? "",
+      });
+    }
 
     if (typeof exitCode === "number") {
       process.exit(exitCode);

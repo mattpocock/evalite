@@ -13,6 +13,7 @@ const packageJson = createRequire(import.meta.url)(
 type ProgramOpts = {
   path: string | undefined;
   threshold: number | undefined;
+  outputPath: string | undefined;
 };
 
 const commonParameters = {
@@ -28,11 +29,19 @@ const commonParameters = {
         "Fails the process if the score is below threshold. Specified as 0-100. Default is 100.",
       optional: true,
     },
+    outputPath: {
+      kind: "parsed",
+      parse: String,
+      brief:
+        "Path to write test results in JSON format after evaluation completes.",
+      optional: true,
+    },
   },
 } as const;
 
 type Flags = {
   threshold: number | undefined;
+  outputPath: string | undefined;
 };
 
 export const createProgram = (commands: {
@@ -42,7 +51,7 @@ export const createProgram = (commands: {
   const runOnce = buildCommand({
     parameters: commonParameters,
     func: async (flags: Flags, path: string | undefined) => {
-      return commands.runOnceAtPath({ path, threshold: flags.threshold });
+      return commands.runOnceAtPath({ path, threshold: flags.threshold, outputPath: flags.outputPath });
     },
     docs: {
       brief: "Run evals at specified path once and exit",
@@ -52,7 +61,7 @@ export const createProgram = (commands: {
   const watch = buildCommand({
     parameters: commonParameters,
     func: (flags: Flags, path: string | undefined) => {
-      return commands.watch({ path, threshold: flags.threshold });
+      return commands.watch({ path, threshold: flags.threshold, outputPath: flags.outputPath });
     },
     docs: {
       brief: "Watch evals for file changes",
@@ -93,6 +102,7 @@ export const program = createProgram({
       scoreThreshold: path.threshold,
       cwd: undefined,
       mode: "watch-for-file-changes",
+      outputPath: path.outputPath,
     });
   },
   runOnceAtPath: (path) => {
@@ -101,6 +111,7 @@ export const program = createProgram({
       scoreThreshold: path.threshold,
       cwd: undefined,
       mode: "run-once-and-exit",
+      outputPath: path.outputPath,
     });
   },
 });
