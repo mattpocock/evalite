@@ -91,7 +91,6 @@ export const runVitest = async (opts: {
 
   const db = createDatabase(dbLocation);
   const filters = opts.path ? [opts.path] : undefined;
-  console.log("here", opts.outputPath);
   process.env.EVALITE_REPORT_TRACES = "true";
 
   let server: ReturnType<typeof createServer> | undefined = undefined;
