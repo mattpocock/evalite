@@ -1,3 +1,7 @@
+import type { Custom, File } from "@vitest/runner";
+import c from "tinyrainbow";
+import type { RunnerTestFile, Test } from "vitest";
+import { DefaultReporter, type Reporter } from "vitest/reporters";
 import {
   createEvalIfNotExists,
   createRun,
@@ -10,16 +14,18 @@ import {
   updateResult,
   type SQLiteDatabase,
 } from "./db.js";
-import type { Custom } from "@vitest/runner";
+import type { Evalite } from "./types.js";
+import { average, EvaliteFile } from "./utils.js";
+import type {
+  TestCase,
+  TestModule,
+  TestModuleState,
+  TestSpecification,
+  Vitest,
+} from "vitest/node.js";
 import { getTests, hasFailed } from "@vitest/runner/utils";
 import { table } from "table";
-import c from "tinyrainbow";
 import { inspect } from "util";
-import type { RunnerTask, RunnerTestFile, TaskResultPack, Test } from "vitest";
-import { BasicReporter } from "vitest/reporters";
-import { average } from "./utils.js";
-import type { Evalite } from "./types.js";
-import { EvaliteFile } from "./utils.js";
 
 export interface EvaliteReporterOptions {
   isWatching: boolean;
@@ -74,14 +80,20 @@ type ReporterEvent =
       initialResult: Evalite.InitialResult;
     };
 
-export default class EvaliteReporter extends BasicReporter {
+export default class EvaliteReporter
+  extends DefaultReporter
+  implements Reporter
+{
   private opts: EvaliteReporterOptions;
   private state: Evalite.ServerState = { type: "idle" };
   private didLastRunFailThreshold: "yes" | "no" | "unknown" = "unknown";
 
   // private server: Server;
   constructor(opts: EvaliteReporterOptions) {
-    super();
+    super({
+      summary: true,
+      isTTY: process.stdout.isTTY,
+    });
     this.opts = opts;
   }
   override onInit(ctx: any): void {
@@ -340,7 +352,7 @@ export default class EvaliteReporter extends BasicReporter {
     super.onWatcherRerun(files, trigger);
   }
 
-  override onFinished = async (
+  override onFinished = (
     files = this.ctx.state.getFiles(),
     errors = this.ctx.state.getUnhandledErrors()
   ) => {
@@ -351,33 +363,31 @@ export default class EvaliteReporter extends BasicReporter {
     super.onFinished(files, errors);
   };
 
-  protected override printTask(file: RunnerTask): void {
-    // Tasks can be files or individual tests, and
-    // this ensures we only print files
-    if (
-      !("filepath" in file) ||
-      !file.result?.state ||
-      file.result?.state === "run"
-    ) {
-      return;
-    }
+  protected override printTestModule(testModule: TestModule): void {
+    const tests = Array.from(testModule.children.allTests());
+  }
 
-    const tests = getTests(file);
+  protected override printTestCase(
+    state: TestModuleState,
+    test: TestCase
+  ): void {
+    const meta = test.meta();
+    const result = test.result();
 
-    const hasNoEvalite = tests.every((t) => !t.meta.evalite);
+    const hasNoEvalite = !meta.evalite;
+
+    this.ctx.logger.log("Fooooooo");
 
     if (hasNoEvalite) {
-      return super.printTask(file);
+      return super.printTestCase(state, test);
     }
 
     const scores: number[] = [];
 
-    const failed = tests.some((t) => t.result?.state === "fail");
+    const failed = result.state === "failed";
 
-    for (const { meta } of tests) {
-      if (meta.evalite?.result) {
-        scores.push(...meta.evalite!.result.scores.map((s) => s.score ?? 0));
-      }
+    if (meta.evalite?.result) {
+      scores.push(...meta.evalite!.result.scores.map((s) => s.score ?? 0));
     }
 
     const totalScore = scores.reduce((a, b) => a + b, 0);
@@ -387,10 +397,10 @@ export default class EvaliteReporter extends BasicReporter {
 
     const toLog = [
       ` ${title} `,
-      `${file.name}  `,
-      c.dim(
-        `(${file.tasks.length} ${file.tasks.length > 1 ? "evals" : "eval"})`
-      ),
+      `${test.fullName}  `,
+      // c.dim(
+      //   `(${file.tasks.length} ${file.tasks.length > 1 ? "evals" : "eval"})`
+      // ),
     ];
 
     // if (task.result.duration) {
@@ -400,7 +410,7 @@ export default class EvaliteReporter extends BasicReporter {
     this.ctx.logger.log(toLog.join(""));
   }
 
-  override reportTestSummary(files: RunnerTestFile[], errors: unknown[]): void {
+  override reportTestSummary(files: File[], errors: unknown[]): void {
     /**
      * These tasks are the actual tests that were run
      */
@@ -583,32 +593,32 @@ export default class EvaliteReporter extends BasicReporter {
     );
   }
 
-  onTestStart(test: Test) {
-    if (!test.meta.evalite?.initialResult) {
-      throw new Error("No initial result present");
+  override onTestCaseReady(testCase: TestCase) {
+    const meta = testCase.meta();
+
+    if (meta.evalite?.initialResult) {
+      this.sendEvent({
+        type: "RESULT_STARTED",
+        initialResult: meta.evalite.initialResult,
+      });
     }
 
-    this.sendEvent({
-      type: "RESULT_STARTED",
-      initialResult: test.meta.evalite.initialResult,
-    });
+    super.onTestCaseReady(testCase);
   }
 
-  onTestFinished(test: Test) {
-    if (!test.suite) {
-      throw new Error("No suite present");
-    }
-
-    if (test.meta.evalite?.result) {
+  override onTestCaseResult(testCase: TestCase) {
+    const meta = testCase.meta();
+    if (meta.evalite?.result) {
       this.sendEvent({
         type: "RESULT_SUBMITTED",
-        result: test.meta.evalite.result,
+        result: meta.evalite.result,
       });
 
+      super.onTestCaseResult(testCase);
       return;
     }
 
-    if (!test.meta.evalite?.resultAfterFilesSaved) {
+    if (!meta.evalite?.resultAfterFilesSaved) {
       throw new Error("No usable result present");
     }
 
@@ -618,7 +628,7 @@ export default class EvaliteReporter extends BasicReporter {
     this.sendEvent({
       type: "RESULT_SUBMITTED",
       result: {
-        ...test.meta.evalite.resultAfterFilesSaved,
+        ...meta.evalite.resultAfterFilesSaved,
         status: "fail",
         output: null,
         duration: 0,
@@ -627,35 +637,29 @@ export default class EvaliteReporter extends BasicReporter {
         renderedColumns: [],
       },
     });
-  }
 
-  onTestFilePrepare(file: RunnerTestFile) {}
-  onTestFileFinished(file: RunnerTestFile) {}
-
-  // Taken from https://github.com/vitest-dev/vitest/blob/4e60333dc7235704f96314c34ca510e3901fe61f/packages/vitest/src/node/reporters/task-parser.ts
-  override onTaskUpdate(packs: TaskResultPack[]) {
-    const startingTests: Test[] = [];
-    const finishedTests: Test[] = [];
-
-    for (const pack of packs) {
-      const task = this.ctx.state.idMap.get(pack[0]);
-
-      if (task?.type === "test") {
-        if (task.result?.state === "run") {
-          startingTests.push(task);
-        } else if (task.result?.hooks?.afterEach !== "run") {
-          finishedTests.push(task);
-        }
-      }
-    }
-
-    finishedTests.forEach((test) => this.onTestFinished(test));
-
-    startingTests.forEach((test) => this.onTestStart(test));
-
-    super.onTaskUpdate?.(packs);
+    super.onTestCaseResult(testCase);
   }
 }
+
+// export default class EvaliteReporter
+//   extends DefaultReporter
+//   implements Reporter
+// {
+//   override onTestCaseReady(test: TestCase): void {
+//     console.dir(test.meta(), { depth: null });
+//     super.onTestCaseReady(test);
+//   }
+
+//   override onTestCaseResult(test: TestCase): void {
+//     super.onTestCaseResult(test);
+//   }
+//   onCollected() {
+//     const files = this.ctx.state.getFiles(this.watchFilters);
+//     const errors = this.ctx.state.getUnhandledErrors();
+//     this.reportTestSummary(files, errors);
+//   }
+// }
 
 const displayScore = (_score: number) => {
   const score = Number.isNaN(_score) ? 0 : _score;

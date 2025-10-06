@@ -3,7 +3,7 @@ import { runVitest } from "evalite/runner";
 import { captureStdout, loadFixture } from "./test-utils.js";
 import { createDatabase, getEvals, getEvalsAsRecord } from "evalite/db";
 
-it("Should report the basics correctly", async () => {
+it.only("Should report the basics correctly", async () => {
   using fixture = loadFixture("basics");
 
   const captured = captureStdout();

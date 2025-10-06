@@ -122,17 +122,17 @@ function registerEvalite<TInput, TOutput, TExpected>(
     it.concurrent.for(dataset.map((d, index) => ({ ...d, index })))(
       evalName,
       async (data, { task }) => {
+        task.meta.evalite = {
+          duration: undefined,
+        };
         const cwd = inject("cwd");
 
         const rootDir = path.join(cwd, FILES_LOCATION);
 
-        task.meta.evalite = {
-          duration: undefined,
-          initialResult: {
-            evalName: evalName,
-            filepath: task.file.filepath,
-            order: data.index,
-          },
+        task.meta.evalite.initialResult = {
+          evalName: evalName,
+          filepath: task.file.filepath,
+          order: data.index,
         };
 
         const start = performance.now();
@@ -185,39 +185,36 @@ function registerEvalite<TInput, TOutput, TExpected>(
               handleFilesInColumns(rootDir, columns),
             ]);
 
-          task.meta.evalite = {
-            result: {
-              evalName: evalName,
-              filepath: task.file.filepath,
-              order: data.index,
-              duration,
-              expected: expected,
-              input: input,
-              output: outputWithFiles,
-              scores,
-              traces: tracesWithFiles,
-              status: "success",
-              renderedColumns,
-            },
-            duration: Math.round(performance.now() - start),
+          task.meta.evalite.result = {
+            evalName: evalName,
+            filepath: task.file.filepath,
+            order: data.index,
+            duration,
+            expected: expected,
+            input: input,
+            output: outputWithFiles,
+            scores,
+            traces: tracesWithFiles,
+            status: "success",
+            renderedColumns,
           };
+
+          task.meta.evalite.duration = Math.round(performance.now() - start);
         } catch (e) {
-          task.meta.evalite = {
-            result: {
-              evalName: evalName,
-              filepath: task.file.filepath,
-              order: data.index,
-              duration: Math.round(performance.now() - start),
-              expected: expected,
-              input: input,
-              output: e,
-              scores: [],
-              traces: await handleFilesInTraces(rootDir, traces),
-              status: "fail",
-              renderedColumns: [],
-            },
+          task.meta.evalite.result = {
+            evalName: evalName,
+            filepath: task.file.filepath,
+            order: data.index,
             duration: Math.round(performance.now() - start),
+            expected: expected,
+            input: input,
+            output: e,
+            scores: [],
+            traces: await handleFilesInTraces(rootDir, traces),
+            status: "fail",
+            renderedColumns: [],
           };
+          task.meta.evalite.duration = Math.round(performance.now() - start);
           throw e;
         }
 
