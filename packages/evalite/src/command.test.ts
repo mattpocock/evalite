@@ -6,14 +6,17 @@ describe("createCommand", () => {
   it("evalite without path", async () => {
     const watch = vitest.fn();
     const runOnceAtPath = vitest.fn();
+    const serve = vitest.fn();
     const program = createProgram({
       watch,
       runOnceAtPath,
+      serve,
     });
 
     await run(program, [], { process });
 
     expect(watch).not.toHaveBeenCalled();
+    expect(serve).not.toHaveBeenCalled();
 
     expect(runOnceAtPath).toHaveBeenCalled();
     expect(runOnceAtPath).toHaveBeenCalledWith({
@@ -24,14 +27,17 @@ describe("createCommand", () => {
   it("evalite with path", async () => {
     const watch = vitest.fn();
     const runOnceAtPath = vitest.fn();
+    const serve = vitest.fn();
     const program = createProgram({
       watch,
       runOnceAtPath,
+      serve,
     });
 
     await run(program, ["./src"], { process });
 
     expect(watch).not.toHaveBeenCalled();
+    expect(serve).not.toHaveBeenCalled();
     expect(runOnceAtPath).toHaveBeenCalledWith({
       path: "./src",
     });
@@ -40,9 +46,11 @@ describe("createCommand", () => {
   it("evalite watch", async () => {
     const watch = vitest.fn();
     const runOnceAtPath = vitest.fn();
+    const serve = vitest.fn();
     const program = createProgram({
       watch,
       runOnceAtPath,
+      serve,
     });
 
     await run(program, ["watch"], { process });
@@ -51,14 +59,17 @@ describe("createCommand", () => {
       path: undefined,
     });
     expect(runOnceAtPath).not.toHaveBeenCalled();
+    expect(serve).not.toHaveBeenCalled();
   });
 
   it("evalite watch with path", async () => {
     const watch = vitest.fn();
     const runOnceAtPath = vitest.fn();
+    const serve = vitest.fn();
     const program = createProgram({
       watch,
       runOnceAtPath,
+      serve,
     });
 
     await run(program, ["watch", "./src"], { process });
@@ -67,19 +78,61 @@ describe("createCommand", () => {
       path: "./src",
     });
     expect(runOnceAtPath).not.toHaveBeenCalled();
+    expect(serve).not.toHaveBeenCalled();
+  });
+
+  it("evalite serve", async () => {
+    const watch = vitest.fn();
+    const runOnceAtPath = vitest.fn();
+    const serve = vitest.fn();
+    const program = createProgram({
+      watch,
+      runOnceAtPath,
+      serve,
+    });
+
+    await run(program, ["serve"], { process });
+
+    expect(serve).toHaveBeenCalledWith({
+      path: undefined,
+    });
+    expect(watch).not.toHaveBeenCalled();
+    expect(runOnceAtPath).not.toHaveBeenCalled();
+  });
+
+  it("evalite serve with path", async () => {
+    const watch = vitest.fn();
+    const runOnceAtPath = vitest.fn();
+    const serve = vitest.fn();
+    const program = createProgram({
+      watch,
+      runOnceAtPath,
+      serve,
+    });
+
+    await run(program, ["serve", "./src"], { process });
+
+    expect(serve).toHaveBeenCalledWith({
+      path: "./src",
+    });
+    expect(watch).not.toHaveBeenCalled();
+    expect(runOnceAtPath).not.toHaveBeenCalled();
   });
 
   it("evalite --threshold", async () => {
     const watch = vitest.fn();
     const runOnceAtPath = vitest.fn();
+    const serve = vitest.fn();
     const program = createProgram({
       watch,
       runOnceAtPath,
+      serve,
     });
 
     await run(program, ["--threshold=50"], { process });
 
     expect(watch).not.toHaveBeenCalled();
+    expect(serve).not.toHaveBeenCalled();
     expect(runOnceAtPath).toHaveBeenCalledWith({
       path: undefined,
       threshold: 50,
@@ -89,9 +142,11 @@ describe("createCommand", () => {
   it("evalite watch --threshold", async () => {
     const watch = vitest.fn();
     const runOnceAtPath = vitest.fn();
+    const serve = vitest.fn();
     const program = createProgram({
       watch,
       runOnceAtPath,
+      serve,
     });
 
     await run(program, ["watch", "--threshold=50"], { process });
@@ -100,6 +155,27 @@ describe("createCommand", () => {
       path: undefined,
       threshold: 50,
     });
+    expect(runOnceAtPath).not.toHaveBeenCalled();
+    expect(serve).not.toHaveBeenCalled();
+  });
+
+  it("evalite serve --threshold", async () => {
+    const watch = vitest.fn();
+    const runOnceAtPath = vitest.fn();
+    const serve = vitest.fn();
+    const program = createProgram({
+      watch,
+      runOnceAtPath,
+      serve,
+    });
+
+    await run(program, ["serve", "--threshold=50"], { process });
+
+    expect(serve).toHaveBeenCalledWith({
+      path: undefined,
+      threshold: 50,
+    });
+    expect(watch).not.toHaveBeenCalled();
     expect(runOnceAtPath).not.toHaveBeenCalled();
   });
 });

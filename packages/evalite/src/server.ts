@@ -62,7 +62,10 @@ export const handleWebsockets = (server: fastify.FastifyInstance) => {
   };
 };
 
-export const createServer = (opts: { db: SQLiteDatabase }) => {
+export const createServer = (opts: { 
+  db: SQLiteDatabase;
+  triggerRun?: () => Promise<void>;
+}) => {
   const UI_ROOT = path.join(
     path.dirname(fileURLToPath(import.meta.url)),
     "./ui"
@@ -90,6 +93,23 @@ export const createServer = (opts: { db: SQLiteDatabase }) => {
     Reply: Evalite.ServerState;
   }>("/api/server-state", async (req, reply) => {
     return reply.code(200).send(websockets.getState());
+  });
+
+  server.post("/api/trigger-run", async (req, reply) => {
+    if (opts.triggerRun) {
+      try {
+        await opts.triggerRun();
+        return reply.code(200).send({ success: true });
+      } catch (error) {
+        console.error("Error in triggerRun:", error);
+        return reply.code(500).send({ success: false, message: "Error during run" });
+      }
+    } else {
+      return reply.code(400).send({ 
+        success: false, 
+        message: "Manual run not available" 
+      });
+    }
   });
 
   server.get<{
