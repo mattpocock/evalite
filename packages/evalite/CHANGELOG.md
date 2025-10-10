@@ -1,5 +1,16 @@
 # evalite
 
+## 0.12.0
+
+### Minor Changes
+
+- 474fb8f: Upgrade Tailwind to v4 and introduce dark mode.
+- f9d23fe: Migrate to AI SDK v5
+
+### Patch Changes
+
+- 7866bd7: Fix table truncation appearing too early in terminal output
+
 ## 0.11.6
 
 ### Patch Changes
