@@ -21,11 +21,11 @@ import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import { Factuality, Levenshtein } from "autoevals";
 
-evalite.each({
-  "GPT-4o mini": { model: "gpt-4o-mini", temp: 0.7 },
-  "GPT-4o": { model: "gpt-4o", temp: 0.7 },
-  "Claude Sonnet": { model: "claude-3-5-sonnet", temp: 1.0 },
-})("Compare models", {
+evalite.each([
+  { name: "GPT-4o mini", input: { model: "gpt-4o-mini", temp: 0.7 } },
+  { name: "GPT-4o", input: { model: "gpt-4o", temp: 0.7 } },
+  { name: "Claude Sonnet", input: { model: "claude-3-5-sonnet", temp: 1.0 } },
+])("Compare models", {
   data: async () => [
     { input: "What's the capital of France?", expected: "Paris" },
     { input: "What's the capital of Germany?", expected: "Berlin" },
@@ -44,20 +44,29 @@ evalite.each({
 ## Example: Prompt Comparison
 
 ```ts
-evalite.each({
-  Direct: {
-    system: "Answer concisely.",
+evalite.each([
+  {
+    name: "Direct",
+    input: {
+      system: "Answer concisely.",
+    },
   },
-  "Chain of Thought": {
-    system: "Think step by step, then answer.",
+  {
+    name: "Chain of Thought",
+    input: {
+      system: "Think step by step, then answer.",
+    },
   },
-  "Few-Shot": {
-    system: `Examples:
+  {
+    name: "Few-Shot",
+    input: {
+      system: `Examples:
 Q: What's 2+2? A: 4
 Q: What's 5+3? A: 8
 Now answer the question.`,
+    },
   },
-})("Prompt Strategies", {
+])("Prompt Strategies", {
   data: async () => [
     { input: "What's 12 * 15?", expected: "180" },
     // ...

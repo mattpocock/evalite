@@ -110,19 +110,21 @@ evalite.experimental_skip = <TInput, TOutput, TExpected>(
   opts: Evalite.RunnerOpts<TInput, TOutput, TExpected>
 ) => registerEvalite(evalName, opts, { modifier: "skip" });
 
-evalite.each = <TVariant>(variants: Record<string, TVariant>) => {
+evalite.each = <TVariant>(
+  variants: Array<{ name: string; input: TVariant }>
+) => {
   return <TInput, TOutput, TExpected = TOutput>(
     evalName: string,
     opts: Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant>
   ) => {
-    for (const [variantName, variantValue] of Object.entries(variants)) {
+    for (const variant of variants) {
       registerEvalite(
         evalName,
         {
           ...opts,
-          task: (input) => opts.task(input, variantValue as TVariant),
+          task: (input) => opts.task(input, variant.input),
         },
-        { variantName, variantGroup: evalName }
+        { variantName: variant.name, variantGroup: evalName }
       );
     }
   };

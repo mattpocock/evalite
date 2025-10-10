@@ -1,11 +1,11 @@
 import { evalite } from "evalite";
 import { Levenshtein } from "autoevals";
 
-evalite.each({
-  "Variant A": { suffix: "a" },
-  "Variant B": { suffix: "b" },
-  "Variant C": { suffix: "c" },
-})("Compare models", {
+evalite.each([
+  { name: "Variant A", input: { suffix: "a" } },
+  { name: "Variant B", input: { suffix: "b" } },
+  { name: "Variant C", input: { suffix: "c" } },
+])("Compare models", {
   data: () => {
     return [
       {

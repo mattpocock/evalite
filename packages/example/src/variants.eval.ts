@@ -13,11 +13,14 @@ const storage = createStorage({
   }),
 });
 
-evalite.each({
-  "GPT-4o mini": { model: openai("gpt-4o-mini"), temp: 0.7 },
-  "GPT-4o": { model: openai("gpt-4o"), temp: 0.7 },
-  "GPT-4o mini (temp 0)": { model: openai("gpt-4o-mini"), temp: 0 },
-})("Compare models", {
+evalite.each([
+  { name: "GPT-4o mini", input: { model: openai("gpt-4o-mini"), temp: 0.7 } },
+  { name: "GPT-4o", input: { model: openai("gpt-4o"), temp: 0.7 } },
+  {
+    name: "GPT-4o mini (temp 0)",
+    input: { model: openai("gpt-4o-mini"), temp: 0 },
+  },
+])("Compare models", {
   data: async () => [
     {
       input: `What's the capital of France?`,
