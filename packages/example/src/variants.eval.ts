@@ -14,9 +14,9 @@ const storage = createStorage({
 });
 
 evalite.each({
-  "GPT-4o mini": { model: "gpt-4o-mini", temp: 0.7 },
-  "GPT-4o": { model: "gpt-4o", temp: 0.7 },
-  "GPT-4o mini (temp 0)": { model: "gpt-4o-mini", temp: 0 },
+  "GPT-4o mini": { model: openai("gpt-4o-mini"), temp: 0.7 },
+  "GPT-4o": { model: openai("gpt-4o"), temp: 0.7 },
+  "GPT-4o mini (temp 0)": { model: openai("gpt-4o-mini"), temp: 0 },
 })("Compare models", {
   data: async () => [
     {
@@ -42,7 +42,7 @@ evalite.each({
   ],
   task: async (input, variant) => {
     const result = await generateText({
-      model: traceAISDKModel(cacheModel(openai(variant.model), storage)),
+      model: traceAISDKModel(cacheModel(variant.model, storage)),
       temperature: variant.temp,
       system: `
         Answer the question concisely. Answer in as few words as possible.
