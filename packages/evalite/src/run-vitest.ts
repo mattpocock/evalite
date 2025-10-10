@@ -26,7 +26,7 @@ const createVitestConfig = (opts: {
 }): Parameters<typeof createVitest>[1] => ({
   // Everything passed here cannot be overridden by the user
   root: opts.cwd,
-  include: ["**/*.eval.ts"],
+  include: ["**/*.eval.?(m)ts"],
   watch: opts.watch,
   reporters: [
     new EvaliteReporter({
