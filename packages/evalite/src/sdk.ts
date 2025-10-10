@@ -32,20 +32,8 @@ export const getServerState = async (fetchOpts?: {
   );
 };
 
-export type GetMenuItemsResultEval = {
-  filepath: string;
-  score: number;
-  name: string;
-  prevScore: number | undefined;
-  evalStatus: Db.EvalStatus;
-};
-
-export type GetMenuItemsResult = {
-  evals: GetMenuItemsResultEval[];
-  score: number;
-  prevScore: number | undefined;
-  evalStatus: Db.EvalStatus;
-};
+export type GetMenuItemsResultEval = Evalite.SDK.GetMenuItemsResultEval;
+export type GetMenuItemsResult = Evalite.SDK.GetMenuItemsResult;
 
 export const getMenuItems = async (fetchOpts?: {
   signal?: AbortSignal;
