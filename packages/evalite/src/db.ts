@@ -91,6 +91,15 @@ export const createDatabase = (url: string): BetterSqlite3.Database => {
     `);
   } catch (e) {}
 
+  // Add variant_name and variant_group columns to evals table
+  try {
+    db.exec(`ALTER TABLE evals ADD COLUMN variant_name TEXT`);
+  } catch (e) {}
+
+  try {
+    db.exec(`ALTER TABLE evals ADD COLUMN variant_group TEXT`);
+  } catch (e) {}
+
   return db;
 };
 
@@ -111,6 +120,8 @@ export declare namespace Db {
     filepath: string;
     duration: number;
     created_at: string;
+    variant_name?: string;
+    variant_group?: string;
   };
 
   export type Result = {
@@ -540,11 +551,15 @@ export const createEvalIfNotExists = ({
   runId,
   name,
   filepath,
+  variantName,
+  variantGroup,
 }: {
   db: SQLiteDatabase;
   runId: number | bigint;
   name: string;
   filepath: string;
+  variantName?: string;
+  variantGroup?: string;
 }): number | bigint => {
   let evaluationId: number | bigint | undefined = db
     .prepare<
@@ -556,8 +571,8 @@ export const createEvalIfNotExists = ({
   if (!evaluationId) {
     evaluationId = db
       .prepare(
-        `INSERT INTO evals (run_id, name, filepath, duration, status)
-         VALUES (@runId, @name, @filepath, @duration, @status)`
+        `INSERT INTO evals (run_id, name, filepath, duration, status, variant_name, variant_group)
+         VALUES (@runId, @name, @filepath, @duration, @status, @variantName, @variantGroup)`
       )
       .run({
         runId,
@@ -565,6 +580,8 @@ export const createEvalIfNotExists = ({
         filepath,
         duration: 0,
         status: "running",
+        variantName: variantName ?? null,
+        variantGroup: variantGroup ?? null,
       }).lastInsertRowid;
   }
 

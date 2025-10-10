@@ -156,6 +156,8 @@ export const createServer = (opts: { db: SQLiteDatabase }) => {
         score,
         prevScore,
         evalStatus: e.status,
+        variantName: e.variant_name,
+        variantGroup: e.variant_group,
       };
     };
 

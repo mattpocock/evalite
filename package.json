@@ -13,7 +13,7 @@
     "docs:dev": "(cd apps/evalite-docs && pnpm run dev)",
     "wsl:dev": "pnpm run -r --parallel dev",
     "ci": "turbo build test lint after-build",
-    "build": "turbo build after-build",
+    "build": "TURBO_DAEMON=false turbo build after-build",
     "release": "pnpm run build && changeset publish",
     "test-example": "cd packages/example && pnpm evalite watch",
     "prepare": "husky"
