@@ -573,7 +573,7 @@ export default class EvaliteReporter extends BasicReporter {
             ...columns.map((col) => ({
               width: colWidth,
               wrapWord: typeof col.value === "string",
-              truncate: colWidth - 2,
+              truncate: 200,
               paddingLeft: 1,
               paddingRight: 1,
             })),
