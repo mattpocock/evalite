@@ -1,5 +1,11 @@
 # evalite
 
+## 0.13.0
+
+### Minor Changes
+
+- dbf52f2: Added evalite.each
+
 ## 0.12.0
 
 ### Minor Changes
