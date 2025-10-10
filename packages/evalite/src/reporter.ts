@@ -168,6 +168,8 @@ export default class EvaliteReporter extends BasicReporter {
                 filepath: event.initialResult.filepath,
                 name: event.initialResult.evalName,
                 runId,
+                variantName: event.initialResult.variantName,
+                variantGroup: event.initialResult.variantGroup,
               });
 
               const resultId = insertResult({
@@ -208,6 +210,8 @@ export default class EvaliteReporter extends BasicReporter {
                 filepath: event.result.filepath,
                 name: event.result.evalName,
                 runId,
+                variantName: event.result.variantName,
+                variantGroup: event.result.variantGroup,
               });
 
               let existingResultId: number | bigint | undefined =
