@@ -119,12 +119,14 @@ function ResultComponent() {
     result.traces.length > 0 &&
     result.traces.every(
       (t) =>
-        typeof t.completion_tokens === "number" &&
-        typeof t.prompt_tokens === "number"
+        typeof t.input_tokens === "number" &&
+        typeof t.output_tokens === "number" &&
+        typeof t.total_tokens === "number"
     )
       ? {
-          prompt_tokens: sum(result.traces, (t) => t.prompt_tokens),
-          completion_tokens: sum(result.traces, (t) => t.completion_tokens),
+          input_tokens: sum(result.traces, (t) => t.input_tokens),
+          output_tokens: sum(result.traces, (t) => t.output_tokens),
+          total_tokens: sum(result.traces, (t) => t.total_tokens),
         }
       : undefined;
 
@@ -218,8 +220,9 @@ function ResultComponent() {
                   <>
                     <Separator orientation="vertical" className="mx-1 h-4" />
                     <BreadcrumbItem>
-                      {wholeEvalUsage.prompt_tokens +
-                        wholeEvalUsage.completion_tokens}{" "}
+                      {wholeEvalUsage.total_tokens ||
+                        wholeEvalUsage.input_tokens +
+                          wholeEvalUsage.output_tokens}{" "}
                       Tokens
                     </BreadcrumbItem>
                   </>
@@ -277,10 +280,10 @@ function ResultComponent() {
                       description="How many tokens the entire evaluation used."
                     >
                       <span className="block mb-1 text-sm">
-                        Prompt Tokens: {wholeEvalUsage.prompt_tokens}
+                        Input Tokens: {wholeEvalUsage.input_tokens}
                       </span>
                       <span className="block">
-                        Completion Tokens: {wholeEvalUsage.completion_tokens}
+                        Output Tokens: {wholeEvalUsage.output_tokens}
                       </span>
                     </MainBodySection>
                     <MainBodySeparator />
@@ -353,19 +356,18 @@ function ResultComponent() {
             )}
             {traceBeingViewed && (
               <>
-                {typeof traceBeingViewed.completion_tokens === "number" &&
-                  typeof traceBeingViewed.prompt_tokens === "number" && (
+                {typeof traceBeingViewed.output_tokens === "number" &&
+                  typeof traceBeingViewed.input_tokens === "number" && (
                     <>
                       <MainBodySection
                         title="Token Usage"
                         description="How many tokens were used by this trace."
                       >
                         <span className="block mb-1 text-sm">
-                          Prompt Tokens: {traceBeingViewed.prompt_tokens}
+                          Input Tokens: {traceBeingViewed.input_tokens}
                         </span>
                         <span className="block">
-                          Completion Tokens:{" "}
-                          {traceBeingViewed.completion_tokens}
+                          Output Tokens: {traceBeingViewed.output_tokens}
                         </span>
                       </MainBodySection>
                       <MainBodySeparator />

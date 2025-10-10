@@ -10,13 +10,14 @@
     "dev": "evalite watch"
   },
   "dependencies": {
-    "unstorage": "^1.13.1",
+    "unstorage": "^1.17.1",
     "evalite": "workspace:*",
-    "ai": "^4.0.22",
-    "@ai-sdk/openai": "1.0.11",
+    "ai": "^5.0.59",
+    "@ai-sdk/openai": "^2.0.42",
+    "@ai-sdk/provider": "^2.0.0",
     "dotenv": "^16.4.5",
-    "zod": "^3.23.8",
-    "autoevals": "^0.0.108",
+    "zod": "^3.25.76",
+    "autoevals": "^0.0.131",
     "vitest": "^2.1.8"
   }
 }

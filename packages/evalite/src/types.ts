@@ -129,8 +129,9 @@ export declare namespace Evalite {
   export interface Trace {
     input: unknown;
     usage?: {
-      promptTokens: number;
-      completionTokens: number;
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
     };
     output: unknown;
     start: number;
