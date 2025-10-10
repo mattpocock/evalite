@@ -100,6 +100,10 @@ export default defineConfig({
               slug: "guides/traces",
             },
             {
+              label: "A/B Testing",
+              slug: "guides/variant-comparison",
+            },
+            {
               label: "Multi-Modal",
               slug: "guides/multi-modal",
             },
