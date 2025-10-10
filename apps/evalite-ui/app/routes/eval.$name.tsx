@@ -138,8 +138,8 @@ function EvalComponent() {
           possiblyRunningEvaluation.filepath.split(/(\/|\\)/).slice(-1)[0]!
         }
       >
-        <div className="text-gray-600 mb-10 text-sm">
-          <h1 className="tracking-tight text-2xl mb-2 font-medium text-gray-700">
+        <div className="text-foreground/60 mb-10 text-sm">
+          <h1 className="tracking-tight text-2xl mb-2 font-medium text-foreground/90">
             {name}
           </h1>
           <div className="flex items-center">
@@ -178,7 +178,9 @@ function EvalComponent() {
 
         {history.length > 1 && (
           <div className="mb-10">
-            <h2 className="mb-4 font-medium text-lg text-gray-600">History</h2>
+            <h2 className="mb-4 font-medium text-lg text-foreground/60">
+              History
+            </h2>
             {history.length > 1 && (
               <MyLineChart
                 data={history}
@@ -204,8 +206,8 @@ function EvalComponent() {
             <div className="flex-shrink-0">
               <XCircleIcon className="text-red-500 size-7" />
             </div>
-            <div className="text-sm text-gray-600 gap-1 flex flex-col">
-              <h3 className="font-semibold text-gray-700 mb-1 text-lg">
+            <div className="text-sm text-foreground/60 gap-1 flex flex-col">
+              <h3 className="font-semibold text-foreground/90 mb-1 text-lg">
                 Evaluation Failed
               </h3>
               <p>At least one of the runs produced an unexpected error.</p>
@@ -215,7 +217,9 @@ function EvalComponent() {
         )}
         {evaluationWithoutLayoutShift && (
           <>
-            <h2 className="mb-4 font-medium text-lg text-gray-600">Results</h2>
+            <h2 className="mb-4 font-medium text-lg text-foreground/60">
+              Results
+            </h2>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -279,7 +283,7 @@ function EvalComponent() {
                   return (
                     <TableRow
                       key={JSON.stringify(result.input)}
-                      className={cn("has-[.active]:bg-gray-100")}
+                      className={cn("has-[.active]:bg-foreground/20!")}
                     >
                       {isArrayOfRenderedColumns(result.rendered_columns) ? (
                         <>

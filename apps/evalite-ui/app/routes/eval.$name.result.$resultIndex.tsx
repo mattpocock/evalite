@@ -68,9 +68,9 @@ const MainBodySection = ({
     <div className="mb-3">
       <div className="flex items-center justify-between">
         <div className="flex-grow">
-          <h2 className="font-medium text-base text-gray-600">{title}</h2>
+          <h2 className="font-medium text-base text-foreground/60">{title}</h2>
           {description && (
-            <p className="text-gray-500 text-xs mt-1">{description}</p>
+            <p className="text-foreground/50 text-xs mt-1">{description}</p>
           )}
         </div>
         {copyableText && (
@@ -80,7 +80,7 @@ const MainBodySection = ({
         )}
       </div>
     </div>
-    <div className="mt-1 text-gray-600">{children}</div>
+    <div className="mt-1 text-foreground/60">{children}</div>
   </div>
 );
 
@@ -265,7 +265,7 @@ function ResultComponent() {
               );
             })}
             {result.traces.length === 0 && (
-              <span className="text-xs block text-gray-500 text-center text-balance">
+              <span className="text-xs block text-foreground/50 text-center text-balance">
                 Use <code>reportTrace</code> to capture traces.
               </span>
             )}
@@ -426,9 +426,9 @@ const TraceMenuItem = (props: {
       search={{
         trace: props.traceIndex,
       }}
-      className={"px-2 py-2 hover:bg-gray-100 transition-colors"}
+      className={"px-2 py-2 hover:bg-foreground/10 transition-colors"}
       activeProps={{
-        className: "bg-gray-200 hover:bg-gray-200",
+        className: "bg-foreground/20!",
       }}
       activeOptions={{
         includeSearch: true,
@@ -440,18 +440,18 @@ const TraceMenuItem = (props: {
       {({ isActive }) => (
         <>
           <div className="mb-1 flex items-center justify-between space-x-3">
-            <span className="block text-sm font-medium text-gray-600">
+            <span className="block text-sm font-medium text-foreground/60">
               {props.title}
             </span>
-            <span className="text-xs text-gray-600">
+            <span className="text-xs text-foreground/60">
               {formatTime(props.duration)}
             </span>
           </div>
           <div className="relative w-full">
             <div
               className={cn(
-                "w-full rounded-full h-1 bg-gray-200 transition-colors",
-                isActive && "bg-gray-300"
+                "w-full rounded-full h-1 bg-foreground/20 transition-colors",
+                isActive && "bg-foreground/30"
               )}
             ></div>
             <div
