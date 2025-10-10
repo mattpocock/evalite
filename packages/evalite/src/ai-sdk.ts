@@ -1,13 +1,14 @@
-import {
-  experimental_wrapLanguageModel,
-  type LanguageModelV1,
-  type LanguageModelV1StreamPart,
-  type LanguageModelV1CallOptions,
-} from "ai";
+import { wrapLanguageModel } from "ai";
+import type {
+  LanguageModelV2,
+  LanguageModelV2CallOptions,
+  LanguageModelV2Middleware,
+  LanguageModelV2StreamPart,
+} from "@ai-sdk/provider";
 import { reportTrace, shouldReportTrace } from "./traces.js";
 
 const handlePromptContent = (
-  content: LanguageModelV1CallOptions["prompt"][number]["content"][number]
+  content: LanguageModelV2CallOptions["prompt"][number]["content"][number]
 ): unknown => {
   if (typeof content === "string") {
     return {
@@ -26,45 +27,40 @@ const handlePromptContent = (
     return {
       type: "tool-call" as const,
       toolName: content.toolName,
-      args: content.args,
+      input: content.input,
       toolCallId: content.toolCallId,
     };
   }
 
   if (content.type === "tool-result") {
+    const output = content.output;
+
+    // Check for unsupported media content
+    if (
+      output.type === "content" &&
+      output.value.find((item) => item.type === "media")
+    ) {
+      throw new Error(
+        `Unsupported content type: media in tool-result. Not supported yet.`
+      );
+    }
+
     return {
       type: "tool-result" as const,
       toolCallId: content.toolCallId,
-      result: content.result,
       toolName: content.toolName,
-      isError: content.isError,
-      content: content.content?.map((content) => {
-        if (content.type === "text") {
-          return {
-            type: "text" as const,
-            text: content.text,
-          };
-        }
-
-        if (content.type === "image") {
-          throw new Error(
-            `Unsupported content type: ${content.type}. Not supported yet.`
-          );
-        }
-      }),
+      output: content.output,
     };
   }
 
   // Unsupported content types are image and file
-  content.type satisfies "image" | "file";
-
   throw new Error(
     `Unsupported content type: ${content.type}. Not supported yet.`
   );
 };
 
 const processPromptForTracing = (
-  prompt: LanguageModelV1CallOptions["prompt"]
+  prompt: LanguageModelV2CallOptions["prompt"]
 ) => {
   return prompt.map((prompt) => {
     if (!Array.isArray(prompt.content)) {
@@ -83,9 +79,9 @@ const processPromptForTracing = (
   });
 };
 
-export const traceAISDKModel = (model: LanguageModelV1): LanguageModelV1 => {
+export const traceAISDKModel = (model: LanguageModelV2): LanguageModelV2 => {
   if (!shouldReportTrace()) return model;
-  return experimental_wrapLanguageModel({
+  return wrapLanguageModel({
     model,
     middleware: {
       wrapGenerate: async (opts) => {
@@ -93,28 +89,50 @@ export const traceAISDKModel = (model: LanguageModelV1): LanguageModelV1 => {
         const generated = await opts.doGenerate();
         const end = performance.now();
 
+        const textContent = generated.content
+          .filter((c) => c.type === "text")
+          .map((c) => c.text)
+          .join("");
+
+        const toolCalls = generated.content
+          .filter((c) => c.type === "tool-call")
+          .map((c) =>
+            c.type === "tool-call"
+              ? {
+                  toolName: c.toolName,
+                  input: c.input,
+                  toolCallId: c.toolCallId,
+                }
+              : null
+          )
+          .filter(Boolean);
+
         reportTrace({
           output: {
-            text: generated.text ?? "",
-            toolCalls: generated.toolCalls,
+            text: textContent,
+            toolCalls,
           },
           input: processPromptForTracing(opts.params.prompt),
-          usage: generated.usage,
+          usage: {
+            inputTokens: generated.usage.inputTokens ?? 0,
+            outputTokens: generated.usage.outputTokens ?? 0,
+            totalTokens: generated.usage.totalTokens ?? 0,
+          },
           start,
           end,
         });
 
         return generated;
       },
-      wrapStream: async ({ doStream, params, model }) => {
+      wrapStream: async ({ doStream, params }) => {
         const start = performance.now();
         const { stream, ...rest } = await doStream();
 
-        const fullResponse: LanguageModelV1StreamPart[] = [];
+        const fullResponse: LanguageModelV2StreamPart[] = [];
 
         const transformStream = new TransformStream<
-          LanguageModelV1StreamPart,
-          LanguageModelV1StreamPart
+          LanguageModelV2StreamPart,
+          LanguageModelV2StreamPart
         >({
           transform(chunk, controller) {
             fullResponse.push(chunk);
@@ -124,12 +142,19 @@ export const traceAISDKModel = (model: LanguageModelV1): LanguageModelV1 => {
             const usage = fullResponse.find(
               (part) => part.type === "finish"
             )?.usage;
+
             reportTrace({
               start,
               end: performance.now(),
               input: processPromptForTracing(params.prompt),
               output: fullResponse,
-              usage,
+              usage: usage
+                ? {
+                    inputTokens: usage.inputTokens ?? 0,
+                    outputTokens: usage.outputTokens ?? 0,
+                    totalTokens: usage.totalTokens ?? 0,
+                  }
+                : undefined,
             });
           },
         });

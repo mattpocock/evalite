@@ -1,23 +1,27 @@
 import { generateText } from "ai";
-import { MockLanguageModelV1 } from "ai/test";
+import { MockLanguageModelV2 } from "ai/test";
 import { traceAISDKModel } from "evalite/ai-sdk";
 import { evalite } from "evalite";
 import { Levenshtein } from "autoevals";
 
-const model = new MockLanguageModelV1({
-  doGenerate: async () => ({
+const model = new MockLanguageModelV2({
+  doGenerate: async (options) => ({
     rawCall: { rawPrompt: null, rawSettings: {} },
     finishReason: "stop",
-    usage: { promptTokens: 10, completionTokens: 20 },
-    text: `Hello, world!`,
-    toolCalls: [
+    usage: { inputTokens: 10, outputTokens: 20, totalTokens: 35 },
+    content: [
+      { type: "text", text: `Hello, world!` },
       {
-        args: "{}",
+        type: "tool-call",
+        input: "{}",
         toolCallId: "abc",
-        toolCallType: "function",
         toolName: "myToolCall",
       },
     ],
+    warnings: [],
+    providerMetadata: undefined,
+    request: undefined,
+    response: undefined,
   }),
 });
 

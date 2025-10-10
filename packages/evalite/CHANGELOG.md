@@ -1,5 +1,17 @@
 # evalite
 
+## 0.11.6
+
+### Patch Changes
+
+- f6c9f27: Fixed an issue with scrollbars in the main UI
+
+## 0.11.5
+
+### Patch Changes
+
+- 1d19066: Include .eval.mts files
+
 ## 0.11.4
 
 ### Patch Changes

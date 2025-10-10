@@ -48,7 +48,7 @@ export const runVitest = async (opts: {
       // Everything passed here cannot be
       // overridden by the user
       root: opts.cwd,
-      include: ["**/*.eval.ts"],
+      include: ["**/*.eval.?(m)ts"],
       watch: opts.mode === "watch-for-file-changes",
       reporters: [
         new EvaliteReporter({

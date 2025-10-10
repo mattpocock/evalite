@@ -89,7 +89,7 @@ export default function App() {
   useSubscribeToSocket(queryClient);
 
   return (
-    <SidebarProvider>
+    <SidebarProvider className="w-full">
       <Sidebar className="border-r-0">
         <SidebarHeader>
           <SidebarMenu>

@@ -80,3 +80,25 @@ We're going to walk through setting up Evalite in an existing project.
 ### What Next?
 
 Head to the [AI SDK example](/examples/ai-sdk) to see a fully-fleshed out example of Evalite in action.
+
+### Troubleshooting
+
+##### Error: Could not locate the bindings file
+Some users experienced issues running `evalite watch`. Your package manager will report the following error message:
+
+```
+Command failed, Error: Could not locate the bindings file.
+```
+
+This error is related to the `better-sqlite3` package. To resolve this, you can try the following steps:
+
+-  Rebuild `better-sqlite3`:
+  ```bash
+  pnpm rebuild better-sqlite3
+  ```
+
+-  Approve the rebuild of the package with:
+  ```bash
+  pnpm approve-builds
+  ```
+  
