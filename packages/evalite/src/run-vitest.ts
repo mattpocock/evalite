@@ -1,9 +1,20 @@
-import { mkdir } from "fs/promises";
+import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { Writable } from "stream";
 import { createVitest, registerConsoleShortcuts } from "vitest/node";
 import EvaliteReporter from "./reporter.js";
-import { createDatabase } from "./db.js";
+import {
+  createDatabase,
+  getMostRecentRun,
+  getEvals,
+  getEvalsAverageScores,
+  type SQLiteDatabase,
+  getResults,
+  getScores,
+  getTraces,
+  getAverageScoresFromResults,
+} from "./db.js";
+import type { Evalite } from "./types.js";
 import { createServer } from "./server.js";
 import { DEFAULT_SERVER_PORT } from "./constants.js";
 import { DB_LOCATION, FILES_LOCATION } from "./backend-only-constants.js";
@@ -14,12 +25,136 @@ declare module "vitest" {
   }
 }
 
+const exportResultsToJSON = async (opts: {
+  db: SQLiteDatabase;
+  outputPath: string;
+  cwd: string;
+}) => {
+  const latestFullRun = getMostRecentRun(opts.db, "full");
+
+  if (!latestFullRun) {
+    console.warn("No completed run found to export");
+    return;
+  }
+
+  const allEvals = getEvals(opts.db, [latestFullRun.id], ["fail", "success"]);
+  const evalResults = getResults(
+    opts.db,
+    allEvals.map((e) => e.id).filter((i) => typeof i === "number"),
+  );
+
+  const allScores = getScores(
+    opts.db,
+    evalResults.map((r) => r.id),
+  );
+
+  const allTraces = getTraces(
+    opts.db,
+    evalResults.map((r) => r.id),
+  );
+
+  const evalsAverageScores = getEvalsAverageScores(
+    opts.db,
+    allEvals.map((e) => e.id),
+  );
+
+  const resultsAverageScores = getAverageScoresFromResults(
+    opts.db,
+    evalResults.map((r) => r.id),
+  );
+
+  // Group results by eval and transform to camelCase
+  const outputData: Evalite.Exported.Output = {
+    run: {
+      id: latestFullRun.id,
+      runType: latestFullRun.runType,
+      createdAt: latestFullRun.created_at,
+    },
+    evals: allEvals.map((evaluation) => {
+      const evalAvgScore = evalsAverageScores.find(
+        (e) => e.eval_id === evaluation.id,
+      );
+
+      const resultsForEval = evalResults.filter(
+        (r) => r.eval_id === evaluation.id,
+      );
+
+      return {
+        id: evaluation.id,
+        name: evaluation.name,
+        filepath: evaluation.filepath,
+        duration: evaluation.duration,
+        status: evaluation.status,
+        variantName: evaluation.variant_name,
+        variantGroup: evaluation.variant_group,
+        createdAt: evaluation.created_at,
+        averageScore: evalAvgScore?.average ?? 0,
+        results: resultsForEval.map((result) => {
+          const resultAvgScore = resultsAverageScores.find(
+            (r) => r.result_id === result.id,
+          );
+
+          const scoresForResult = allScores.filter(
+            (s) => s.result_id === result.id,
+          );
+
+          const tracesForResult = allTraces.filter(
+            (t) => t.result_id === result.id,
+          );
+
+          return {
+            id: result.id,
+            duration: result.duration,
+            input: result.input,
+            output: result.output,
+            expected: result.expected,
+            status: result.status,
+            colOrder: result.col_order,
+            renderedColumns: result.rendered_columns,
+            createdAt: result.created_at,
+            averageScore: resultAvgScore?.average ?? 0,
+            scores: scoresForResult.map((score) => ({
+              id: score.id,
+              name: score.name,
+              score: score.score,
+              description: score.description,
+              metadata: score.metadata,
+              createdAt: score.created_at,
+            })),
+            traces: tracesForResult.map((trace) => ({
+              id: trace.id,
+              input: trace.input,
+              output: trace.output,
+              startTime: trace.start_time,
+              endTime: trace.end_time,
+              inputTokens: trace.input_tokens,
+              outputTokens: trace.output_tokens,
+              totalTokens: trace.total_tokens,
+              colOrder: trace.col_order,
+            })),
+          };
+        }),
+      };
+    }),
+  };
+
+  const absolutePath = path.isAbsolute(opts.outputPath)
+    ? opts.outputPath
+    : path.join(opts.cwd, opts.outputPath);
+
+  await mkdir(path.dirname(absolutePath), { recursive: true });
+  await writeFile(absolutePath, JSON.stringify(outputData, null, 2), "utf-8");
+
+  console.log(`\nResults exported to: ${absolutePath}`);
+};
+
 export const runVitest = async (opts: {
   path: string | undefined;
   cwd: string | undefined;
   testOutputWritable?: Writable;
   mode: "watch-for-file-changes" | "run-once-and-exit";
   scoreThreshold?: number;
+  outputPath?: string;
 }) => {
   const dbLocation = path.join(opts.cwd ?? "", DB_LOCATION);
   const filesLocation = path.join(opts.cwd ?? "", FILES_LOCATION);
@@ -28,7 +163,6 @@ export const runVitest = async (opts: {
 
   const db = createDatabase(dbLocation);
   const filters = opts.path ? [opts.path] : undefined;
-
   process.env.EVALITE_REPORT_TRACES = "true";
 
   let server: ReturnType<typeof createServer> | undefined = undefined;
@@ -85,7 +219,7 @@ export const runVitest = async (opts: {
     {
       stdout: opts.testOutputWritable || process.stdout,
       stderr: opts.testOutputWritable || process.stderr,
-    }
+    },
   );
 
   vitest.provide("cwd", opts.cwd ?? "");
@@ -95,12 +229,20 @@ export const runVitest = async (opts: {
   const dispose = registerConsoleShortcuts(
     vitest,
     process.stdin,
-    process.stdout
+    process.stdout,
   );
 
   if (!vitest.shouldKeepServer()) {
     dispose();
     await vitest.close();
+
+    if (opts.outputPath) {
+      await exportResultsToJSON({
+        db,
+        outputPath: opts.outputPath,
+        cwd: opts.cwd ?? "",
+      });
+    }
 
     if (typeof exitCode === "number") {
       process.exit(exitCode);
