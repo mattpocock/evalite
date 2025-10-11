@@ -75,7 +75,7 @@ const runTask = async <TInput, TOutput, TExpected, TVariant = undefined>(
     })) || [];
 
   const scores = await Promise.all(
-    opts.scorers.map(async (scorerOrOpts) => {
+    (opts.scorers || []).map(async (scorerOrOpts) => {
       if (typeof scorerOrOpts === "function") {
         return scorerOrOpts({
           input: opts.input,

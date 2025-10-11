@@ -106,7 +106,7 @@ export declare namespace Evalite {
   export type RunnerOpts<TInput, TOutput, TExpected, TVariant = undefined> = {
     data: () => MaybePromise<{ input: TInput; expected?: TExpected }[]>;
     task: Task<TInput, TOutput, TVariant>;
-    scorers: Array<
+    scorers?: Array<
       | Scorer<TInput, TOutput, TExpected>
       | ScorerOpts<TInput, TOutput, TExpected>
     >;
