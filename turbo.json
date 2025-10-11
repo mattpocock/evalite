@@ -17,7 +17,7 @@
       "cache": true
     },
     "test": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "^after-build"],
       "outputs": [],
       "cache": true
     },
