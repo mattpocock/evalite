@@ -199,13 +199,12 @@ export declare namespace Evalite {
   }
 
   /**
-   * The complete output structure for exporting evaluation results.
-   * This format is designed to be a comprehensive snapshot of a test run,
-   * suitable for archiving, analysis, or importing into other systems.
+   * Types for the exported evaluation output format.
+   * These types represent the structure of JSON files created by the --outputPath flag.
    */
-  export type ExportOutput = {
-    /** Metadata about the test run */
-    run: {
+  export namespace Exported {
+    /** Metadata about a test run */
+    export type Run = {
       /** Unique identifier for this run */
       id: number;
       /** Type of run: "full" runs all tests, "partial" runs only changed tests */
@@ -213,8 +212,75 @@ export declare namespace Evalite {
       /** ISO 8601 timestamp when the run was created */
       createdAt: string;
     };
-    /** Array of evaluations that were executed in this run */
-    evals: Array<{
+
+    /** Score from a scorer function */
+    export type Score = {
+      /** Unique identifier for this score */
+      id: number;
+      /** Name of the scorer that produced this score */
+      name: string;
+      /** The score value (0-1 scale, where 1 is best) */
+      score: number;
+      /** Optional human-readable description of what this score measures */
+      description?: string;
+      /** Optional additional data attached to this score by the scorer */
+      metadata?: unknown;
+      /** ISO 8601 timestamp when the score was created */
+      createdAt: string;
+    };
+
+    /** Trace of an LLM call (for debugging and cost tracking) */
+    export type Trace = {
+      /** Unique identifier for this trace */
+      id: number;
+      /** The input/prompt sent to the LLM */
+      input: unknown;
+      /** The response received from the LLM */
+      output: unknown;
+      /** Unix timestamp in milliseconds when the LLM call started */
+      startTime: number;
+      /** Unix timestamp in milliseconds when the LLM call completed */
+      endTime: number;
+      /** Number of tokens in the input/prompt (if available from LLM provider) */
+      inputTokens?: number;
+      /** Number of tokens in the output/completion (if available from LLM provider) */
+      outputTokens?: number;
+      /** Total tokens used (input + output, if available from LLM provider) */
+      totalTokens?: number;
+      /** Zero-based order of this trace within the result */
+      colOrder: number;
+    };
+
+    /** Individual test result for a single data point */
+    export type Result = {
+      /** Unique identifier for this result */
+      id: number;
+      /** Duration of this specific test case in milliseconds */
+      duration: number;
+      /** The input data that was passed to the task function */
+      input: unknown;
+      /** The output produced by the task function */
+      output: unknown;
+      /** The expected output for comparison (optional) */
+      expected?: unknown;
+      /** Status of this specific test: "success" or "fail" */
+      status: "success" | "fail" | "running";
+      /** Zero-based order of this result within the evaluation */
+      colOrder: number;
+      /** Custom columns rendered for display in the UI (if any) */
+      renderedColumns?: unknown;
+      /** ISO 8601 timestamp when the result was created */
+      createdAt: string;
+      /** Average score for this result across all scorers (0-1 scale) */
+      averageScore: number;
+      /** Scores from all scorer functions applied to this result */
+      scores: Score[];
+      /** Traces of LLM calls made during this test */
+      traces: Trace[];
+    };
+
+    /** Evaluation containing multiple test results */
+    export type Eval = {
       /** Unique identifier for this evaluation */
       id: number;
       /** The name of the evaluation as defined in the evalite() call */
@@ -234,64 +300,19 @@ export declare namespace Evalite {
       /** Average score across all results in this evaluation (0-1 scale) */
       averageScore: number;
       /** Individual test results for each data point in the evaluation */
-      results: Array<{
-        /** Unique identifier for this result */
-        id: number;
-        /** Duration of this specific test case in milliseconds */
-        duration: number;
-        /** The input data that was passed to the task function */
-        input: unknown;
-        /** The output produced by the task function */
-        output: unknown;
-        /** The expected output for comparison (optional) */
-        expected?: unknown;
-        /** Status of this specific test: "success" or "fail" */
-        status: "success" | "fail" | "running";
-        /** Zero-based order of this result within the evaluation */
-        colOrder: number;
-        /** Custom columns rendered for display in the UI (if any) */
-        renderedColumns?: unknown;
-        /** ISO 8601 timestamp when the result was created */
-        createdAt: string;
-        /** Average score for this result across all scorers (0-1 scale) */
-        averageScore: number;
-        /** Scores from all scorer functions applied to this result */
-        scores: Array<{
-          /** Unique identifier for this score */
-          id: number;
-          /** Name of the scorer that produced this score */
-          name: string;
-          /** The score value (0-1 scale, where 1 is best) */
-          score: number;
-          /** Optional human-readable description of what this score measures */
-          description?: string;
-          /** Optional additional data attached to this score by the scorer */
-          metadata?: unknown;
-          /** ISO 8601 timestamp when the score was created */
-          createdAt: string;
-        }>;
-        /** Traces of LLM calls made during this test (for debugging and cost tracking) */
-        traces: Array<{
-          /** Unique identifier for this trace */
-          id: number;
-          /** The input/prompt sent to the LLM */
-          input: unknown;
-          /** The response received from the LLM */
-          output: unknown;
-          /** Unix timestamp in milliseconds when the LLM call started */
-          startTime: number;
-          /** Unix timestamp in milliseconds when the LLM call completed */
-          endTime: number;
-          /** Number of tokens in the input/prompt (if available from LLM provider) */
-          inputTokens?: number;
-          /** Number of tokens in the output/completion (if available from LLM provider) */
-          outputTokens?: number;
-          /** Total tokens used (input + output, if available from LLM provider) */
-          totalTokens?: number;
-          /** Zero-based order of this trace within the result */
-          colOrder: number;
-        }>;
-      }>;
-    }>;
-  };
+      results: Result[];
+    };
+
+    /**
+     * The complete output structure for exporting evaluation results.
+     * This format is designed to be a comprehensive snapshot of a test run,
+     * suitable for archiving, analysis, or importing into other systems.
+     */
+    export type Output = {
+      /** Metadata about the test run */
+      run: Run;
+      /** Array of evaluations that were executed in this run */
+      evals: Eval[];
+    };
+  }
 }

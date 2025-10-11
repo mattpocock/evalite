@@ -64,7 +64,7 @@ const exportResultsToJSON = async (opts: {
   );
 
   // Group results by eval and transform to camelCase
-  const outputData: Evalite.ExportOutput = {
+  const outputData: Evalite.Exported.Output = {
     run: {
       id: latestFullRun.id,
       runType: latestFullRun.runType,
