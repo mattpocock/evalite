@@ -61,6 +61,9 @@ export const createProgram = (commands: {
   const watch = buildCommand({
     parameters: commonParameters,
     func: (flags: Flags, path: string | undefined) => {
+      if (flags.outputPath) {
+        throw new Error("--outputPath is not supported in watch mode. Use 'evalite --outputPath <path>' instead.");
+      }
       return commands.watch({ path, threshold: flags.threshold, outputPath: flags.outputPath });
     },
     docs: {

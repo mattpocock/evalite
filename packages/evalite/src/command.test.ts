@@ -102,4 +102,37 @@ describe("createCommand", () => {
     });
     expect(runOnceAtPath).not.toHaveBeenCalled();
   });
+
+  it("evalite watch --outputPath does not call watch command", async () => {
+    const watch = vitest.fn();
+    const runOnceAtPath = vitest.fn();
+    const program = createProgram({
+      watch,
+      runOnceAtPath,
+    });
+
+    // The run() function catches the error and doesn't reject
+    // We just verify that neither command gets called
+    await run(program, ["watch", "--outputPath=results.json"], { process });
+
+    expect(watch).not.toHaveBeenCalled();
+    expect(runOnceAtPath).not.toHaveBeenCalled();
+  });
+
+  it("evalite --outputPath works in run-once mode", async () => {
+    const watch = vitest.fn();
+    const runOnceAtPath = vitest.fn();
+    const program = createProgram({
+      watch,
+      runOnceAtPath,
+    });
+
+    await run(program, ["--outputPath=results.json"], { process });
+
+    expect(watch).not.toHaveBeenCalled();
+    expect(runOnceAtPath).toHaveBeenCalledWith({
+      path: undefined,
+      outputPath: "results.json",
+    });
+  });
 });
