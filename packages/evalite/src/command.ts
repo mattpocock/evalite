@@ -48,6 +48,7 @@ type Flags = {
 export const createProgram = (commands: {
   watch: (opts: ProgramOpts) => void;
   runOnceAtPath: (opts: ProgramOpts) => void;
+  serve: (opts: ProgramOpts) => void;
   export: (opts: {
     output: string | undefined;
     runId: number | undefined;
@@ -63,7 +64,21 @@ export const createProgram = (commands: {
       });
     },
     docs: {
-      brief: "Run evals at specified path once and exit",
+      brief: "Run evals once and exit",
+    },
+  });
+
+  const serve = buildCommand({
+    parameters: commonParameters,
+    func: (flags: Flags, path: string | undefined) => {
+      return commands.serve({
+        path,
+        threshold: flags.threshold,
+        outputPath: flags.outputPath,
+      });
+    },
+    docs: {
+      brief: "Run evals once and serve UI",
     },
   });
 
@@ -117,7 +132,8 @@ export const createProgram = (commands: {
 
   const routes = buildRouteMap({
     routes: {
-      "run-once": runOnce,
+      run: runOnce,
+      serve,
       watch,
       export: exportCmd,
       install: buildInstallCommand("evalite", {
@@ -125,7 +141,7 @@ export const createProgram = (commands: {
       }),
       uninstall: buildUninstallCommand("evalite", { bash: true }),
     },
-    defaultCommand: "run-once",
+    defaultCommand: "run",
     docs: {
       brief: "",
       hideRoute: {
@@ -159,6 +175,15 @@ export const program = createProgram({
       scoreThreshold: path.threshold,
       cwd: undefined,
       mode: "run-once-and-exit",
+      outputPath: path.outputPath,
+    });
+  },
+  serve: (path) => {
+    return runEvalite({
+      path: path.path,
+      scoreThreshold: path.threshold,
+      cwd: undefined,
+      mode: "run-once-and-serve",
       outputPath: path.outputPath,
     });
   },

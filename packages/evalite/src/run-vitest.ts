@@ -159,7 +159,7 @@ const exportResultsToJSON = async (opts: {
  * @param opts.path - Optional path filter to run specific eval files
  * @param opts.cwd - Working directory (defaults to current directory)
  * @param opts.testOutputWritable - Optional writable stream for test output
- * @param opts.mode - Execution mode: "watch-for-file-changes" or "run-once-and-exit"
+ * @param opts.mode - Execution mode: "watch-for-file-changes", "run-once-and-exit", or "run-once-and-serve"
  * @param opts.scoreThreshold - Optional score threshold (0-100) to fail the process if scores are below
  * @param opts.outputPath - Optional path to write test results in JSON format after completion
  *
@@ -188,7 +188,7 @@ export const runEvalite = async (opts: {
   path: string | undefined;
   cwd: string | undefined;
   testOutputWritable?: Writable;
-  mode: "watch-for-file-changes" | "run-once-and-exit";
+  mode: "watch-for-file-changes" | "run-once-and-exit" | "run-once-and-serve";
   scoreThreshold?: number;
   outputPath?: string;
 }) => {
@@ -203,7 +203,7 @@ export const runEvalite = async (opts: {
 
   let server: ReturnType<typeof createServer> | undefined = undefined;
 
-  if (opts.mode === "watch-for-file-changes") {
+  if (opts.mode === "watch-for-file-changes" || opts.mode === "run-once-and-serve") {
     server = createServer({
       db: db,
     });
@@ -226,7 +226,7 @@ export const runEvalite = async (opts: {
             server?.updateState(newState);
           },
           port: DEFAULT_SERVER_PORT,
-          isWatching: opts.mode === "watch-for-file-changes",
+          isWatching: opts.mode === "watch-for-file-changes" || opts.mode === "run-once-and-serve",
           db: db,
           scoreThreshold: opts.scoreThreshold,
           modifyExitCode: (code) => {
@@ -268,7 +268,9 @@ export const runEvalite = async (opts: {
     process.stdout
   );
 
-  if (!vitest.shouldKeepServer()) {
+  const shouldKeepRunning = vitest.shouldKeepServer() || opts.mode === "run-once-and-serve";
+
+  if (!shouldKeepRunning) {
     dispose();
     await vitest.close();
 
