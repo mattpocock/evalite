@@ -1,5 +1,13 @@
 # evalite
 
+## 0.14.0
+
+### Minor Changes
+
+- be75faa: Adds 'outputPath' cli config option for writing evaluation results to a file
+- 9160ba3: Upgraded to Vitest 3.
+- fb9f096: Added static export
+
 ## 0.13.0
 
 ### Minor Changes
