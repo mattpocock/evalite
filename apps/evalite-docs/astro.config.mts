@@ -92,6 +92,10 @@ export default defineConfig({
               slug: "guides/environment-variables",
             },
             {
+              label: "Concurrency",
+              slug: "guides/concurrency",
+            },
+            {
               label: "Scorers",
               slug: "guides/scorers",
             },
