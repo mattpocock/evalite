@@ -15,9 +15,7 @@ import { evalite, type Evalite } from "evalite";
 import { reportTrace } from "evalite/traces";
 
 evalite("My Eval", {
-  data: async () => {
-    return [{ input: "Hello", expected: "Hello World!" }];
-  },
+  data: [{ input: "Hello", expected: "Hello World!" }],
   task: async (input) => {
     // Track the start time
     const start = performance.now();

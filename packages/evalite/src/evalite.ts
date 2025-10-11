@@ -141,7 +141,11 @@ function registerEvalite<TInput, TOutput, TExpected>(
 ) {
   const describeFn = vitestOpts.modifier === "skip" ? describe.skip : describe;
   const datasetPromise =
-    vitestOpts.modifier === "skip" ? Promise.resolve([]) : opts.data();
+    vitestOpts.modifier === "skip"
+      ? Promise.resolve([])
+      : typeof opts.data === "function"
+        ? opts.data()
+        : Promise.resolve(opts.data);
 
   const fullEvalName = vitestOpts.variantName
     ? `${evalName} [${vitestOpts.variantName}]`

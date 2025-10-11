@@ -18,11 +18,9 @@ You can customize the columns shown by the UI by passing a `columns` attribute t
 import { evalite } from "evalite";
 
 evalite("My Eval", {
-  data: async () => {
-    return [
-      { input: { a: 1, b: 2, c: 3, theOnlyPropertyWeWantToShow: "Hello" } },
-    ];
-  },
+  data: [
+    { input: { a: 1, b: 2, c: 3, theOnlyPropertyWeWantToShow: "Hello" } },
+  ],
   task: async (input) => {
     return input.theOnlyPropertyWeWantToShow + " World!";
   },

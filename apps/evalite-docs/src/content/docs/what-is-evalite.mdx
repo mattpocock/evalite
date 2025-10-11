@@ -31,9 +31,7 @@ import { Levenshtein } from "autoevals";
 
 evalite("My Eval", {
   // A set of data to test
-  data: async () => {
-    return [{ input: "Hello", expected: "Hello World!" }];
-  },
+  data: [{ input: "Hello", expected: "Hello World!" }],
   // The task to perform, usually to call a LLM.
   task: async (input) => {
     return input + " World!";
