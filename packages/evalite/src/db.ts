@@ -798,3 +798,29 @@ export const getAllResultsForEval = ({
     >(`SELECT id, status FROM results WHERE eval_id = @eval_id`)
     .all({ eval_id: evalId });
 };
+
+export const deleteAllResultsForEval = ({
+  db,
+  evalId,
+}: {
+  db: SQLiteDatabase;
+  evalId: number | bigint;
+}): void => {
+  // Delete in order due to foreign key constraints:
+  // traces and scores reference results, results reference evals
+  db.prepare(
+    `DELETE FROM traces WHERE result_id IN (
+      SELECT id FROM results WHERE eval_id = @eval_id
+    )`
+  ).run({ eval_id: evalId });
+
+  db.prepare(
+    `DELETE FROM scores WHERE result_id IN (
+      SELECT id FROM results WHERE eval_id = @eval_id
+    )`
+  ).run({ eval_id: evalId });
+
+  db.prepare(`DELETE FROM results WHERE eval_id = @eval_id`).run({
+    eval_id: evalId,
+  });
+};
