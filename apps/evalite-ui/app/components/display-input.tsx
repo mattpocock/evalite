@@ -1,6 +1,6 @@
 import type { Evalite } from "evalite/types";
 import { EvaliteFile } from "evalite/utils";
-import { ChevronDown, DownloadIcon } from "lucide-react";
+import { AlertCircle, ChevronDown, DownloadIcon } from "lucide-react";
 import React, { Fragment, useLayoutEffect, useRef, useState } from "react";
 import { JSONTree } from "react-json-tree";
 import ReactMarkdown from "react-markdown";
@@ -203,6 +203,33 @@ export const DisplayEvaliteFile = ({ file }: { file: Evalite.File }) => {
   );
 };
 
+// Helper function to check if an object is a serialized error
+const isSerializedError = (
+  input: unknown
+): input is { name: string; message: string; stack?: string } => {
+  return (
+    typeof input === "object" &&
+    input !== null &&
+    "name" in input &&
+    "message" in input &&
+    typeof (input as any).name === "string" &&
+    typeof (input as any).message === "string"
+  );
+};
+
+const DisplayError = ({
+  error,
+}: {
+  error: { name: string; message: string; stack?: string };
+}) => {
+  return (
+    <div className="flex items-start gap-2 text-red-500 dark:text-red-400">
+      <AlertCircle className="size-5 flex-shrink-0 mt-0.5" />
+      <div className="whitespace-pre-wrap w-full pr-4">{error.message}</div>
+    </div>
+  );
+};
+
 export const DisplayInput = (props: {
   /**
    * If displaying an object, the name is used to
@@ -230,6 +257,14 @@ export const DisplayInput = (props: {
     return (
       <Wrapper className={props.className}>
         <DisplayEvaliteFile file={props.input} />
+      </Wrapper>
+    );
+  }
+
+  if (isSerializedError(props.input)) {
+    return (
+      <Wrapper className={props.className}>
+        <DisplayError error={props.input} />
       </Wrapper>
     );
   }
