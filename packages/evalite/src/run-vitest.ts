@@ -148,7 +148,43 @@ const exportResultsToJSON = async (opts: {
   console.log(`\nResults exported to: ${absolutePath}`);
 };
 
-export const runVitest = async (opts: {
+/**
+ * Run Evalite programmatically via the Node API.
+ *
+ * This is the official Node API for running evaluations programmatically.
+ * It provides full control over eval execution including path filtering,
+ * watch mode, score thresholds, and result exporting.
+ *
+ * @param opts - Configuration options for running evaluations
+ * @param opts.path - Optional path filter to run specific eval files
+ * @param opts.cwd - Working directory (defaults to current directory)
+ * @param opts.testOutputWritable - Optional writable stream for test output
+ * @param opts.mode - Execution mode: "watch-for-file-changes" or "run-once-and-exit"
+ * @param opts.scoreThreshold - Optional score threshold (0-100) to fail the process if scores are below
+ * @param opts.outputPath - Optional path to write test results in JSON format after completion
+ *
+ * @example
+ * ```typescript
+ * import { runEvalite } from "evalite/runner";
+ *
+ * // Run once and exit
+ * await runEvalite({
+ *   path: undefined,
+ *   cwd: process.cwd(),
+ *   mode: "run-once-and-exit",
+ *   scoreThreshold: 80,
+ *   outputPath: "./results.json"
+ * });
+ *
+ * // Watch mode for development
+ * await runEvalite({
+ *   path: undefined,
+ *   cwd: process.cwd(),
+ *   mode: "watch-for-file-changes"
+ * });
+ * ```
+ */
+export const runEvalite = async (opts: {
   path: string | undefined;
   cwd: string | undefined;
   testOutputWritable?: Writable;
@@ -249,3 +285,8 @@ export const runVitest = async (opts: {
     }
   }
 };
+
+/**
+ * @deprecated Use `runEvalite` instead. This export will be removed in a future version.
+ */
+export const runVitest = runEvalite;
