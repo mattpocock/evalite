@@ -241,6 +241,16 @@ function registerEvalite<TInput, TOutput, TExpected>(
           };
         } catch (e) {
           task.meta.evalite.duration = Math.round(performance.now() - start);
+
+          // Serialize error for better display in UI
+          const serializedError = e instanceof Error
+            ? {
+                name: e.name,
+                message: e.message,
+                stack: e.stack,
+              }
+            : e;
+
           task.meta.evalite.result = {
             evalName: fullEvalName,
             filepath: task.file.filepath,
@@ -248,7 +258,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
             duration: task.meta.evalite.duration,
             expected: expected,
             input: input,
-            output: e,
+            output: serializedError,
             scores: [],
             traces: await handleFilesInTraces(rootDir, traces),
             status: "fail",
