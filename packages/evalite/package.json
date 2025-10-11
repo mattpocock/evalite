@@ -42,7 +42,8 @@
     "./reporter": "./dist/reporter.js",
     "./traces": "./dist/traces.js",
     "./ai-sdk": "./dist/ai-sdk.js",
-    "./runner": "./dist/run-vitest.js"
+    "./runner": "./dist/run-vitest.js",
+    "./export-static": "./dist/export-static.js"
   },
   "dependencies": {
     "@ai-sdk/provider": "^2.0.0",

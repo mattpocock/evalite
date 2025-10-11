@@ -5,6 +5,7 @@ import {
   buildUninstallCommand,
 } from "@stricli/auto-complete";
 import { createRequire } from "node:module";
+import { exportStaticUI } from "./export-static.js";
 
 const packageJson = createRequire(import.meta.url)(
   "../package.json"
@@ -47,6 +48,7 @@ type Flags = {
 export const createProgram = (commands: {
   watch: (opts: ProgramOpts) => void;
   runOnceAtPath: (opts: ProgramOpts) => void;
+  export: (opts: { output: string | undefined; runId: number | undefined }) => void;
 }) => {
   const runOnce = buildCommand({
     parameters: commonParameters,
@@ -71,10 +73,36 @@ export const createProgram = (commands: {
     },
   });
 
+  const exportCmd = buildCommand({
+    parameters: {
+      flags: {
+        output: {
+          kind: "parsed",
+          parse: String,
+          brief: "Output directory for static export (default: ./evalite-export)",
+          optional: true,
+        },
+        runId: {
+          kind: "parsed",
+          parse: parseInt,
+          brief: "Specific run ID to export (default: latest)",
+          optional: true,
+        },
+      },
+    },
+    func: (flags: { output: string | undefined; runId: number | undefined }) => {
+      return commands.export({ output: flags.output, runId: flags.runId });
+    },
+    docs: {
+      brief: "Export static UI bundle for CI artifacts",
+    },
+  });
+
   const routes = buildRouteMap({
     routes: {
       "run-once": runOnce,
       watch,
+      export: exportCmd,
       install: buildInstallCommand("evalite", {
         bash: "__evalite_bash_complete",
       }),
@@ -115,6 +143,13 @@ export const program = createProgram({
       cwd: undefined,
       mode: "run-once-and-exit",
       outputPath: path.outputPath,
+    });
+  },
+  export: (opts) => {
+    return exportStaticUI({
+      cwd: process.cwd(),
+      outputPath: opts.output ?? "./evalite-export",
+      runId: opts.runId,
     });
   },
 });

@@ -6,9 +6,11 @@ describe("createCommand", () => {
   it("evalite without path", async () => {
     const watch = vitest.fn();
     const runOnceAtPath = vitest.fn();
+    const exportFn = vitest.fn();
     const program = createProgram({
       watch,
       runOnceAtPath,
+      export: exportFn,
     });
 
     await run(program, [], { process });
@@ -24,9 +26,11 @@ describe("createCommand", () => {
   it("evalite with path", async () => {
     const watch = vitest.fn();
     const runOnceAtPath = vitest.fn();
+    const exportFn = vitest.fn();
     const program = createProgram({
       watch,
       runOnceAtPath,
+      export: exportFn,
     });
 
     await run(program, ["./src"], { process });
@@ -40,9 +44,11 @@ describe("createCommand", () => {
   it("evalite watch", async () => {
     const watch = vitest.fn();
     const runOnceAtPath = vitest.fn();
+    const exportFn = vitest.fn();
     const program = createProgram({
       watch,
       runOnceAtPath,
+      export: exportFn,
     });
 
     await run(program, ["watch"], { process });
@@ -56,9 +62,11 @@ describe("createCommand", () => {
   it("evalite watch with path", async () => {
     const watch = vitest.fn();
     const runOnceAtPath = vitest.fn();
+    const exportFn = vitest.fn();
     const program = createProgram({
       watch,
       runOnceAtPath,
+      export: exportFn,
     });
 
     await run(program, ["watch", "./src"], { process });
@@ -72,9 +80,11 @@ describe("createCommand", () => {
   it("evalite --threshold", async () => {
     const watch = vitest.fn();
     const runOnceAtPath = vitest.fn();
+    const exportFn = vitest.fn();
     const program = createProgram({
       watch,
       runOnceAtPath,
+      export: exportFn,
     });
 
     await run(program, ["--threshold=50"], { process });
@@ -89,9 +99,11 @@ describe("createCommand", () => {
   it("evalite watch --threshold", async () => {
     const watch = vitest.fn();
     const runOnceAtPath = vitest.fn();
+    const exportFn = vitest.fn();
     const program = createProgram({
       watch,
       runOnceAtPath,
+      export: exportFn,
     });
 
     await run(program, ["watch", "--threshold=50"], { process });
@@ -106,9 +118,11 @@ describe("createCommand", () => {
   it("evalite watch --outputPath does not call watch command", async () => {
     const watch = vitest.fn();
     const runOnceAtPath = vitest.fn();
+    const exportFn = vitest.fn();
     const program = createProgram({
       watch,
       runOnceAtPath,
+      export: exportFn,
     });
 
     // The run() function catches the error and doesn't reject
@@ -122,9 +136,11 @@ describe("createCommand", () => {
   it("evalite --outputPath works in run-once mode", async () => {
     const watch = vitest.fn();
     const runOnceAtPath = vitest.fn();
+    const exportFn = vitest.fn();
     const program = createProgram({
       watch,
       runOnceAtPath,
+      export: exportFn,
     });
 
     await run(program, ["--outputPath=results.json"], { process });
