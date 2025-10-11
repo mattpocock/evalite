@@ -35,6 +35,7 @@ import {
 import { useSubscribeToSocket } from "~/data/use-subscribe-to-socket";
 import { useServerStateUtils } from "~/hooks/use-server-state-utils";
 import "../tailwind.css";
+import { isStaticMode } from "~/sdk";
 
 const TanStackRouterDevtools =
   process.env.NODE_ENV === "production"
