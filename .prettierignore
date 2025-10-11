@@ -9,3 +9,5 @@ pnpm-lock.yaml
 **/tests/playground/**
 build
 vite.config.ts.timestamp*
+*.d.ts
+*.gen.ts

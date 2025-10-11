@@ -48,12 +48,19 @@ type Flags = {
 export const createProgram = (commands: {
   watch: (opts: ProgramOpts) => void;
   runOnceAtPath: (opts: ProgramOpts) => void;
-  export: (opts: { output: string | undefined; runId: number | undefined }) => void;
+  export: (opts: {
+    output: string | undefined;
+    runId: number | undefined;
+  }) => void;
 }) => {
   const runOnce = buildCommand({
     parameters: commonParameters,
     func: async (flags: Flags, path: string | undefined) => {
-      return commands.runOnceAtPath({ path, threshold: flags.threshold, outputPath: flags.outputPath });
+      return commands.runOnceAtPath({
+        path,
+        threshold: flags.threshold,
+        outputPath: flags.outputPath,
+      });
     },
     docs: {
       brief: "Run evals at specified path once and exit",
@@ -64,9 +71,15 @@ export const createProgram = (commands: {
     parameters: commonParameters,
     func: (flags: Flags, path: string | undefined) => {
       if (flags.outputPath) {
-        throw new Error("--outputPath is not supported in watch mode. Use 'evalite --outputPath <path>' instead.");
+        throw new Error(
+          "--outputPath is not supported in watch mode. Use 'evalite --outputPath <path>' instead."
+        );
       }
-      return commands.watch({ path, threshold: flags.threshold, outputPath: flags.outputPath });
+      return commands.watch({
+        path,
+        threshold: flags.threshold,
+        outputPath: flags.outputPath,
+      });
     },
     docs: {
       brief: "Watch evals for file changes",
@@ -79,7 +92,8 @@ export const createProgram = (commands: {
         output: {
           kind: "parsed",
           parse: String,
-          brief: "Output directory for static export (default: ./evalite-export)",
+          brief:
+            "Output directory for static export (default: ./evalite-export)",
           optional: true,
         },
         runId: {
@@ -90,7 +104,10 @@ export const createProgram = (commands: {
         },
       },
     },
-    func: (flags: { output: string | undefined; runId: number | undefined }) => {
+    func: (flags: {
+      output: string | undefined;
+      runId: number | undefined;
+    }) => {
       return commands.export({ output: flags.output, runId: flags.runId });
     },
     docs: {

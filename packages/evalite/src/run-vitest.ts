@@ -40,27 +40,27 @@ const exportResultsToJSON = async (opts: {
   const allEvals = getEvals(opts.db, [latestFullRun.id], ["fail", "success"]);
   const evalResults = getResults(
     opts.db,
-    allEvals.map((e) => e.id).filter((i) => typeof i === "number"),
+    allEvals.map((e) => e.id).filter((i) => typeof i === "number")
   );
 
   const allScores = getScores(
     opts.db,
-    evalResults.map((r) => r.id),
+    evalResults.map((r) => r.id)
   );
 
   const allTraces = getTraces(
     opts.db,
-    evalResults.map((r) => r.id),
+    evalResults.map((r) => r.id)
   );
 
   const evalsAverageScores = getEvalsAverageScores(
     opts.db,
-    allEvals.map((e) => e.id),
+    allEvals.map((e) => e.id)
   );
 
   const resultsAverageScores = getAverageScoresFromResults(
     opts.db,
-    evalResults.map((r) => r.id),
+    evalResults.map((r) => r.id)
   );
 
   // Group results by eval and transform to camelCase
@@ -72,11 +72,11 @@ const exportResultsToJSON = async (opts: {
     },
     evals: allEvals.map((evaluation) => {
       const evalAvgScore = evalsAverageScores.find(
-        (e) => e.eval_id === evaluation.id,
+        (e) => e.eval_id === evaluation.id
       );
 
       const resultsForEval = evalResults.filter(
-        (r) => r.eval_id === evaluation.id,
+        (r) => r.eval_id === evaluation.id
       );
 
       return {
@@ -91,15 +91,15 @@ const exportResultsToJSON = async (opts: {
         averageScore: evalAvgScore?.average ?? 0,
         results: resultsForEval.map((result) => {
           const resultAvgScore = resultsAverageScores.find(
-            (r) => r.result_id === result.id,
+            (r) => r.result_id === result.id
           );
 
           const scoresForResult = allScores.filter(
-            (s) => s.result_id === result.id,
+            (s) => s.result_id === result.id
           );
 
           const tracesForResult = allTraces.filter(
-            (t) => t.result_id === result.id,
+            (t) => t.result_id === result.id
           );
 
           return {
@@ -219,7 +219,7 @@ export const runVitest = async (opts: {
     {
       stdout: opts.testOutputWritable || process.stdout,
       stderr: opts.testOutputWritable || process.stderr,
-    },
+    }
   );
 
   vitest.provide("cwd", opts.cwd ?? "");
@@ -229,7 +229,7 @@ export const runVitest = async (opts: {
   const dispose = registerConsoleShortcuts(
     vitest,
     process.stdin,
-    process.stdout,
+    process.stdout
   );
 
   if (!vitest.shouldKeepServer()) {
