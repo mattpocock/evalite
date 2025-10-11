@@ -29,11 +29,12 @@ const joinArrayOfUnknownResults = (results: unknown[]): unknown => {
   }, "");
 };
 
-const executeTask = async <TInput, TOutput>(
-  task: Evalite.Task<TInput, TOutput>,
-  input: TInput
+const executeTask = async <TInput, TOutput, TVariant = undefined>(
+  task: Evalite.Task<TInput, TOutput, TVariant>,
+  input: TInput,
+  variant: TVariant
 ): Promise<TOutput> => {
-  const taskResultOrStream = await task(input);
+  const taskResultOrStream = await task(input, variant);
 
   if (
     typeof taskResultOrStream === "object" &&
@@ -52,17 +53,18 @@ const executeTask = async <TInput, TOutput>(
   return taskResultOrStream;
 };
 
-const runTask = async <TInput, TOutput, TExpected>(
+const runTask = async <TInput, TOutput, TExpected, TVariant = undefined>(
   opts: {
     input: TInput;
     expected: TExpected | undefined;
+    variant: TVariant;
   } & Omit<
-    Evalite.RunnerOpts<TInput, TOutput, TExpected>,
+    Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant>,
     "data" | "experimental_customColumns"
   >
 ) => {
   const start = performance.now();
-  const output = await executeTask(opts.task, opts.input);
+  const output = await executeTask(opts.task, opts.input, opts.variant);
   const duration = Math.round(performance.now() - start);
 
   const columns =
@@ -108,19 +110,47 @@ evalite.experimental_skip = <TInput, TOutput, TExpected>(
   opts: Evalite.RunnerOpts<TInput, TOutput, TExpected>
 ) => registerEvalite(evalName, opts, { modifier: "skip" });
 
+evalite.each = <TVariant>(
+  variants: Array<{ name: string; input: TVariant }>
+) => {
+  return <TInput, TOutput, TExpected = TOutput>(
+    evalName: string,
+    opts: Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant>
+  ) => {
+    for (const variant of variants) {
+      registerEvalite(
+        evalName,
+        {
+          ...opts,
+          task: (input) => opts.task(input, variant.input),
+        },
+        { variantName: variant.name, variantGroup: evalName }
+      );
+    }
+  };
+};
+
 function registerEvalite<TInput, TOutput, TExpected>(
   evalName: string,
   opts: Evalite.RunnerOpts<TInput, TOutput, TExpected>,
-  vitestOpts: { modifier?: "only" | "skip" } = {}
+  vitestOpts: {
+    modifier?: "only" | "skip";
+    variantName?: string;
+    variantGroup?: string;
+  } = {}
 ) {
   const describeFn = vitestOpts.modifier === "skip" ? describe.skip : describe;
   const datasetPromise =
     vitestOpts.modifier === "skip" ? Promise.resolve([]) : opts.data();
 
-  return describeFn(evalName, async () => {
+  const fullEvalName = vitestOpts.variantName
+    ? `${evalName} [${vitestOpts.variantName}]`
+    : evalName;
+
+  return describeFn(fullEvalName, async () => {
     const dataset = await datasetPromise;
     it.concurrent.for(dataset.map((d, index) => ({ ...d, index })))(
-      evalName,
+      fullEvalName,
       async (data, { task }) => {
         const cwd = inject("cwd");
 
@@ -128,11 +158,15 @@ function registerEvalite<TInput, TOutput, TExpected>(
 
         task.meta.evalite = {
           duration: undefined,
-          initialResult: {
-            evalName: evalName,
-            filepath: task.file.filepath,
-            order: data.index,
-          },
+        };
+
+        task.meta.evalite.initialResult = {
+          evalName: fullEvalName,
+          filepath: task.file.filepath,
+          order: data.index,
+          variantName: vitestOpts.variantName,
+          variantGroup: vitestOpts.variantGroup,
+          status: "running",
         };
 
         const start = performance.now();
@@ -159,17 +193,21 @@ function registerEvalite<TInput, TOutput, TExpected>(
         ]);
 
         task.meta.evalite.resultAfterFilesSaved = {
-          evalName,
+          evalName: fullEvalName,
           filepath: task.file.filepath,
           order: data.index,
           input,
           expected,
+          variantName: vitestOpts.variantName,
+          variantGroup: vitestOpts.variantGroup,
+          status: "running",
         };
 
         try {
           const { output, scores, duration, columns } = await runTask({
             expected: data.expected,
             input: data.input,
+            variant: undefined,
             scorers: opts.scorers,
             task: opts.task,
             columns: opts.columns || opts.experimental_customColumns,
@@ -185,38 +223,38 @@ function registerEvalite<TInput, TOutput, TExpected>(
               handleFilesInColumns(rootDir, columns),
             ]);
 
-          task.meta.evalite = {
-            result: {
-              evalName: evalName,
-              filepath: task.file.filepath,
-              order: data.index,
-              duration,
-              expected: expected,
-              input: input,
-              output: outputWithFiles,
-              scores,
-              traces: tracesWithFiles,
-              status: "success",
-              renderedColumns,
-            },
+          task.meta.evalite.duration = Math.round(performance.now() - start);
+          task.meta.evalite.result = {
+            evalName: fullEvalName,
+            filepath: task.file.filepath,
+            order: data.index,
             duration: Math.round(performance.now() - start),
+            expected: expected,
+            input: input,
+            output: outputWithFiles,
+            scores,
+            traces: tracesWithFiles,
+            status: "success",
+            renderedColumns,
+            variantName: vitestOpts.variantName,
+            variantGroup: vitestOpts.variantGroup,
           };
         } catch (e) {
-          task.meta.evalite = {
-            result: {
-              evalName: evalName,
-              filepath: task.file.filepath,
-              order: data.index,
-              duration: Math.round(performance.now() - start),
-              expected: expected,
-              input: input,
-              output: e,
-              scores: [],
-              traces: await handleFilesInTraces(rootDir, traces),
-              status: "fail",
-              renderedColumns: [],
-            },
-            duration: Math.round(performance.now() - start),
+          task.meta.evalite.duration = Math.round(performance.now() - start);
+          task.meta.evalite.result = {
+            evalName: fullEvalName,
+            filepath: task.file.filepath,
+            order: data.index,
+            duration: task.meta.evalite.duration,
+            expected: expected,
+            input: input,
+            output: e,
+            scores: [],
+            traces: await handleFilesInTraces(rootDir, traces),
+            status: "fail",
+            renderedColumns: [],
+            variantName: vitestOpts.variantName,
+            variantGroup: vitestOpts.variantGroup,
           };
           throw e;
         }

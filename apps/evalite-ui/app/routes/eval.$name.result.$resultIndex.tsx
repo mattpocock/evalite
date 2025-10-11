@@ -68,9 +68,9 @@ const MainBodySection = ({
     <div className="mb-3">
       <div className="flex items-center justify-between">
         <div className="flex-grow">
-          <h2 className="font-medium text-base text-gray-600">{title}</h2>
+          <h2 className="font-medium text-base text-foreground/60">{title}</h2>
           {description && (
-            <p className="text-gray-500 text-xs mt-1">{description}</p>
+            <p className="text-foreground/50 text-xs mt-1">{description}</p>
           )}
         </div>
         {copyableText && (
@@ -80,7 +80,7 @@ const MainBodySection = ({
         )}
       </div>
     </div>
-    <div className="mt-1 text-gray-600">{children}</div>
+    <div className="mt-1 text-foreground/60">{children}</div>
   </div>
 );
 
@@ -119,12 +119,14 @@ function ResultComponent() {
     result.traces.length > 0 &&
     result.traces.every(
       (t) =>
-        typeof t.completion_tokens === "number" &&
-        typeof t.prompt_tokens === "number"
+        typeof t.input_tokens === "number" &&
+        typeof t.output_tokens === "number" &&
+        typeof t.total_tokens === "number"
     )
       ? {
-          prompt_tokens: sum(result.traces, (t) => t.prompt_tokens),
-          completion_tokens: sum(result.traces, (t) => t.completion_tokens),
+          input_tokens: sum(result.traces, (t) => t.input_tokens),
+          output_tokens: sum(result.traces, (t) => t.output_tokens),
+          total_tokens: sum(result.traces, (t) => t.total_tokens),
         }
       : undefined;
 
@@ -218,8 +220,9 @@ function ResultComponent() {
                   <>
                     <Separator orientation="vertical" className="mx-1 h-4" />
                     <BreadcrumbItem>
-                      {wholeEvalUsage.prompt_tokens +
-                        wholeEvalUsage.completion_tokens}{" "}
+                      {wholeEvalUsage.total_tokens ||
+                        wholeEvalUsage.input_tokens +
+                          wholeEvalUsage.output_tokens}{" "}
                       Tokens
                     </BreadcrumbItem>
                   </>
@@ -262,7 +265,7 @@ function ResultComponent() {
               );
             })}
             {result.traces.length === 0 && (
-              <span className="text-xs block text-gray-500 text-center text-balance">
+              <span className="text-xs block text-foreground/50 text-center text-balance">
                 Use <code>reportTrace</code> to capture traces.
               </span>
             )}
@@ -277,10 +280,10 @@ function ResultComponent() {
                       description="How many tokens the entire evaluation used."
                     >
                       <span className="block mb-1 text-sm">
-                        Prompt Tokens: {wholeEvalUsage.prompt_tokens}
+                        Input Tokens: {wholeEvalUsage.input_tokens}
                       </span>
                       <span className="block">
-                        Completion Tokens: {wholeEvalUsage.completion_tokens}
+                        Output Tokens: {wholeEvalUsage.output_tokens}
                       </span>
                     </MainBodySection>
                     <MainBodySeparator />
@@ -353,19 +356,18 @@ function ResultComponent() {
             )}
             {traceBeingViewed && (
               <>
-                {typeof traceBeingViewed.completion_tokens === "number" &&
-                  typeof traceBeingViewed.prompt_tokens === "number" && (
+                {typeof traceBeingViewed.output_tokens === "number" &&
+                  typeof traceBeingViewed.input_tokens === "number" && (
                     <>
                       <MainBodySection
                         title="Token Usage"
                         description="How many tokens were used by this trace."
                       >
                         <span className="block mb-1 text-sm">
-                          Prompt Tokens: {traceBeingViewed.prompt_tokens}
+                          Input Tokens: {traceBeingViewed.input_tokens}
                         </span>
                         <span className="block">
-                          Completion Tokens:{" "}
-                          {traceBeingViewed.completion_tokens}
+                          Output Tokens: {traceBeingViewed.output_tokens}
                         </span>
                       </MainBodySection>
                       <MainBodySeparator />
@@ -424,9 +426,9 @@ const TraceMenuItem = (props: {
       search={{
         trace: props.traceIndex,
       }}
-      className={"px-2 py-2 hover:bg-gray-100 transition-colors"}
+      className={"px-2 py-2 hover:bg-foreground/10 transition-colors"}
       activeProps={{
-        className: "bg-gray-200 hover:bg-gray-200",
+        className: "bg-foreground/20!",
       }}
       activeOptions={{
         includeSearch: true,
@@ -438,18 +440,18 @@ const TraceMenuItem = (props: {
       {({ isActive }) => (
         <>
           <div className="mb-1 flex items-center justify-between space-x-3">
-            <span className="block text-sm font-medium text-gray-600">
+            <span className="block text-sm font-medium text-foreground/60">
               {props.title}
             </span>
-            <span className="text-xs text-gray-600">
+            <span className="text-xs text-foreground/60">
               {formatTime(props.duration)}
             </span>
           </div>
           <div className="relative w-full">
             <div
               className={cn(
-                "w-full rounded-full h-1 bg-gray-200 transition-colors",
-                isActive && "bg-gray-300"
+                "w-full rounded-full h-1 bg-foreground/20 transition-colors",
+                isActive && "bg-foreground/30"
               )}
             ></div>
             <div

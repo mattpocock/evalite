@@ -12,6 +12,9 @@ import {
   Outlet,
 } from "@tanstack/react-router";
 
+import type { Evalite } from "evalite/types";
+import type { Db } from "evalite/db";
+import { FolderOpen } from "lucide-react";
 import { lazy } from "react";
 import Logo from "~/components/logo";
 import { getScoreState, Score, type ScoreState } from "~/components/score";
@@ -32,7 +35,6 @@ import {
 import { useSubscribeToSocket } from "~/data/use-subscribe-to-socket";
 import { useServerStateUtils } from "~/hooks/use-server-state-utils";
 import "../tailwind.css";
-import type { Db } from "evalite/db";
 
 const TanStackRouterDevtools =
   process.env.NODE_ENV === "production"
@@ -43,18 +45,56 @@ const TanStackRouterDevtools =
         }))
       );
 
+type EvalWithState = Evalite.SDK.GetMenuItemsResultEval & {
+  state: ScoreState;
+};
+
+type GroupedEval =
+  | { type: "single"; eval: EvalWithState }
+  | {
+      type: "group";
+      groupName: string;
+      variants: EvalWithState[];
+    };
+
 const getMenuItemsWithSelect = queryOptions({
   ...getMenuItemsQueryOptions,
   select: (data) => {
     const { evals: currentEvals, prevScore, score, evalStatus } = data;
 
+    // Add state to evals
+    const evalsWithState: EvalWithState[] = currentEvals.map((e) => ({
+      ...e,
+      state: getScoreState(e.score, e.prevScore),
+    }));
+
+    // Group by variantGroup
+    const grouped: GroupedEval[] = [];
+    const variantGroups = new Map<string, EvalWithState[]>();
+
+    for (const evalItem of evalsWithState) {
+      if (evalItem.variantGroup) {
+        // This is a variant eval
+        const existing = variantGroups.get(evalItem.variantGroup);
+        if (existing) {
+          existing.push(evalItem);
+        } else {
+          variantGroups.set(evalItem.variantGroup, [evalItem]);
+        }
+      } else {
+        // Regular eval
+        grouped.push({ type: "single", eval: evalItem });
+      }
+    }
+
+    // Add grouped variants, sorted by score within each group
+    for (const [groupName, variants] of variantGroups) {
+      variants.sort((a, b) => b.score - a.score);
+      grouped.push({ type: "group", groupName, variants });
+    }
+
     return {
-      currentEvals: currentEvals.map((e) => {
-        return {
-          ...e,
-          state: getScoreState(e.score, e.prevScore),
-        };
-      }),
+      groupedEvals: grouped,
       score,
       prevScore,
       evalStatus,
@@ -77,7 +117,7 @@ export const Route = createRootRouteWithContext<{
 export default function App() {
   const [
     {
-      data: { currentEvals, score, prevScore, evalStatus },
+      data: { groupedEvals, score, prevScore, evalStatus },
     },
     { data: serverState },
   ] = useSuspenseQueries({
@@ -89,7 +129,7 @@ export default function App() {
   useSubscribeToSocket(queryClient);
 
   return (
-    <SidebarProvider>
+    <SidebarProvider className="w-full">
       <Sidebar className="border-r-0">
         <SidebarHeader>
           <SidebarMenu>
@@ -106,7 +146,7 @@ export default function App() {
               <p className="text-xs font-medium text-sidebar-foreground/70 mb-2">
                 Summary
               </p>
-              <div className="text-gray-600 font-medium text-2xl">
+              <div className="text-foreground/60 font-medium text-2xl">
                 <Score
                   isRunning={serverState.type === "running"}
                   score={score}
@@ -121,16 +161,26 @@ export default function App() {
           <SidebarGroup>
             <SidebarGroupLabel>Evals</SidebarGroupLabel>
             <SidebarMenu>
-              {currentEvals.map((e) => {
-                return (
-                  <EvalSidebarItem
-                    key={`current-${e.name}`}
-                    name={e.name}
-                    score={e.score}
-                    state={e.state}
-                    evalStatus={e.evalStatus}
-                  />
-                );
+              {groupedEvals.map((item, idx) => {
+                if (item.type === "single") {
+                  return (
+                    <EvalSidebarItem
+                      key={`eval-${item.eval.name}`}
+                      name={item.eval.name}
+                      score={item.eval.score}
+                      state={item.eval.state}
+                      evalStatus={item.eval.evalStatus}
+                    />
+                  );
+                } else {
+                  return (
+                    <VariantGroup
+                      key={`group-${item.groupName}`}
+                      groupName={item.groupName}
+                      variants={item.variants}
+                    />
+                  );
+                }
               })}
             </SidebarMenu>
           </SidebarGroup>
@@ -143,11 +193,40 @@ export default function App() {
   );
 }
 
+const VariantGroup = (props: {
+  groupName: string;
+  variants: EvalWithState[];
+}) => {
+  return (
+    <>
+      <SidebarMenuItem>
+        <div className="flex items-center gap-1.5 text-sm px-2 py-1 text-sidebar-foreground/70">
+          <FolderOpen className="size-4" />
+          <span>{props.groupName}</span>
+        </div>
+      </SidebarMenuItem>
+      {props.variants.map((variant) => (
+        <EvalSidebarItem
+          key={`variant-${variant.name}`}
+          name={variant.name}
+          variantName={variant.variantName}
+          score={variant.score}
+          state={variant.state}
+          evalStatus={variant.evalStatus}
+          isVariant={true}
+        />
+      ))}
+    </>
+  );
+};
+
 const EvalSidebarItem = (props: {
   name: string;
+  variantName?: string | undefined;
   state: ScoreState;
   score: number;
   evalStatus: Db.EvalStatus;
+  isVariant?: boolean;
 }) => {
   const serverState = useSuspenseQuery(getServerStateQueryOptions);
   const serverStateUtils = useServerStateUtils(serverState.data);
@@ -159,13 +238,15 @@ const EvalSidebarItem = (props: {
         to={`/eval/$name`}
         params={{ name: props.name }}
         className={
-          "flex justify-between text-sm px-2 py-1 rounded hover:bg-gray-100 transition-colors"
+          props.isVariant
+            ? "flex justify-between text-sm px-2 py-1 pl-7 rounded hover:bg-foreground/10 active:bg-foreground/20 transition-colors"
+            : "flex justify-between text-sm px-2 py-1 rounded hover:bg-foreground/10 active:bg-foreground/20 transition-colors"
         }
         activeProps={{
-          className: "bg-gray-200 text-gray-800 hover:bg-gray-200",
+          className: "bg-foreground/20! text-foreground/80",
         }}
       >
-        <span>{props.name}</span>
+        <span>{props.variantName || props.name}</span>
 
         <Score
           score={props.score}

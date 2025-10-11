@@ -82,6 +82,24 @@ export const createDatabase = (url: string): BetterSqlite3.Database => {
     db.exec(`ALTER TABLE results ADD COLUMN rendered_columns TEXT`);
   } catch (e) {}
 
+  // Rename prompt_tokens/completion_tokens to input_tokens/output_tokens and add total_tokens
+  try {
+    db.exec(`
+      ALTER TABLE traces RENAME COLUMN prompt_tokens TO input_tokens;
+      ALTER TABLE traces RENAME COLUMN completion_tokens TO output_tokens;
+      ALTER TABLE traces ADD COLUMN total_tokens INTEGER;
+    `);
+  } catch (e) {}
+
+  // Add variant_name and variant_group columns to evals table
+  try {
+    db.exec(`ALTER TABLE evals ADD COLUMN variant_name TEXT`);
+  } catch (e) {}
+
+  try {
+    db.exec(`ALTER TABLE evals ADD COLUMN variant_group TEXT`);
+  } catch (e) {}
+
   return db;
 };
 
@@ -102,6 +120,8 @@ export declare namespace Db {
     filepath: string;
     duration: number;
     created_at: string;
+    variant_name?: string;
+    variant_group?: string;
   };
 
   export type Result = {
@@ -134,8 +154,9 @@ export declare namespace Db {
     output: unknown;
     start_time: number;
     end_time: number;
-    prompt_tokens?: number;
-    completion_tokens?: number;
+    input_tokens?: number;
+    output_tokens?: number;
+    total_tokens?: number;
     col_order: number;
   };
 }
@@ -242,8 +263,8 @@ export const saveRun = (
             traceOrder += 1;
             db.prepare(
               `
-                  INSERT INTO traces (result_id, input, output, start_time, end_time, prompt_tokens, completion_tokens, col_order)
-                  VALUES (@resultId, @input, @output, @start_time, @end_time, @prompt_tokens, @completion_tokens, @col_order)
+                  INSERT INTO traces (result_id, input, output, start_time, end_time, input_tokens, output_tokens, total_tokens, col_order)
+                  VALUES (@resultId, @input, @output, @start_time, @end_time, @input_tokens, @output_tokens, @total_tokens, @col_order)
                 `
             ).run({
               resultId,
@@ -251,8 +272,9 @@ export const saveRun = (
               output: JSON.stringify(trace.output),
               start_time: Math.round(trace.start),
               end_time: Math.round(trace.end),
-              prompt_tokens: trace.usage?.promptTokens ?? null,
-              completion_tokens: trace.usage?.completionTokens ?? null,
+              input_tokens: trace.usage?.inputTokens ?? null,
+              output_tokens: trace.usage?.outputTokens ?? null,
+              total_tokens: trace.usage?.totalTokens ?? null,
               col_order: traceOrder,
             });
           }
@@ -529,11 +551,15 @@ export const createEvalIfNotExists = ({
   runId,
   name,
   filepath,
+  variantName,
+  variantGroup,
 }: {
   db: SQLiteDatabase;
   runId: number | bigint;
   name: string;
   filepath: string;
+  variantName?: string;
+  variantGroup?: string;
 }): number | bigint => {
   let evaluationId: number | bigint | undefined = db
     .prepare<
@@ -545,8 +571,8 @@ export const createEvalIfNotExists = ({
   if (!evaluationId) {
     evaluationId = db
       .prepare(
-        `INSERT INTO evals (run_id, name, filepath, duration, status)
-         VALUES (@runId, @name, @filepath, @duration, @status)`
+        `INSERT INTO evals (run_id, name, filepath, duration, status, variant_name, variant_group)
+         VALUES (@runId, @name, @filepath, @duration, @status, @variantName, @variantGroup)`
       )
       .run({
         runId,
@@ -554,6 +580,8 @@ export const createEvalIfNotExists = ({
         filepath,
         duration: 0,
         status: "running",
+        variantName: variantName ?? null,
+        variantGroup: variantGroup ?? null,
       }).lastInsertRowid;
   }
 
@@ -684,8 +712,9 @@ export const insertTrace = ({
   output,
   start,
   end,
-  promptTokens,
-  completionTokens,
+  inputTokens,
+  outputTokens,
+  totalTokens,
   order,
 }: {
   db: SQLiteDatabase;
@@ -694,21 +723,23 @@ export const insertTrace = ({
   output: unknown;
   start: number;
   end: number;
-  promptTokens: number | undefined;
-  completionTokens: number | undefined;
+  inputTokens: number | undefined;
+  outputTokens: number | undefined;
+  totalTokens: number | undefined;
   order: number;
 }) => {
   db.prepare(
-    `INSERT INTO traces (result_id, input, output, start_time, end_time, prompt_tokens, completion_tokens, col_order)
-     VALUES (@result_id, @input, @output, @start_time, @end_time, @prompt_tokens, @completion_tokens, @col_order)`
+    `INSERT INTO traces (result_id, input, output, start_time, end_time, input_tokens, output_tokens, total_tokens, col_order)
+     VALUES (@result_id, @input, @output, @start_time, @end_time, @input_tokens, @output_tokens, @total_tokens, @col_order)`
   ).run({
     result_id: resultId,
     input: JSON.stringify(input),
     output: JSON.stringify(output),
     start_time: Math.round(start),
     end_time: Math.round(end),
-    prompt_tokens: promptTokens,
-    completion_tokens: completionTokens,
+    input_tokens: inputTokens,
+    output_tokens: outputTokens,
+    total_tokens: totalTokens,
     col_order: order,
   });
 };

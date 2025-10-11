@@ -1,6 +1,7 @@
 // vite.config.ts
 import { defineConfig } from "vite";
 import viteReact from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
@@ -12,7 +13,8 @@ export default defineConfig({
       routesDirectory: "./app/routes",
       generatedRouteTree: "./app/routeTree.gen.ts",
     }),
-    viteReact(),
+    tailwindcss(),
     tsconfigPaths(),
+    viteReact(),
   ],
 });

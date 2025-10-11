@@ -37,8 +37,9 @@ evalite("My Eval", {
         },
       ],
       usage: {
-        completionTokens: result.completionTokens,
-        promptTokens: result.promptTokens,
+        inputTokens: result.inputTokens,
+        outputTokens: result.outputTokens,
+        totalTokens: result.totalTokens,
       },
     });
 

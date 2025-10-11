@@ -24,6 +24,9 @@ export declare namespace Evalite {
     evalName: string;
     filepath: string;
     order: number;
+    status: ResultStatus;
+    variantName: string | undefined;
+    variantGroup: string | undefined;
   }
 
   export interface ResultAfterFilesSaved extends InitialResult {
@@ -38,7 +41,7 @@ export declare namespace Evalite {
     expected?: unknown;
   }
 
-  export type ResultStatus = "success" | "fail";
+  export type ResultStatus = "success" | "fail" | "running";
 
   export type RenderedColumn = {
     label: string;
@@ -57,7 +60,6 @@ export declare namespace Evalite {
     scores: Score[];
     duration: number;
     traces: Trace[];
-    status: ResultStatus;
     renderedColumns: RenderedColumn[];
   }
 
@@ -92,17 +94,18 @@ export declare namespace Evalite {
     duration: number | undefined;
   };
 
-  export type Task<TInput, TOutput> = (
-    input: TInput
+  export type Task<TInput, TOutput, TVariant = undefined> = (
+    input: TInput,
+    variant: TVariant
   ) => MaybePromise<TOutput | AsyncIterable<TOutput>>;
 
   export type Scorer<TInput, TOutput, TExpected> = (
     opts: ScoreInput<TInput, TOutput, TExpected>
   ) => MaybePromise<Score>;
 
-  export type RunnerOpts<TInput, TOutput, TExpected> = {
+  export type RunnerOpts<TInput, TOutput, TExpected, TVariant = undefined> = {
     data: () => MaybePromise<{ input: TInput; expected?: TExpected }[]>;
-    task: Task<TInput, TOutput>;
+    task: Task<TInput, TOutput, TVariant>;
     scorers: Array<
       | Scorer<TInput, TOutput, TExpected>
       | ScorerOpts<TInput, TOutput, TExpected>
@@ -129,8 +132,9 @@ export declare namespace Evalite {
   export interface Trace {
     input: unknown;
     usage?: {
-      promptTokens: number;
-      completionTokens: number;
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
     };
     output: unknown;
     start: number;
@@ -170,6 +174,8 @@ export declare namespace Evalite {
       name: string;
       prevScore: number | undefined;
       evalStatus: Db.EvalStatus;
+      variantName: string | undefined;
+      variantGroup: string | undefined;
     };
 
     export type GetMenuItemsResult = {

@@ -18,7 +18,7 @@ export const InnerPageLayout = ({
   children: React.ReactNode;
 }) => {
   return (
-    <div className="flex flex-col bg-background relative flex-1 min-h-svh">
+    <div className="flex flex-col bg-background relative flex-1 min-h-svh min-w-0">
       <header className="sticky top-0 flex h-14 shrink-0 items-center gap-2 bg-background z-10">
         <div className="flex flex-1 items-center gap-2 px-3">
           <SidebarTrigger />
