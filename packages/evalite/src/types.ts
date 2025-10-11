@@ -24,6 +24,7 @@ export declare namespace Evalite {
     evalName: string;
     filepath: string;
     order: number;
+    status: ResultStatus;
     variantName: string | undefined;
     variantGroup: string | undefined;
   }
@@ -40,7 +41,7 @@ export declare namespace Evalite {
     expected?: unknown;
   }
 
-  export type ResultStatus = "success" | "fail";
+  export type ResultStatus = "success" | "fail" | "running";
 
   export type RenderedColumn = {
     label: string;
@@ -59,7 +60,6 @@ export declare namespace Evalite {
     scores: Score[];
     duration: number;
     traces: Trace[];
-    status: ResultStatus;
     renderedColumns: RenderedColumn[];
   }
 

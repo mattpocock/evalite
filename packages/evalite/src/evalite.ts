@@ -158,13 +158,15 @@ function registerEvalite<TInput, TOutput, TExpected>(
 
         task.meta.evalite = {
           duration: undefined,
-          initialResult: {
-            evalName: fullEvalName,
-            filepath: task.file.filepath,
-            order: data.index,
-            variantName: vitestOpts.variantName,
-            variantGroup: vitestOpts.variantGroup,
-          },
+        };
+
+        task.meta.evalite.initialResult = {
+          evalName: fullEvalName,
+          filepath: task.file.filepath,
+          order: data.index,
+          variantName: vitestOpts.variantName,
+          variantGroup: vitestOpts.variantGroup,
+          status: "running",
         };
 
         const start = performance.now();
@@ -198,6 +200,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
           expected,
           variantName: vitestOpts.variantName,
           variantGroup: vitestOpts.variantGroup,
+          status: "running",
         };
 
         try {
@@ -220,42 +223,38 @@ function registerEvalite<TInput, TOutput, TExpected>(
               handleFilesInColumns(rootDir, columns),
             ]);
 
-          task.meta.evalite = {
-            result: {
-              evalName: fullEvalName,
-              filepath: task.file.filepath,
-              order: data.index,
-              duration,
-              expected: expected,
-              input: input,
-              output: outputWithFiles,
-              scores,
-              traces: tracesWithFiles,
-              status: "success",
-              renderedColumns,
-              variantName: vitestOpts.variantName,
-              variantGroup: vitestOpts.variantGroup,
-            },
+          task.meta.evalite.duration = Math.round(performance.now() - start);
+          task.meta.evalite.result = {
+            evalName: fullEvalName,
+            filepath: task.file.filepath,
+            order: data.index,
             duration: Math.round(performance.now() - start),
+            expected: expected,
+            input: input,
+            output: outputWithFiles,
+            scores,
+            traces: tracesWithFiles,
+            status: "success",
+            renderedColumns,
+            variantName: vitestOpts.variantName,
+            variantGroup: vitestOpts.variantGroup,
           };
         } catch (e) {
-          task.meta.evalite = {
-            result: {
-              evalName: fullEvalName,
-              filepath: task.file.filepath,
-              order: data.index,
-              duration: Math.round(performance.now() - start),
-              expected: expected,
-              input: input,
-              output: e,
-              scores: [],
-              traces: await handleFilesInTraces(rootDir, traces),
-              status: "fail",
-              renderedColumns: [],
-              variantName: vitestOpts.variantName,
-              variantGroup: vitestOpts.variantGroup,
-            },
-            duration: Math.round(performance.now() - start),
+          task.meta.evalite.duration = Math.round(performance.now() - start);
+          task.meta.evalite.result = {
+            evalName: fullEvalName,
+            filepath: task.file.filepath,
+            order: data.index,
+            duration: task.meta.evalite.duration,
+            expected: expected,
+            input: input,
+            output: e,
+            scores: [],
+            traces: await handleFilesInTraces(rootDir, traces),
+            status: "fail",
+            renderedColumns: [],
+            variantName: vitestOpts.variantName,
+            variantGroup: vitestOpts.variantGroup,
           };
           throw e;
         }

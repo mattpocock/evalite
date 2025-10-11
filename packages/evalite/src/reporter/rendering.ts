@@ -4,48 +4,6 @@ import { inspect } from "util";
 import type { Evalite } from "../types.js";
 import { average, EvaliteFile } from "../utils.js";
 
-// Local type definitions (independent of Vitest)
-export interface EvalCase {
-  meta: {
-    evalite?: {
-      result?: Evalite.Result;
-    };
-  };
-  result?: {
-    state?: "fail" | "pass" | "run";
-  };
-}
-
-export interface TaskNode {
-  filepath?: string;
-  name: string;
-  tasks: TaskNode[];
-  result?: {
-    state?: "fail" | "pass" | "run" | "skip" | "only" | "todo";
-    duration?: number;
-  };
-}
-
-export interface EvalFileResult extends TaskNode {
-  collectDuration?: number;
-  setupDuration?: number;
-}
-
-function extractEvalCases(files: EvalFileResult[]): EvalCase[] {
-  const cases: EvalCase[] = [];
-
-  function traverse(task: TaskNode) {
-    if (task.tasks && task.tasks.length > 0) {
-      task.tasks.forEach(traverse);
-    } else {
-      cases.push(task as any);
-    }
-  }
-
-  files.forEach(traverse);
-  return cases;
-}
-
 export function withLabel(
   color: "red" | "green" | "blue" | "cyan",
   label: string,
@@ -139,16 +97,6 @@ export function renderMaybeEvaliteFile(input: unknown) {
   return input;
 }
 
-export function getScoreFromTests(tests: EvalCase[]) {
-  const scores = tests.flatMap(
-    (test) => test.meta.evalite?.result?.scores.map((s) => s.score ?? 0) || []
-  );
-
-  const averageScore = average(scores, (score) => score ?? 0);
-
-  return averageScore;
-}
-
 export function renderTable(
   logger: { log: (msg: string) => void },
   rows: {
@@ -217,44 +165,6 @@ export function renderTable(
   );
 }
 
-export interface TestSummaryData {
-  tests: EvalCase[];
-  totalDuration: number;
-  failedTasks: EvalFileResult[];
-  averageScore: number;
-  totalFiles: number;
-  files: EvalFileResult[];
-}
-
-export function computeTestSummaryData(
-  files: EvalFileResult[]
-): TestSummaryData {
-  const tests = extractEvalCases(files);
-
-  const collectTime = files.reduce((a, b) => a + (b.collectDuration || 0), 0);
-  const testsTime = files.reduce((a, b) => a + (b.result?.duration || 0), 0);
-  const setupTime = files.reduce((a, b) => a + (b.setupDuration || 0), 0);
-
-  const totalDuration = collectTime + testsTime + setupTime;
-
-  const failedTasks = files.filter((file) => {
-    return file.tasks.some((task) => task.result?.state === "fail");
-  });
-
-  const averageScore = getScoreFromTests(tests);
-
-  const totalFiles = new Set(files.map((f) => f.filepath)).size;
-
-  return {
-    tests,
-    totalDuration,
-    failedTasks,
-    averageScore,
-    totalFiles,
-    files,
-  };
-}
-
 export function renderScoreDisplay(
   logger: { log: (msg: string) => void },
   failedTasksCount: number,
@@ -299,102 +209,86 @@ export function renderThreshold(
 
 export function renderSummaryStats(
   logger: { log: (msg: string) => void },
-  data: TestSummaryData
+  data: {
+    totalFiles: number;
+    maxDuration: number;
+    totalEvals: number;
+  }
 ) {
-  logger.log([" ", c.dim("Eval Files"), "  ", data.files.length].join(""));
+  logger.log([" ", c.dim("Eval Files"), "  ", data.totalFiles].join(""));
+
+  logger.log(["      ", c.dim("Evals"), "  ", data.totalEvals].join(""));
 
   logger.log(
-    [
-      "      ",
-      c.dim("Evals"),
-      "  ",
-      data.files.reduce((a, b) => a + b.tasks.length, 0),
-    ].join("")
-  );
-
-  logger.log(
-    [
-      "   ",
-      c.dim("Duration"),
-      "  ",
-      `${Math.round(data.totalDuration)}ms`,
-    ].join("")
+    ["   ", c.dim("Duration"), "  ", `${Math.round(data.maxDuration)}ms`].join(
+      ""
+    )
   );
 }
 
 export function renderDetailedTable(
   logger: { log: (msg: string) => void },
-  tests: EvalCase[]
+  results: Evalite.Result[]
 ) {
   renderTable(
     logger,
-    tests
-      .filter((t) => typeof t.meta.evalite?.result === "object")
-      .map((t) => t.meta.evalite!.result!)
-      .map((result) => ({
-        columns:
-          result.renderedColumns.length > 0
-            ? result.renderedColumns.map((col) => ({
-                label: col.label,
-                value: renderMaybeEvaliteFile(col.value),
-              }))
-            : [
-                {
-                  label: "Input",
-                  value: renderMaybeEvaliteFile(result.input),
-                },
-                {
-                  label: "Output",
-                  value: renderMaybeEvaliteFile(result.output),
-                },
-              ],
-        score: average(result.scores, (s) => s.score ?? 0),
-      }))
+    results.map((result) => ({
+      columns:
+        result.renderedColumns.length > 0
+          ? result.renderedColumns.map((col) => ({
+              label: col.label,
+              value: renderMaybeEvaliteFile(col.value),
+            }))
+          : [
+              {
+                label: "Input",
+                value: renderMaybeEvaliteFile(result.input),
+              },
+              {
+                label: "Output",
+                value: renderMaybeEvaliteFile(result.output),
+              },
+            ],
+      score: average(result.scores, (s) => s.score ?? 0),
+    }))
   );
 }
 
-export function renderTask(
-  logger: { log: (msg: string) => void },
-  file: TaskNode
-): boolean {
-  // Tasks can be files or individual tests
-  if (
-    !("filepath" in file) ||
-    !file.result?.state ||
-    file.result?.state === "run"
-  ) {
-    return false;
-  }
-
-  const tests = extractEvalCases([file]);
-
-  const hasNoEvalite = tests.every((t) => !t.meta.evalite);
-
-  if (hasNoEvalite) {
-    return false;
-  }
-
-  const scores: number[] = [];
-  const failed = tests.some((t) => t.result?.state === "fail");
-
-  for (const { meta } of tests) {
-    if (meta.evalite?.result) {
-      scores.push(...meta.evalite!.result.scores.map((s) => s.score ?? 0));
-    }
-  }
+export function renderTask(opts: {
+  logger: { log: (msg: string) => void };
+  result: {
+    filePath: string;
+    status: Evalite.ResultStatus;
+    scores: Evalite.Score[];
+    numberOfEvals: number;
+  };
+}) {
+  const scores = opts.result.scores.map((s) => s.score ?? 0);
 
   const totalScore = scores.reduce((a, b) => a + b, 0);
   const averageScore = totalScore / scores.length;
 
-  const title = failed ? c.red("✖") : displayScore(averageScore);
+  const prefix =
+    opts.result.status === "fail"
+      ? c.red("✖")
+      : opts.result.status === "running"
+        ? c.yellow("⏳")
+        : displayScore(averageScore);
+
+  const text =
+    opts.result.status === "running"
+      ? c.dim(opts.result.filePath)
+      : opts.result.filePath;
 
   const toLog = [
-    ` ${title} `,
-    `${file.name}  `,
-    c.dim(`(${file.tasks.length} ${file.tasks.length > 1 ? "evals" : "eval"})`),
+    ` ${prefix} `,
+    `${text}  `,
+    c.dim(
+      opts.result.numberOfEvals === 1
+        ? `(${opts.result.numberOfEvals} eval)`
+        : `(${opts.result.numberOfEvals} evals)`
+    ),
   ];
 
-  logger.log(toLog.join(""));
-
-  return true;
+  opts.logger.log(toLog.join(""));
 }
