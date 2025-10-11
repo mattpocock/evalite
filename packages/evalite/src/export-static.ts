@@ -15,7 +15,7 @@ import {
   type Db,
 } from "./db.js";
 import type { Evalite } from "./types.js";
-import { average } from "./utils.js";
+import { average, EvaliteFile } from "./utils.js";
 import { DB_LOCATION } from "./backend-only-constants.js";
 
 /**
@@ -23,6 +23,38 @@ import { DB_LOCATION } from "./backend-only-constants.js";
  */
 const sanitizeFilename = (name: string): string => {
   return name.replace(/[^a-zA-Z0-9-_]/g, "_");
+};
+
+/**
+ * Transforms EvaliteFile paths using a provided callback
+ * Recursively walks through objects, arrays, and EvaliteFile instances
+ * @param value The value to transform
+ * @param transformPath Callback that receives an EvaliteFile and returns the new path
+ */
+const transformEvaliteFilePaths = (
+  value: unknown,
+  transformPath: (file: Evalite.File) => string
+): unknown => {
+  if (EvaliteFile.isEvaliteFile(value)) {
+    return {
+      __EvaliteFile: true,
+      path: transformPath(value),
+    };
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((v) => transformEvaliteFilePaths(v, transformPath));
+  }
+
+  if (typeof value === "object" && value !== null) {
+    const result: Record<string, unknown> = {};
+    for (const [key, val] of Object.entries(value)) {
+      result[key] = transformEvaliteFilePaths(val, transformPath);
+    }
+    return result;
+  }
+
+  return value;
 };
 
 /**
@@ -103,6 +135,31 @@ export const exportStaticUI = async (
       db,
       allResults.map((r) => r.id)
     );
+
+    // Create file path mapper: original path -> unique filename
+    const filePathMapper = new Map<string, string>();
+
+    /**
+     * Transform callback that generates unique filenames for files
+     * and tracks them in the mapper for later copying
+     */
+    const getUniqueFilename = (file: Evalite.File): string => {
+      const originalPath = file.path;
+
+      // Check if we've already mapped this file
+      if (filePathMapper.has(originalPath)) {
+        return filePathMapper.get(originalPath)!;
+      }
+
+      // Generate unique filename with original extension
+      const ext = path.extname(originalPath);
+      const uniqueFilename = `${crypto.randomUUID()}${ext}`;
+
+      // Store mapping
+      filePathMapper.set(originalPath, uniqueFilename);
+
+      return uniqueFilename;
+    };
 
     // Generate server-state.json
     const serverState: Evalite.ServerState = {
@@ -199,6 +256,16 @@ export const exportStaticUI = async (
             .filter((r) => r.eval_id === evaluation.id)
             .map((r) => ({
               ...r,
+              input: transformEvaliteFilePaths(r.input, getUniqueFilename),
+              output: transformEvaliteFilePaths(r.output, getUniqueFilename),
+              expected: transformEvaliteFilePaths(
+                r.expected,
+                getUniqueFilename
+              ),
+              rendered_columns: transformEvaliteFilePaths(
+                r.rendered_columns,
+                getUniqueFilename
+              ),
               scores: scores.filter((s) => s.result_id === r.id),
             })),
         },
@@ -209,6 +276,19 @@ export const exportStaticUI = async (
                 .filter((r) => r.eval_id === prevEvaluation.id)
                 .map((r) => ({
                   ...r,
+                  input: transformEvaliteFilePaths(r.input, getUniqueFilename),
+                  output: transformEvaliteFilePaths(
+                    r.output,
+                    getUniqueFilename
+                  ),
+                  expected: transformEvaliteFilePaths(
+                    r.expected,
+                    getUniqueFilename
+                  ),
+                  rendered_columns: transformEvaliteFilePaths(
+                    r.rendered_columns,
+                    getUniqueFilename
+                  ),
                   scores: scores.filter((s) => s.result_id === r.id),
                 })),
             }
@@ -232,11 +312,30 @@ export const exportStaticUI = async (
 
         const result: Evalite.SDK.GetResultResult["result"] = {
           ...thisResult,
+          input: transformEvaliteFilePaths(thisResult.input, getUniqueFilename),
+          output: transformEvaliteFilePaths(
+            thisResult.output,
+            getUniqueFilename
+          ),
+          expected: transformEvaliteFilePaths(
+            thisResult.expected,
+            getUniqueFilename
+          ),
+          rendered_columns: transformEvaliteFilePaths(
+            thisResult.rendered_columns,
+            getUniqueFilename
+          ),
           score:
             averageScores.find((s) => s.result_id === thisResult.id)?.average ??
             0,
           scores: allScores.filter((s) => s.result_id === thisResult.id),
-          traces: allTraces.filter((t) => t.result_id === thisResult.id),
+          traces: allTraces
+            .filter((t) => t.result_id === thisResult.id)
+            .map((t) => ({
+              ...t,
+              input: transformEvaliteFilePaths(t.input, getUniqueFilename),
+              output: transformEvaliteFilePaths(t.output, getUniqueFilename),
+            })),
         };
 
         const prevResultInDb = prevEvaluationResults[index];
@@ -245,6 +344,22 @@ export const exportStaticUI = async (
           prevResultInDb
             ? {
                 ...prevResultInDb,
+                input: transformEvaliteFilePaths(
+                  prevResultInDb.input,
+                  getUniqueFilename
+                ),
+                output: transformEvaliteFilePaths(
+                  prevResultInDb.output,
+                  getUniqueFilename
+                ),
+                expected: transformEvaliteFilePaths(
+                  prevResultInDb.expected,
+                  getUniqueFilename
+                ),
+                rendered_columns: transformEvaliteFilePaths(
+                  prevResultInDb.rendered_columns,
+                  getUniqueFilename
+                ),
                 score:
                   averageScores.find((s) => s.result_id === prevResultInDb.id)
                     ?.average ?? 0,
@@ -269,14 +384,22 @@ export const exportStaticUI = async (
       console.log(`  ✓ ${evaluation.name} (${evalResults.length} results)`);
     }
 
-    // Copy .evalite files to output
-    const evaliteDir = path.join(cwd, ".evalite");
-    try {
-      await fs.access(evaliteDir);
-      console.log("Copying files...");
-      await copyDirectory(evaliteDir, filesDir);
-    } catch (error) {
-      console.log("No .evalite directory found, skipping file copy");
+    // Copy all referenced files to output
+    if (filePathMapper.size > 0) {
+      console.log(`Copying ${filePathMapper.size} files...`);
+      for (const [originalPath, uniqueFilename] of filePathMapper.entries()) {
+        const destPath = path.join(filesDir, uniqueFilename);
+        try {
+          await fs.copyFile(originalPath, destPath);
+        } catch (error) {
+          console.warn(
+            `Warning: Failed to copy file ${originalPath}: ${error}`
+          );
+        }
+      }
+      console.log(`  ✓ Copied ${filePathMapper.size} files`);
+    } else {
+      console.log("No files to copy");
     }
 
     // Copy UI assets
@@ -292,7 +415,7 @@ export const exportStaticUI = async (
     let indexHtml = await fs.readFile(indexHtmlPath, "utf-8");
 
     // Change absolute paths to relative
-    indexHtml = indexHtml.replace(/\/assets\//g, "./assets/");
+    indexHtml = indexHtml.replace(/\/assets\//g, "/assets/");
 
     // Add static mode configuration
     const staticConfig = `

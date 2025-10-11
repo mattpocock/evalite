@@ -143,14 +143,14 @@ export const getResult = async (
 
 export const serveFile = (filepath: string) => {
   if (isStaticMode()) {
-    return `./files/${filepath}`;
+    return `/files/${filepath}`;
   }
   return `${BASE_URL}/api/file?path=${filepath}`;
 };
 
 export const downloadFile = (filepath: string) => {
   if (isStaticMode()) {
-    return `./files/${filepath}`;
+    return `/files/${filepath}`;
   }
   return `${BASE_URL}/api/file?path=${filepath}&download=true`;
 };
