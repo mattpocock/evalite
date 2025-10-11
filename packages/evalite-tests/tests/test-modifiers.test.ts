@@ -15,9 +15,15 @@ it("should call opts.data() 3 times when running 3 regular tests", async () => {
   });
 
   const output = captured.getOutput();
-  const count1 = (output.match(/opts\.data\(\) called in Regular Test 1/g) || []).length;
-  const count2 = (output.match(/opts\.data\(\) called in Regular Test 2/g) || []).length;
-  const count3 = (output.match(/opts\.data\(\) called in Regular Test 3/g) || []).length;
+  const count1 = (
+    output.match(/opts\.data\(\) called in Regular Test 1/g) || []
+  ).length;
+  const count2 = (
+    output.match(/opts\.data\(\) called in Regular Test 2/g) || []
+  ).length;
+  const count3 = (
+    output.match(/opts\.data\(\) called in Regular Test 3/g) || []
+  ).length;
   expect(count1).toBe(1);
   expect(count2).toBe(1);
   expect(count3).toBe(1);

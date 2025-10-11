@@ -31,4 +31,4 @@ evalite("Regular Test 3", {
     return input;
   },
   scorers: [],
-}); 
+});

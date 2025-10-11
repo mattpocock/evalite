@@ -1,31 +1,31 @@
 {
   "thread": {
     "prefix": "thread",
-    "body": ["🧵"]
+    "body": ["🧵"],
   },
   "point-down": {
     "prefix": "point-down",
-    "body": ["👇"]
+    "body": ["👇"],
   },
   "fire": {
     "prefix": "fire",
-    "body": ["🔥"]
+    "body": ["🔥"],
   },
   "ts": {
     "prefix": "ts",
-    "body": ["```ts twoslash", "$1", "```"]
+    "body": ["```ts twoslash", "$1", "```"],
   },
   "tsx": {
     "prefix": "tsx",
-    "body": ["```tsx twoslash", "$1", "```"]
+    "body": ["```tsx twoslash", "$1", "```"],
   },
   "json": {
     "prefix": "json",
-    "body": ["```json", "$1", "```"]
+    "body": ["```json", "$1", "```"],
   },
   "fm": {
     "prefix": "fm",
-    "body": ["---", "summary: \"$1\"", "---"]
+    "body": ["---", "summary: \"$1\"", "---"],
   },
   "create-server-function": {
     "prefix": ["csf"],
@@ -33,8 +33,8 @@
       "createServerFunction(",
       "  z.object({ $1 }),",
       "  async ({ input, p, fs }) => {$2}",
-      "),"
-    ]
+      "),",
+    ],
   },
   "component": {
     "prefix": ["comp", "c"],
@@ -46,7 +46,7 @@
       "",
       "export const $1 = (props: $1Props) => {",
       "  return <$2 className={cn(\"\", props.className)}>{props.children}</$2>;",
-      "}"
-    ]
-  }
+      "}",
+    ],
+  },
 }

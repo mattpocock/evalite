@@ -23,8 +23,8 @@
         // Node.js internal core modules
         "<node_internals>/**",
         // Ignore all dependencies (optional)
-        "${workspaceFolder}/node_modules/**",
-      ],
+        "${workspaceFolder}/node_modules/**"
+      ]
     },
     {
       "name": "tsx",
@@ -48,8 +48,8 @@
         // Node.js internal core modules
         "<node_internals>/**",
         // Ignore all dependencies (optional)
-        "${workspaceFolder}/node_modules/**",
-      ],
+        "${workspaceFolder}/node_modules/**"
+      ]
     }
   ]
 }

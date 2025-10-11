@@ -1,0 +1,11 @@
+node_modules
+dist
+.turbo
+*.tsbuildinfo
+coverage
+.evalite
+evalite.db
+pnpm-lock.yaml
+**/tests/playground/**
+build
+vite.config.ts.timestamp*

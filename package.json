@@ -12,11 +12,13 @@
     "dev": "turbo watch dev",
     "docs:dev": "(cd apps/evalite-docs && pnpm run dev)",
     "wsl:dev": "pnpm run -r --parallel dev",
-    "ci": "turbo build test lint after-build",
+    "ci": "turbo build test lint after-build && pnpm check-format",
     "build": "TURBO_DAEMON=false turbo build after-build",
     "release": "pnpm run build && changeset publish",
     "test-example": "cd packages/example && pnpm evalite watch",
-    "prepare": "husky"
+    "prepare": "husky",
+    "format": "prettier --write .",
+    "check-format": "prettier --check ."
   },
   "keywords": [],
   "author": "Matt Pocock",
