@@ -50,7 +50,7 @@
     "@fastify/websocket": "11.2.0",
     "@stricli/auto-complete": "^1.2.0",
     "@stricli/core": "^1.2.0",
-    "@vitest/runner": "^2.1.8",
+    "@vitest/runner": "^3.2.4",
     "better-sqlite3": "^11.6.0",
     "fastify": "^5.6.1",
     "file-type": "^19.6.0",

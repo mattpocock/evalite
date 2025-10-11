@@ -1,4 +1,3 @@
-import { Factuality, Levenshtein } from "autoevals";
 import { evalite } from "evalite";
 import { setTimeout } from "timers/promises";
 
@@ -8,10 +7,14 @@ evalite("Long", {
       input: `What's the capital of France?`,
       expected: `Paris`,
     },
+    {
+      input: `What's the capital of Germany?`,
+      expected: `Berlin`,
+    },
   ],
   task: async (input) => {
-    await setTimeout(6000);
+    await setTimeout(2000);
     return "Paris";
   },
-  scorers: [Factuality, Levenshtein],
+  scorers: [],
 });

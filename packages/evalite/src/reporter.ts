@@ -1,11 +1,17 @@
+import { getTests, hasFailed } from "@vitest/runner/utils";
+import type { RunnerTestFile } from "vitest";
+import type {
+  Reporter,
+  TestCase,
+  TestModule,
+  TestModuleState,
+  TestSuite,
+  Vitest,
+} from "vitest/node.js";
+import { BasicReporter, DefaultReporter } from "vitest/reporters";
 import type { SQLiteDatabase } from "./db.js";
-import { hasFailed } from "@vitest/runner/utils";
-import type { RunnerTask, RunnerTestFile, TaskResultPack, Test } from "vitest";
-import { BasicReporter } from "vitest/reporters";
-import type { Evalite } from "./types.js";
 import { EvaliteRunner } from "./reporter/EvaliteRunner.js";
 import {
-  computeTestSummaryData,
   renderDetailedTable,
   renderInitMessage,
   renderScoreDisplay,
@@ -13,8 +19,10 @@ import {
   renderTask,
   renderThreshold,
   renderWatcherStart,
-  type TaskNode,
 } from "./reporter/rendering.js";
+import type { Evalite } from "./types.js";
+import { average, max } from "./utils.js";
+import path from "node:path";
 
 export interface EvaliteReporterOptions {
   isWatching: boolean;
@@ -25,7 +33,10 @@ export interface EvaliteReporterOptions {
   modifyExitCode: (exitCode: number) => void;
 }
 
-export default class EvaliteReporter extends BasicReporter {
+export default class EvaliteReporter
+  extends DefaultReporter
+  implements Reporter
+{
   private opts: EvaliteReporterOptions;
   private runner: EvaliteRunner;
 
@@ -39,7 +50,7 @@ export default class EvaliteReporter extends BasicReporter {
       scoreThreshold: opts.scoreThreshold,
     });
   }
-  override onInit(ctx: any): void {
+  override onInit(ctx: Vitest): void {
     this.ctx = ctx;
     this.start = performance.now();
 
@@ -53,6 +64,8 @@ export default class EvaliteReporter extends BasicReporter {
       filepaths: this.ctx.state.getFiles().map((f) => f.filepath),
       runType: "full",
     });
+
+    super.onInit(ctx);
   }
 
   override onWatcherStart(
@@ -90,112 +103,148 @@ export default class EvaliteReporter extends BasicReporter {
     super.onFinished(files, errors);
   };
 
-  protected override printTask(file: RunnerTask): void {
-    const wasRendered = renderTask(this.ctx.logger, file as TaskNode);
-    if (!wasRendered) {
-      super.printTask(file);
-    }
-  }
-
   override reportTestSummary(files: RunnerTestFile[]): void {
-    const data = computeTestSummaryData(files as TaskNode[]);
+    const tests = getTests(files);
 
-    this.runner.handleTestSummary({
-      failedTasksCount: data.failedTasks.length,
-      averageScore: data.averageScore,
+    const failedTestsCount = tests.filter(
+      (test) => test.result?.state === "fail"
+    ).length;
+
+    const scores = tests.flatMap((test) => {
+      const scores = test.meta.evalite?.result?.scores;
+
+      return scores ?? [];
     });
 
-    renderScoreDisplay(
-      this.ctx.logger,
-      data.failedTasks.length,
-      data.averageScore
-    );
+    const averageScore = average(scores, (score) => score.score ?? 0);
+
+    this.runner.handleTestSummary({
+      failedTasksCount: failedTestsCount,
+      averageScore,
+    });
+
+    this.ctx.logger.log("");
+
+    renderScoreDisplay(this.ctx.logger, failedTestsCount, averageScore);
 
     if (typeof this.opts.scoreThreshold === "number") {
-      renderThreshold(
-        this.ctx.logger,
-        this.opts.scoreThreshold,
-        data.averageScore
-      );
+      renderThreshold(this.ctx.logger, this.opts.scoreThreshold, averageScore);
     }
 
-    renderSummaryStats(this.ctx.logger, data);
+    renderSummaryStats(this.ctx.logger, {
+      totalFiles: files.length,
+      maxDuration: max(tests, (test) => test.result?.duration ?? 0),
+      totalEvals: tests.length,
+    });
 
-    if (data.totalFiles === 1 && data.failedTasks.length === 0) {
-      renderDetailedTable(this.ctx.logger, data.tests);
+    if (files.length === 1 && failedTestsCount === 0) {
+      renderDetailedTable(
+        this.ctx.logger,
+        tests
+          .map((test) => {
+            return test.meta.evalite?.result;
+          })
+          .filter((result) => result !== undefined)
+      );
     }
   }
 
-  onTestStart(test: Test) {
-    if (!test.meta.evalite?.initialResult) {
+  onTestSuiteReady(testSuite: TestSuite): void {
+    return;
+  }
+
+  override onTestSuiteResult(testSuite: TestSuite): void {
+    return;
+  }
+
+  override onTestCaseReady(testCase: TestCase) {
+    const meta = testCase.meta();
+    if (!meta.evalite?.initialResult) {
       throw new Error("No initial result present");
     }
 
     this.runner.sendEvent({
       type: "RESULT_STARTED",
-      initialResult: test.meta.evalite.initialResult,
+      initialResult: meta.evalite.initialResult,
     });
   }
 
-  onTestFinished(test: Test) {
-    if (!test.suite) {
-      throw new Error("No suite present");
-    }
+  override onTestModuleQueued(file: TestModule): void {
+    return;
+  }
 
-    if (test.meta.evalite?.result) {
+  onTestModuleStart(mod: TestModule): void {
+    const tests = Array.from(mod.children.allTests());
+
+    renderTask({
+      logger: this.ctx.logger,
+      result: {
+        filePath: path.relative(this.ctx.config.root, mod.moduleId),
+        status: "running",
+        scores: [],
+        numberOfEvals: tests.length,
+      },
+    });
+    return;
+  }
+
+  override onTestModuleCollected(module: TestModule): void {
+    return;
+  }
+
+  override onTestModuleEnd(mod: TestModule): void {
+    const tests = Array.from(mod.children.allTests());
+
+    const hasFailed = tests.some((test) => test.result()?.state === "failed");
+
+    const scores = tests.flatMap(
+      (test) => test.meta().evalite?.result?.scores || []
+    );
+
+    renderTask({
+      logger: this.ctx.logger,
+      result: {
+        filePath: path.relative(this.ctx.config.root, mod.moduleId),
+        status: hasFailed ? "fail" : "success",
+        numberOfEvals: tests.length,
+        scores,
+      },
+    });
+  }
+
+  override onTestCaseResult(testCase: TestCase) {
+    const meta = testCase.meta();
+
+    if (meta.evalite?.result) {
       this.runner.sendEvent({
         type: "RESULT_SUBMITTED",
-        result: test.meta.evalite.result,
+        result: meta.evalite.result,
       });
 
       return;
     }
 
-    if (!test.meta.evalite?.resultAfterFilesSaved) {
+    if (!meta.evalite?.resultAfterFilesSaved) {
       throw new Error("No usable result present");
     }
 
     // At this point, the test has finished
     // but not reported a result. We should
     // indicate that the test has failed
+
+    const result: Evalite.Result = {
+      ...meta.evalite.resultAfterFilesSaved,
+      status: "fail",
+      output: null,
+      duration: 0,
+      scores: [],
+      traces: [],
+      renderedColumns: [],
+    };
+
     this.runner.sendEvent({
       type: "RESULT_SUBMITTED",
-      result: {
-        ...test.meta.evalite.resultAfterFilesSaved,
-        status: "fail",
-        output: null,
-        duration: 0,
-        scores: [],
-        traces: [],
-        renderedColumns: [],
-      },
+      result: result,
     });
-  }
-
-  onTestFilePrepare(file: RunnerTestFile) {}
-  onTestFileFinished(file: RunnerTestFile) {}
-
-  // Taken from https://github.com/vitest-dev/vitest/blob/4e60333dc7235704f96314c34ca510e3901fe61f/packages/vitest/src/node/reporters/task-parser.ts
-  override onTaskUpdate(packs: TaskResultPack[]) {
-    const startingTests: Test[] = [];
-    const finishedTests: Test[] = [];
-
-    for (const pack of packs) {
-      const task = this.ctx.state.idMap.get(pack[0]);
-
-      if (task?.type === "test") {
-        if (task.result?.state === "run") {
-          startingTests.push(task);
-        } else if (task.result?.hooks?.afterEach !== "run") {
-          finishedTests.push(task);
-        }
-      }
-    }
-
-    finishedTests.forEach((test) => this.onTestFinished(test));
-
-    startingTests.forEach((test) => this.onTestStart(test));
-
-    super.onTaskUpdate?.(packs);
   }
 }
