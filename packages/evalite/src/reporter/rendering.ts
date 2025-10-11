@@ -78,8 +78,10 @@ export function renderWatcherStart(
 }
 
 export function displayScore(_score: number) {
-  const score = Number.isNaN(_score) ? 0 : _score;
-  const percentageScore = Math.round(score * 100);
+  if (Number.isNaN(_score)) {
+    return c.dim("N/A");
+  }
+  const percentageScore = Math.round(_score * 100);
   if (percentageScore >= 80) {
     return c.bold(c.green(percentageScore + "%"));
   } else if (percentageScore >= 50) {
@@ -186,7 +188,10 @@ export function renderThreshold(
   let thresholdScoreSuffix = "";
   let result: "passed" | "failed";
 
-  if (averageScore * 100 < scoreThreshold) {
+  if (Number.isNaN(averageScore)) {
+    thresholdScoreSuffix = `${c.dim(` (N/A)`)}`;
+    result = "passed";
+  } else if (averageScore * 100 < scoreThreshold) {
     thresholdScoreSuffix = `${c.dim(` (failed)`)}`;
     result = "failed";
   } else {
@@ -249,7 +254,10 @@ export function renderDetailedTable(
                 value: renderMaybeEvaliteFile(result.output),
               },
             ],
-      score: average(result.scores, (s) => s.score ?? 0),
+      score:
+        result.scores.length > 0
+          ? average(result.scores, (s) => s.score ?? 0)
+          : NaN,
     }))
   );
 }
@@ -266,7 +274,7 @@ export function renderTask(opts: {
   const scores = opts.result.scores.map((s) => s.score ?? 0);
 
   const totalScore = scores.reduce((a, b) => a + b, 0);
-  const averageScore = totalScore / scores.length;
+  const averageScore = scores.length > 0 ? totalScore / scores.length : NaN;
 
   const prefix =
     opts.result.status === "fail"
