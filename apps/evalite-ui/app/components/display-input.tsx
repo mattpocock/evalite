@@ -203,6 +203,32 @@ export const DisplayEvaliteFile = ({ file }: { file: Evalite.File }) => {
   );
 };
 
+// Helper function to check if an object is a serialized error
+const isSerializedError = (input: unknown): input is { name: string; message: string; stack?: string } => {
+  return (
+    typeof input === "object" &&
+    input !== null &&
+    "name" in input &&
+    "message" in input &&
+    typeof (input as any).name === "string" &&
+    typeof (input as any).message === "string"
+  );
+};
+
+const DisplayError = ({ error }: { error: { name: string; message: string; stack?: string } }) => {
+  return (
+    <div className="text-red-500 dark:text-red-400">
+      <div className="font-semibold mb-2">{error.name}</div>
+      <div className="mb-2">{error.message}</div>
+      {error.stack && (
+        <pre className="text-xs opacity-80 overflow-auto max-h-48 bg-red-50 dark:bg-red-950/20 p-2 rounded">
+          {error.stack}
+        </pre>
+      )}
+    </div>
+  );
+};
+
 export const DisplayInput = (props: {
   /**
    * If displaying an object, the name is used to
@@ -230,6 +256,14 @@ export const DisplayInput = (props: {
     return (
       <Wrapper className={props.className}>
         <DisplayEvaliteFile file={props.input} />
+      </Wrapper>
+    );
+  }
+
+  if (isSerializedError(props.input)) {
+    return (
+      <Wrapper className={props.className}>
+        <DisplayError error={props.input} />
       </Wrapper>
     );
   }
