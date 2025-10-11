@@ -1,0 +1,166 @@
+---
+title: Running Programmatically
+---
+
+You can run Evalite programmatically using the Node API. This is useful when you want to integrate Evalite into your own scripts, CI/CD pipelines, or custom tooling.
+
+## Basic Usage
+
+Import the `runEvalite` function from `evalite/runner`:
+
+```typescript
+import { runEvalite } from "evalite/runner";
+
+await runEvalite({
+  path: undefined, // Optional: filter to specific files
+  cwd: process.cwd(),
+  mode: "run-once-and-exit",
+});
+```
+
+## Run Modes
+
+### Run Once and Exit
+
+This mode runs all evals once and exits. It's ideal for CI/CD pipelines:
+
+```typescript
+await runEvalite({
+  path: undefined,
+  cwd: process.cwd(),
+  mode: "run-once-and-exit",
+});
+```
+
+### Watch Mode
+
+This mode watches for file changes and re-runs evals automatically. It also starts the Evalite UI server:
+
+```typescript
+await runEvalite({
+  path: undefined,
+  cwd: process.cwd(),
+  mode: "watch-for-file-changes",
+});
+```
+
+> [!IMPORTANT]
+>
+> I strongly recommend implementing a caching layer in your LLM calls when using watch mode. This will keep your evals running fast and avoid burning through your API credits.
+
+## Options
+
+### `path`
+
+Optional path filter to run specific eval files:
+
+```typescript
+await runEvalite({
+  path: "my-eval.eval.ts",
+  cwd: process.cwd(),
+  mode: "run-once-and-exit",
+});
+```
+
+### `cwd`
+
+The working directory to run evals from. Defaults to the current directory:
+
+```typescript
+await runEvalite({
+  path: undefined,
+  cwd: "/path/to/my/project",
+  mode: "run-once-and-exit",
+});
+```
+
+### `scoreThreshold`
+
+Set a minimum score threshold (0-100). If the average score falls below this threshold, the process will exit with a non-zero exit code:
+
+```typescript
+await runEvalite({
+  path: undefined,
+  cwd: process.cwd(),
+  mode: "run-once-and-exit",
+  scoreThreshold: 80, // Fail if score is below 80
+});
+```
+
+This is particularly useful for CI/CD pipelines where you want to fail the build if evals don't meet a quality threshold.
+
+### `outputPath`
+
+Export the results to a JSON file after the run completes:
+
+```typescript
+await runEvalite({
+  path: undefined,
+  cwd: process.cwd(),
+  mode: "run-once-and-exit",
+  outputPath: "./results.json",
+});
+```
+
+The exported JSON file contains the complete run data including all evals, results, scores, and traces.
+
+### `testOutputWritable`
+
+Redirect test output to a custom writable stream:
+
+```typescript
+import { createWriteStream } from "fs";
+
+const logStream = createWriteStream("./test-output.log");
+
+await runEvalite({
+  path: undefined,
+  cwd: process.cwd(),
+  mode: "run-once-and-exit",
+  testOutputWritable: logStream,
+});
+```
+
+## Complete Example
+
+Here's a complete example that combines multiple options:
+
+```typescript
+import { runEvalite } from "evalite/runner";
+
+async function runEvals() {
+  try {
+    await runEvalite({
+      path: undefined, // Run all evals
+      cwd: process.cwd(),
+      mode: "run-once-and-exit",
+      scoreThreshold: 75, // Fail if average score < 75
+      outputPath: "./evalite-results.json", // Export results
+    });
+    console.log("All evals passed!");
+  } catch (error) {
+    console.error("Evals failed:", error);
+    process.exit(1);
+  }
+}
+
+runEvals();
+```
+
+## Migration from `runVitest`
+
+If you were previously using `runVitest`, you can simply rename it to `runEvalite`. The API is identical:
+
+```typescript
+// Old
+import { runVitest } from "evalite/runner";
+await runVitest({ /* ... */ });
+
+// New
+import { runEvalite } from "evalite/runner";
+await runEvalite({ /* ... */ });
+```
+
+> [!NOTE]
+>
+> `runVitest` is still available as a deprecated alias for backward compatibility, but it will be removed in a future version.

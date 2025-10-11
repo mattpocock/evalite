@@ -116,6 +116,10 @@ export default defineConfig({
               slug: "guides/cli",
             },
             {
+              label: "Running Programmatically",
+              slug: "guides/running-programmatically",
+            },
+            {
               label: "CI/CD",
               slug: "guides/ci",
             },
