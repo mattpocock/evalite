@@ -11,7 +11,10 @@ import {
   type SQLiteDatabase,
   getResults,
   getScores,
+  getTraces,
+  getAverageScoresFromResults,
 } from "./db.js";
+import type { Evalite } from "./types.js";
 import { createServer } from "./server.js";
 import { DEFAULT_SERVER_PORT } from "./constants.js";
 import { DB_LOCATION, FILES_LOCATION } from "./backend-only-constants.js";
@@ -40,7 +43,12 @@ const exportResultsToJSON = async (opts: {
     allEvals.map((e) => e.id).filter((i) => typeof i === "number"),
   );
 
-  const scores = getScores(
+  const allScores = getScores(
+    opts.db,
+    evalResults.map((r) => r.id),
+  );
+
+  const allTraces = getTraces(
     opts.db,
     evalResults.map((r) => r.id),
   );
@@ -50,20 +58,84 @@ const exportResultsToJSON = async (opts: {
     allEvals.map((e) => e.id),
   );
 
-  const results = evalResults.map((result) => {
-    return {
-      ...result,
-      average: evalsAverageScores.find((e) => e.eval_id === result.eval_id)
-        ?.average,
-      scores: scores.filter((s) => s.result_id === result.id),
-    };
-  });
+  const resultsAverageScores = getAverageScoresFromResults(
+    opts.db,
+    evalResults.map((r) => r.id),
+  );
 
-  const outputData = {
-    runId: latestFullRun.id,
-    runType: latestFullRun.runType,
-    created_at: latestFullRun.created_at,
-    evals: results,
+  // Group results by eval and transform to camelCase
+  const outputData: Evalite.ExportOutput = {
+    run: {
+      id: latestFullRun.id,
+      runType: latestFullRun.runType,
+      createdAt: latestFullRun.created_at,
+    },
+    evals: allEvals.map((evaluation) => {
+      const evalAvgScore = evalsAverageScores.find(
+        (e) => e.eval_id === evaluation.id,
+      );
+
+      const resultsForEval = evalResults.filter(
+        (r) => r.eval_id === evaluation.id,
+      );
+
+      return {
+        id: evaluation.id,
+        name: evaluation.name,
+        filepath: evaluation.filepath,
+        duration: evaluation.duration,
+        status: evaluation.status,
+        variantName: evaluation.variant_name,
+        variantGroup: evaluation.variant_group,
+        createdAt: evaluation.created_at,
+        averageScore: evalAvgScore?.average ?? 0,
+        results: resultsForEval.map((result) => {
+          const resultAvgScore = resultsAverageScores.find(
+            (r) => r.result_id === result.id,
+          );
+
+          const scoresForResult = allScores.filter(
+            (s) => s.result_id === result.id,
+          );
+
+          const tracesForResult = allTraces.filter(
+            (t) => t.result_id === result.id,
+          );
+
+          return {
+            id: result.id,
+            duration: result.duration,
+            input: result.input,
+            output: result.output,
+            expected: result.expected,
+            status: result.status,
+            colOrder: result.col_order,
+            renderedColumns: result.rendered_columns,
+            createdAt: result.created_at,
+            averageScore: resultAvgScore?.average ?? 0,
+            scores: scoresForResult.map((score) => ({
+              id: score.id,
+              name: score.name,
+              score: score.score,
+              description: score.description,
+              metadata: score.metadata,
+              createdAt: score.created_at,
+            })),
+            traces: tracesForResult.map((trace) => ({
+              id: trace.id,
+              input: trace.input,
+              output: trace.output,
+              startTime: trace.start_time,
+              endTime: trace.end_time,
+              inputTokens: trace.input_tokens,
+              outputTokens: trace.output_tokens,
+              totalTokens: trace.total_tokens,
+              colOrder: trace.col_order,
+            })),
+          };
+        }),
+      };
+    }),
   };
 
   const absolutePath = path.isAbsolute(opts.outputPath)
