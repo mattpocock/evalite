@@ -116,6 +116,10 @@ export default defineConfig({
               slug: "guides/cli",
             },
             {
+              label: "CI/CD",
+              slug: "guides/ci",
+            },
+            {
               label: "Skipping Evals",
               slug: "guides/skipping",
             },

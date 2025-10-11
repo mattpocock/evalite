@@ -1,0 +1,165 @@
+---
+title: CI/CD
+---
+
+Evalite integrates seamlessly into CI/CD pipelines, allowing you to validate LLM-powered features as part of your automated testing workflow.
+
+## Running on CI
+
+Run Evalite in run-once mode (the default) for CI environments:
+
+```bash
+evalite
+```
+
+This executes all evals and exits, making it suitable for CI pipelines.
+
+## Score Thresholds
+
+Fail CI builds if eval scores fall below a threshold:
+
+```bash
+evalite --threshold=70
+```
+
+Process exits with code 1 if average score < 70.
+
+## Exporting Results
+
+Export eval results to JSON using `--outputPath`:
+
+```bash
+evalite --outputPath=./results.json
+```
+
+### Export Format
+
+The exported JSON follows a typed hierarchical structure with camelCase naming:
+
+```typescript
+import type { Evalite } from "evalite";
+
+// Use the typed export format
+type Output = Evalite.Exported.Output;
+```
+
+The output contains:
+
+- **`run`**: Metadata (id, runType, createdAt)
+- **`evals`**: Array of evaluations, each containing:
+  - Basic info (name, filepath, duration, status, averageScore)
+  - **`results`**: Array of individual test results with:
+    - Test data (input, output, expected)
+    - **`scores`**: Array of scorer results
+    - **`traces`**: Array of LLM call traces (for debugging/cost tracking)
+
+### Example Output Structure
+
+```json
+{
+  "run": {
+    "id": 1,
+    "runType": "full",
+    "createdAt": "2025-10-11T12:00:00Z"
+  },
+  "evals": [
+    {
+      "id": 1,
+      "name": "sentiment-analysis",
+      "filepath": "/path/to/sentiment.eval.ts",
+      "duration": 1234,
+      "status": "success",
+      "averageScore": 0.85,
+      "createdAt": "2025-10-11T12:00:00Z",
+      "results": [
+        {
+          "id": 1,
+          "duration": 456,
+          "input": { "text": "I love this!" },
+          "output": "positive",
+          "expected": "positive",
+          "status": "success",
+          "averageScore": 0.9,
+          "scores": [
+            {
+              "id": 1,
+              "name": "accuracy",
+              "score": 1.0,
+              "description": "Exact match",
+              "createdAt": "2025-10-11T12:00:00Z"
+            }
+          ],
+          "traces": [
+            {
+              "id": 1,
+              "input": { "messages": [...] },
+              "output": { "text": "positive" },
+              "startTime": 1728640800000,
+              "endTime": 1728640800456,
+              "inputTokens": 50,
+              "outputTokens": 10,
+              "totalTokens": 60,
+              "colOrder": 0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Use Cases
+
+**CI/CD Artifacts**: Upload results as build artifacts
+
+```bash
+# GitHub Actions example
+- name: Run evals
+  run: evalite --outputPath=./eval-results.json
+
+- name: Upload results
+  uses: actions/upload-artifact@v3
+  with:
+    name: eval-results
+    path: eval-results.json
+```
+
+**Analysis**: Import into analytics tools or dashboards for tracking performance over time.
+
+**Archiving**: Store historical eval results for comparison and debugging.
+
+## Example CI Workflow
+
+GitHub Actions workflow:
+
+```yaml
+name: Run Evals
+
+on: [push, pull_request]
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "22"
+
+      - run: npm install
+
+      - name: Run evaluations
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          npx evalite --threshold=70 --outputPath=./results.json
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: eval-results
+          path: results.json
+```
