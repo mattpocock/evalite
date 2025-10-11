@@ -104,23 +104,6 @@ await runEvalite({
 
 The exported JSON file contains the complete run data including all evals, results, scores, and traces.
 
-### `testOutputWritable`
-
-Redirect test output to a custom writable stream:
-
-```typescript
-import { createWriteStream } from "fs";
-
-const logStream = createWriteStream("./test-output.log");
-
-await runEvalite({
-  path: undefined,
-  cwd: process.cwd(),
-  mode: "run-once-and-exit",
-  testOutputWritable: logStream,
-});
-```
-
 ## Complete Example
 
 Here's a complete example that combines multiple options:
@@ -146,21 +129,3 @@ async function runEvals() {
 
 runEvals();
 ```
-
-## Migration from `runVitest`
-
-If you were previously using `runVitest`, you can simply rename it to `runEvalite`. The API is identical:
-
-```typescript
-// Old
-import { runVitest } from "evalite/runner";
-await runVitest({ /* ... */ });
-
-// New
-import { runEvalite } from "evalite/runner";
-await runEvalite({ /* ... */ });
-```
-
-> [!NOTE]
->
-> `runVitest` is still available as a deprecated alias for backward compatibility, but it will be removed in a future version.
