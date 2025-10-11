@@ -16,9 +16,7 @@ If you don't need your scorer to be reusable, you can define it inline.
 import { evalite } from "evalite";
 
 evalite("My Eval", {
-  data: async () => {
-    return [{ input: "Hello" }];
-  },
+  data: [{ input: "Hello" }],
   task: async (input) => {
     return input + " World!";
   },
@@ -50,9 +48,7 @@ const containsParis = createScorer<string, string>({
 });
 
 evalite("My Eval", {
-  data: async () => {
-    return [{ input: "Hello" }];
-  },
+  data: [{ input: "Hello" }],
   task: async (input) => {
     return input + " World!";
   },
@@ -228,17 +224,15 @@ const checkFactuality = async (opts: {
  * 3. The output is the text to be evaluated.
  */
 evalite("Factuality", {
-  data: async () => {
-    return [
-      {
-        // The question
-        input: "What is the capital of France?",
+  data: [
+    {
+      // The question
+      input: "What is the capital of France?",
 
-        // The expected answer
-        expected: "Paris",
-      },
-    ];
-  },
+      // The expected answer
+      expected: "Paris",
+    },
+  ],
   task: async (input) => {
     // Technically correct, but a nightmare for non-LLM
     // scorers to evaluate.
