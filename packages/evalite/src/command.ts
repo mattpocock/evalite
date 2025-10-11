@@ -1,4 +1,4 @@
-import { runVitest } from "./run-vitest.js";
+import { runEvalite } from "./run-vitest.js";
 import { buildApplication, buildCommand, buildRouteMap } from "@stricli/core";
 import {
   buildInstallCommand,
@@ -145,7 +145,7 @@ export const createProgram = (commands: {
 
 export const program = createProgram({
   watch: (path) => {
-    return runVitest({
+    return runEvalite({
       path: path.path,
       scoreThreshold: path.threshold,
       cwd: undefined,
@@ -154,7 +154,7 @@ export const program = createProgram({
     });
   },
   runOnceAtPath: (path) => {
-    return runVitest({
+    return runEvalite({
       path: path.path,
       scoreThreshold: path.threshold,
       cwd: undefined,
