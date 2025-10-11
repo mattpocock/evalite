@@ -45,16 +45,14 @@ import { evalite } from "evalite";
 import { reportTrace } from "evalite/traces";
 
 evalite("My Eval", {
-  data: async () => {
-    return [
-      {
-        // 1. In inputs...
-        input: readFileSync("path/to/file.jpg"),
-        // 2. ...in expected...
-        expected: readFileSync("path/to/file.jpg"),
-      },
-    ];
-  },
+  data: [
+    {
+      // 1. In inputs...
+      input: readFileSync("path/to/file.jpg"),
+      // 2. ...in expected...
+      expected: readFileSync("path/to/file.jpg"),
+    },
+  ],
   task: async (input) => {
     reportTrace({
       // 3. ...in traces...
@@ -90,13 +88,11 @@ If you're working with files on disk, you can use the `EvaliteFile.fromPath` met
 import { EvaliteFile, evalite } from "evalite";
 
 evalite("My Eval", {
-  data: async () => {
-    return [
-      {
-        input: EvaliteFile.fromPath("path/to/file.jpg"),
-      },
-    ];
-  },
+  data: [
+    {
+      input: EvaliteFile.fromPath("path/to/file.jpg"),
+    },
+  ],
   task: async (input) => {
     console.log(input.path); // "path/to/file.jpg"
   },

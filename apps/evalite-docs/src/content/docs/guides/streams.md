@@ -11,9 +11,7 @@ import { openai } from "@ai-sdk/openai";
 import { Factuality } from "autoevals";
 
 evalite("My Eval", {
-  data: async () => {
-    return [{ input: "What is the capital of France?", expected: "Paris" }];
-  },
+  data: [{ input: "What is the capital of France?", expected: "Paris" }],
   task: async (input) => {
     const result = await streamText({
       model: openai("your-model"),
