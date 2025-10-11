@@ -4,134 +4,54 @@ title: CI/CD
 
 Evalite integrates seamlessly into CI/CD pipelines, allowing you to validate LLM-powered features as part of your automated testing workflow.
 
-## Running on CI
+## Static UI Export
 
-Run Evalite in run-once mode (the default) for CI environments:
+Export eval results as a static HTML bundle for viewing in CI artifacts without running a live server.
 
-```bash
-evalite
-```
-
-This executes all evals and exits, making it suitable for CI pipelines.
-
-## Score Thresholds
-
-Fail CI builds if eval scores fall below a threshold:
+### Basic Usage
 
 ```bash
-evalite --threshold=70
+evalite export
 ```
 
-Process exits with code 1 if average score < 70.
+Exports latest full run to `./evalite-export` directory.
 
-## Exporting Results
+### Options
 
-Export eval results to JSON using `--outputPath`:
+**Custom output directory:**
 
 ```bash
-evalite --outputPath=./results.json
+evalite export --output=./my-export
 ```
 
-### Export Format
-
-The exported JSON follows a typed hierarchical structure with camelCase naming:
-
-```typescript
-import type { Evalite } from "evalite";
-
-// Use the typed export format
-type Output = Evalite.Exported.Output;
-```
-
-The output contains:
-
-- **`run`**: Metadata (id, runType, createdAt)
-- **`evals`**: Array of evaluations, each containing:
-  - Basic info (name, filepath, duration, status, averageScore)
-  - **`results`**: Array of individual test results with:
-    - Test data (input, output, expected)
-    - **`scores`**: Array of scorer results
-    - **`traces`**: Array of LLM call traces (for debugging/cost tracking)
-
-### Example Output Structure
-
-```json
-{
-  "run": {
-    "id": 1,
-    "runType": "full",
-    "createdAt": "2025-10-11T12:00:00Z"
-  },
-  "evals": [
-    {
-      "id": 1,
-      "name": "sentiment-analysis",
-      "filepath": "/path/to/sentiment.eval.ts",
-      "duration": 1234,
-      "status": "success",
-      "averageScore": 0.85,
-      "createdAt": "2025-10-11T12:00:00Z",
-      "results": [
-        {
-          "id": 1,
-          "duration": 456,
-          "input": { "text": "I love this!" },
-          "output": "positive",
-          "expected": "positive",
-          "status": "success",
-          "averageScore": 0.9,
-          "scores": [
-            {
-              "id": 1,
-              "name": "accuracy",
-              "score": 1.0,
-              "description": "Exact match",
-              "createdAt": "2025-10-11T12:00:00Z"
-            }
-          ],
-          "traces": [
-            {
-              "id": 1,
-              "input": { "messages": [...] },
-              "output": { "text": "positive" },
-              "startTime": 1728640800000,
-              "endTime": 1728640800456,
-              "inputTokens": 50,
-              "outputTokens": 10,
-              "totalTokens": 60,
-              "colOrder": 0
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
-```
-
-### Use Cases
-
-**CI/CD Artifacts**: Upload results as build artifacts
+**Export specific run:**
 
 ```bash
-# GitHub Actions example
-- name: Run evals
-  run: evalite --outputPath=./eval-results.json
-
-- name: Upload results
-  uses: actions/upload-artifact@v3
-  with:
-    name: eval-results
-    path: eval-results.json
+evalite export --run-id=123
 ```
 
-**Analysis**: Import into analytics tools or dashboards for tracking performance over time.
+### Export Structure
 
-**Archiving**: Store historical eval results for comparison and debugging.
+Generated bundle contains:
 
-## Example CI Workflow
+- `index.html` - Standalone UI (works without server)
+- `data/*.json` - Pre-computed API responses
+- `files/*` - Images, audio, etc. from eval results
+- `assets/*` - UI JavaScript/CSS
 
-GitHub Actions workflow:
+### Viewing Exports
+
+**Local preview:**
+
+```bash
+npx serve -s ./evalite-export
+```
+
+**Static hosting:** Upload to artifact.ci, S3, GitHub Pages, etc.
+
+### CI Integration Example
+
+GitHub Actions workflow exporting UI to artifacts:
 
 ```yaml
 name: Run Evals
@@ -153,13 +73,70 @@ jobs:
       - name: Run evaluations
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          npx evalite --threshold=70 --outputPath=./results.json
+        run: npx evalite --threshold=70
 
-      - name: Upload results
-        if: always()
+      - name: Export UI
+        run: npx evalite export --output=./ui-export
+
+      - name: Upload static UI
         uses: actions/upload-artifact@v3
         with:
-          name: eval-results
-          path: results.json
+          name: evalite-ui
+          path: ui-export
 ```
+
+View results by downloading artifact and running `npx serve -s ./ui-export`.
+
+## Running on CI
+
+Run Evalite in run-once mode (default):
+
+```bash
+evalite
+```
+
+Executes all evals and exits.
+
+## Score Thresholds
+
+Fail CI builds if scores fall below threshold:
+
+```bash
+evalite --threshold=70
+```
+
+Exits with code 1 if average score < 70.
+
+## JSON Export
+
+For programmatic analysis, export raw JSON:
+
+```bash
+evalite --outputPath=./results.json
+```
+
+### Export Format
+
+Typed hierarchical structure:
+
+```typescript
+import type { Evalite } from "evalite";
+
+type Output = Evalite.Exported.Output;
+```
+
+Contains:
+
+- **`run`**: Metadata (id, runType, createdAt)
+- **`evals`**: Array of evaluations with:
+  - Basic info (name, filepath, duration, status, averageScore)
+  - **`results`**: Individual test results with:
+    - Test data (input, output, expected)
+    - **`scores`**: Scorer results
+    - **`traces`**: LLM call traces
+
+### Use Cases
+
+- **Analytics**: Import into dashboards for performance tracking
+- **Archiving**: Store historical results for comparison
+- **Custom tooling**: Build scripts around eval data
