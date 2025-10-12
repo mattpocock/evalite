@@ -4,6 +4,7 @@ import { AlertCircle, ChevronDown, DownloadIcon } from "lucide-react";
 import React, { Fragment, useLayoutEffect, useRef, useState } from "react";
 import { JSONTree } from "react-json-tree";
 import ReactMarkdown from "react-markdown";
+import rehypePrettyCode from "rehype-pretty-code";
 import remarkGfm from "remark-gfm";
 import { downloadFile, serveFile } from "~/sdk";
 import { Button } from "./ui/button";
@@ -82,6 +83,15 @@ const DisplayText = ({
           <ReactMarkdown
             className="prose dark:prose-invert prose-sm"
             remarkPlugins={[remarkGfm]}
+            rehypePlugins={[
+              [
+                rehypePrettyCode,
+                {
+                  theme: "github-dark",
+                  keepBackground: false,
+                },
+              ],
+            ]}
           >
             {input}
           </ReactMarkdown>
