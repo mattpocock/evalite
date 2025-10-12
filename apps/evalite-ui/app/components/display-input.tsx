@@ -225,7 +225,9 @@ const DisplayError = ({
   return (
     <div className="flex items-start gap-2 text-red-500 dark:text-red-400">
       <AlertCircle className="size-5 flex-shrink-0 mt-0.5" />
-      <div className="whitespace-pre-wrap w-full pr-4">{error.message}</div>
+      <div className="whitespace-pre-wrap w-full pr-4 break-words">
+        {error.message}
+      </div>
     </div>
   );
 };

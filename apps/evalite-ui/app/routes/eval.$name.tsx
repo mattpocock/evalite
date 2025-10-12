@@ -128,6 +128,12 @@ function EvalComponent() {
     serverStateUtils.isRunningEvalName(name) &&
     evaluationWithoutLayoutShift?.created_at === mostRecentDate;
 
+  const evaluationWithoutLayoutShiftScores =
+    evaluationWithoutLayoutShift?.results[0]?.scores ?? [];
+
+  const hasScores =
+    possiblyRunningEvaluation.results.some((r) => r.scores.length > 0) ?? true;
+
   return (
     <>
       <title>{`${name} | Evalite`}</title>
@@ -149,6 +155,7 @@ function EvalComponent() {
               score={evalScore}
               state={getScoreState(evalScore, prevScore)}
               resultStatus={undefined}
+              hasScores={hasScores}
             ></Score>
             <Separator orientation="vertical" className="h-4 mx-4" />
             <span>{formatTime(possiblyRunningEvaluation.duration)}</span>
@@ -201,6 +208,59 @@ function EvalComponent() {
             )}
           </div>
         )}
+        {evaluationWithoutLayoutShift &&
+          evaluationWithoutLayoutShift.results.length > 0 &&
+          evaluationWithoutLayoutShiftScores.length > 0 && (
+            <div className="mb-10">
+              <h2 className="mb-4 font-medium text-lg text-foreground/60">
+                Scores
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {evaluationWithoutLayoutShiftScores.map((scorer) => {
+                  const scorerName = scorer.name;
+                  const scorerAverage = average(
+                    evaluationWithoutLayoutShift.results,
+                    (r) => {
+                      const score = r.scores.find((s) => s.name === scorerName);
+                      return score?.score ?? 0;
+                    }
+                  );
+                  const prevScorerAverage = prevEvaluation
+                    ? average(prevEvaluation.results, (r) => {
+                        const score = r.scores.find(
+                          (s) => s.name === scorerName
+                        );
+                        return score?.score ?? 0;
+                      })
+                    : undefined;
+                  return (
+                    <div
+                      key={scorerName}
+                      className="border rounded-lg p-4 bg-card"
+                    >
+                      <div className="text-sm text-foreground/60 mb-2">
+                        {scorerName}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Score
+                          evalStatus={possiblyRunningEvaluation.status}
+                          isRunning={isRunningEval}
+                          score={scorerAverage}
+                          state={getScoreState(
+                            scorerAverage,
+                            prevScorerAverage
+                          )}
+                          resultStatus={undefined}
+                          iconClassName="size-4"
+                          hasScores={hasScores}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         {evaluationWithoutLayoutShift?.status === "fail" && (
           <div className="flex gap-4 px-4 my-14">
             <div className="flex-shrink-0">
@@ -240,10 +300,6 @@ function EvalComponent() {
                       <TableHead>Input</TableHead>
                       <TableHead>Output</TableHead>
                       {showExpectedColumn && <TableHead>Expected</TableHead>}
-                      {evaluationWithoutLayoutShift.results[0]?.scores
-                        .length === 0 && (
-                        <TableHead className="border-l">Score</TableHead>
-                      )}
                     </>
                   )}
                   {evaluationWithoutLayoutShift.results[0]?.scores.map(
@@ -341,19 +397,6 @@ function EvalComponent() {
                         </>
                       )}
 
-                      {result.scores.length === 0 && (
-                        <td className="border-l">
-                          <Wrapper>
-                            <Score
-                              score={0}
-                              isRunning={isRunningEval}
-                              resultStatus={result.status}
-                              evalStatus={possiblyRunningEvaluation.status}
-                              state={"first"}
-                            />
-                          </Wrapper>
-                        </td>
-                      )}
                       {result.scores.map((scorer, index) => {
                         const scoreInPreviousEvaluation =
                           prevEvaluation?.results
@@ -369,6 +412,7 @@ function EvalComponent() {
                           >
                             <Wrapper>
                               <Score
+                                hasScores={hasScores}
                                 score={scorer.score}
                                 isRunning={isRunningEval}
                                 resultStatus={result.status}

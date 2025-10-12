@@ -17,12 +17,15 @@ export const Score = (props: {
   evalStatus: Db.EvalStatus;
   resultStatus: Db.Result["status"] | undefined;
   iconClassName?: string;
+  hasScores: boolean;
 }) => {
   const isRunning = props.isRunning || props.evalStatus === "running";
   return (
     <span className="flex items-center space-x-2">
       {isRunning ? (
         <span>---%</span>
+      ) : !props.hasScores ? (
+        <span className="text-muted-foreground">-</span>
       ) : (
         <span>
           {Math.round((Number.isNaN(props.score) ? 0 : props.score) * 100)}%

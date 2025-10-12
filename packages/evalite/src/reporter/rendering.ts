@@ -77,7 +77,10 @@ export function renderWatcherStart(
   logger.log(BADGE_PADDING + hints.join(c.dim(", ")));
 }
 
-export function displayScore(_score: number) {
+export function displayScore(_score: number | null) {
+  if (_score === null) {
+    return c.dim("-");
+  }
   const score = Number.isNaN(_score) ? 0 : _score;
   const percentageScore = Math.round(score * 100);
   if (percentageScore >= 80) {
@@ -104,14 +107,16 @@ export function renderTable(
       label: string;
       value: unknown;
     }[];
-    score: number;
+    score: number | null;
   }[]
 ) {
   logger.log("");
 
   const availableColumns = process.stdout.columns || 80;
 
-  const scoreWidth = 5;
+  const hasScores = rows.some((row) => row.score !== null);
+
+  const scoreWidth = hasScores ? 5 : 0;
   const columnsWritableWidth = 11;
   const availableInnerSpace =
     availableColumns - columnsWritableWidth - scoreWidth;
@@ -132,7 +137,7 @@ export function renderTable(
       [
         [
           ...columns.map((col) => c.cyan(c.bold(col.label))),
-          c.cyan(c.bold("Score")),
+          ...(hasScores ? [c.cyan(c.bold("Score"))] : []),
         ],
         ...rows.map((row) => [
           ...row.columns.map((col) => {
@@ -146,7 +151,7 @@ export function renderTable(
                 })
               : col.value;
           }),
-          displayScore(row.score),
+          ...(hasScores ? [displayScore(row.score)] : []),
         ]),
       ],
       {
@@ -158,7 +163,7 @@ export function renderTable(
             paddingLeft: 1,
             paddingRight: 1,
           })),
-          { width: scoreWidth },
+          ...(hasScores ? [{ width: scoreWidth }] : []),
         ],
       }
     )
@@ -168,7 +173,7 @@ export function renderTable(
 export function renderScoreDisplay(
   logger: { log: (msg: string) => void },
   failedTasksCount: number,
-  averageScore: number
+  averageScore: number | null
 ) {
   const scoreDisplay =
     failedTasksCount > 0
@@ -181,12 +186,12 @@ export function renderScoreDisplay(
 export function renderThreshold(
   logger: { log: (msg: string) => void },
   scoreThreshold: number,
-  averageScore: number
+  averageScore: number | null
 ): "passed" | "failed" {
   let thresholdScoreSuffix = "";
   let result: "passed" | "failed";
 
-  if (averageScore * 100 < scoreThreshold) {
+  if (averageScore === null || averageScore * 100 < scoreThreshold) {
     thresholdScoreSuffix = `${c.dim(` (failed)`)}`;
     result = "failed";
   } else {
@@ -249,7 +254,10 @@ export function renderDetailedTable(
                 value: renderMaybeEvaliteFile(result.output),
               },
             ],
-      score: average(result.scores, (s) => s.score ?? 0),
+      score:
+        result.scores.length === 0
+          ? null
+          : average(result.scores, (s) => s.score ?? 0),
     }))
   );
 }
@@ -266,7 +274,7 @@ export function renderTask(opts: {
   const scores = opts.result.scores.map((s) => s.score ?? 0);
 
   const totalScore = scores.reduce((a, b) => a + b, 0);
-  const averageScore = totalScore / scores.length;
+  const averageScore = scores.length === 0 ? null : totalScore / scores.length;
 
   const prefix =
     opts.result.status === "fail"

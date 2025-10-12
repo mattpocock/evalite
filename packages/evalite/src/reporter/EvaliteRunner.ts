@@ -39,7 +39,7 @@ export class EvaliteRunner {
 
   handleTestSummary(data: {
     failedTasksCount: number;
-    averageScore: number;
+    averageScore: number | null;
   }): void {
     // Set exit code to 1 if there are any failed tasks
     if (data.failedTasksCount > 0) {
@@ -48,7 +48,10 @@ export class EvaliteRunner {
 
     // Handle threshold checking
     if (typeof this.opts.scoreThreshold === "number") {
-      if (data.averageScore * 100 < this.opts.scoreThreshold) {
+      if (
+        data.averageScore === null ||
+        data.averageScore * 100 < this.opts.scoreThreshold
+      ) {
         this.opts.modifyExitCode(1);
         this.didLastRunFailThreshold = "yes";
       } else {

@@ -116,7 +116,8 @@ export default class EvaliteReporter
       return scores ?? [];
     });
 
-    const averageScore = average(scores, (score) => score.score ?? 0);
+    const averageScore =
+      scores.length === 0 ? null : average(scores, (score) => score.score ?? 0);
 
     this.runner.handleTestSummary({
       failedTasksCount: failedTestsCount,

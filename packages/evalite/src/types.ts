@@ -178,6 +178,7 @@ export declare namespace Evalite {
       evalStatus: Db.EvalStatus;
       variantName: string | undefined;
       variantGroup: string | undefined;
+      hasScores: boolean;
     };
 
     export type GetMenuItemsResult = {
