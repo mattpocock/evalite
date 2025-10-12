@@ -116,16 +116,17 @@ export function renderTable(
 
   const hasScores = rows.some((row) => row.score !== null);
 
-  const scoreWidth = hasScores ? 5 : 0;
-  const columnsWritableWidth = 11;
-  const availableInnerSpace =
-    availableColumns - columnsWritableWidth - scoreWidth;
-
   const columns = rows[0]?.columns;
 
   if (!columns) {
     return;
   }
+
+  const numColumns = columns.length + (hasScores ? 1 : 0);
+  // Calculate table overhead: borders (numColumns + 1) + padding (numColumns × 2)
+  const tableOverhead = numColumns * 3 + 1;
+  const scoreWidth = hasScores ? 5 : 0;
+  const availableInnerSpace = availableColumns - tableOverhead - scoreWidth;
 
   const colWidth = Math.min(
     Math.floor(availableInnerSpace / columns.length),

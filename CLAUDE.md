@@ -246,3 +246,21 @@ OPENAI_API_KEY=your-api-key
 **File extensions**: Both `.eval.ts` and `.eval.mts` files are supported (see changeset #151)
 
 **Turbo dependency graph**: Most tasks depend on `^build` (build dependencies first). The `after-build` task runs after `build` completes.
+
+## Changesets
+
+To add a changeset, write a new file to the `.changeset` directory.
+
+The file should be named `0000-your-change.md`. Decide yourself whether to make it a patch, minor, or major change.
+
+The format of the file should be:
+
+```md
+---
+"evalite": patch
+---
+
+Description of the change.
+```
+
+The description of the change should be user-facing, describing which features were added or bugs were fixed.
