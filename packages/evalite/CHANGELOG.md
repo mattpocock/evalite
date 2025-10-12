@@ -1,5 +1,12 @@
 # evalite
 
+## 0.14.2
+
+### Patch Changes
+
+- 6e3a494: Fixed a bug where failed results would not show the table at all in the terminal
+- 2519adb: Add --hideTable option for hiding the table
+
 ## 0.14.1
 
 ### Patch Changes
