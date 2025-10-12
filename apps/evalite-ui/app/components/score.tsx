@@ -42,6 +42,12 @@ export const Score = (props: {
                 )}
               />
             );
+          case !props.hasScores:
+            return (
+              <ChevronRightCircleIcon
+                className={cn("size-3 text-blue-500", props.iconClassName)}
+              />
+            );
           case props.evalStatus === "fail" || props.resultStatus === "fail":
             return (
               <XCircleIcon
