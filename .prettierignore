@@ -11,3 +11,4 @@ build
 vite.config.ts.timestamp*
 *.d.ts
 *.gen.ts
+**/evalite-export

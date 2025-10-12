@@ -117,8 +117,7 @@ it("Detailed table should show '-' in Score column", async () => {
   // Should show "-" in score column (not percentages)
   const lines = output.split("\n");
   const scoreColumnLines = lines.filter(
-    (line) =>
-      line.includes("test input") || line.includes("test output")
+    (line) => line.includes("test input") || line.includes("test output")
   );
 
   // At least some data rows should exist

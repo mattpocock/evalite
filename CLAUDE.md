@@ -62,6 +62,7 @@ When working on specific packages in this monorepo, **prefer using TurboRepo's `
 ### Why Use Filters?
 
 TurboRepo's filter system:
+
 - Automatically builds dependencies before running tasks (e.g., builds `evalite` before running `evalite-tests`)
 - Leverages Turbo's caching for faster builds
 - Ensures proper dependency resolution based on `turbo.json` configuration
@@ -148,12 +149,14 @@ pnpm turbo build --filter=...evalite
 ### When to Use vs. Not Use Filters
 
 **Use filters when**:
+
 - You need to ensure dependencies are built first
 - You want to leverage Turbo's caching
 - You're running build, test, or lint tasks
 - You're working in a CI/CD environment
 
 **Direct package commands are fine for**:
+
 - Quick one-off commands (like `pnpm install`)
 - Running the evalite CLI itself (e.g., `cd packages/example && pnpm evalite watch`)
 - Commands that don't have dependencies on other packages
