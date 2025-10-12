@@ -1,5 +1,11 @@
 # evalite
 
+## 0.14.4
+
+### Patch Changes
+
+- 58e4923: Fixed the icons in the UI so they show the correct statuses
+
 ## 0.14.3
 
 ### Patch Changes
