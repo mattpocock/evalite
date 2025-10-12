@@ -1,5 +1,11 @@
 # evalite
 
+## 0.14.5
+
+### Patch Changes
+
+- 601fa53: Moved experimental_skip to skip
+
 ## 0.14.4
 
 ### Patch Changes
