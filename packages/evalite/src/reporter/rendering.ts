@@ -114,7 +114,9 @@ export function renderTable(
 
   const availableColumns = process.stdout.columns || 80;
 
-  const scoreWidth = 5;
+  const hasScores = rows.some((row) => row.score !== null);
+
+  const scoreWidth = hasScores ? 5 : 0;
   const columnsWritableWidth = 11;
   const availableInnerSpace =
     availableColumns - columnsWritableWidth - scoreWidth;
@@ -135,7 +137,7 @@ export function renderTable(
       [
         [
           ...columns.map((col) => c.cyan(c.bold(col.label))),
-          c.cyan(c.bold("Score")),
+          ...(hasScores ? [c.cyan(c.bold("Score"))] : []),
         ],
         ...rows.map((row) => [
           ...row.columns.map((col) => {
@@ -149,7 +151,7 @@ export function renderTable(
                 })
               : col.value;
           }),
-          displayScore(row.score),
+          ...(hasScores ? [displayScore(row.score)] : []),
         ]),
       ],
       {
@@ -161,7 +163,7 @@ export function renderTable(
             paddingLeft: 1,
             paddingRight: 1,
           })),
-          { width: scoreWidth },
+          ...(hasScores ? [{ width: scoreWidth }] : []),
         ],
       }
     )
