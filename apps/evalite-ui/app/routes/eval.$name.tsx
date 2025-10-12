@@ -3,7 +3,7 @@ import { z } from "zod";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { Link, Outlet, useMatches } from "@tanstack/react-router";
 import { XCircleIcon, ChevronDown, ChevronRight } from "lucide-react";
-import type * as React from "react";
+import * as React from "react";
 
 import { DisplayInput } from "~/components/display-input";
 import { InnerPageLayout } from "~/components/page-layout";

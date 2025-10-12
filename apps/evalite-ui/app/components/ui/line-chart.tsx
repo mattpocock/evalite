@@ -1,8 +1,7 @@
 "use client";
 
 import { Area, AreaChart } from "recharts";
-
-import { Fragment } from "react/jsx-runtime";
+import { Fragment } from "react";
 import {
   type ChartConfig,
   ChartContainer,
