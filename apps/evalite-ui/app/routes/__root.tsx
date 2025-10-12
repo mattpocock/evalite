@@ -12,8 +12,8 @@ import {
   Outlet,
 } from "@tanstack/react-router";
 
-import type { Evalite } from "evalite/types";
 import type { Db } from "evalite/db";
+import type { Evalite } from "evalite/types";
 import { FolderOpen } from "lucide-react";
 import { lazy } from "react";
 import Logo from "~/components/logo";
@@ -35,7 +35,6 @@ import {
 import { useSubscribeToSocket } from "~/data/use-subscribe-to-socket";
 import { useServerStateUtils } from "~/hooks/use-server-state-utils";
 import "../tailwind.css";
-import { isStaticMode } from "~/sdk";
 
 const TanStackRouterDevtools =
   process.env.NODE_ENV === "production"
@@ -69,6 +68,8 @@ const getMenuItemsWithSelect = queryOptions({
       state: getScoreState(e.score, e.prevScore),
     }));
 
+    const hasScores = currentEvals.some((e) => e.hasScores);
+
     // Group by variantGroup
     const grouped: GroupedEval[] = [];
     const variantGroups = new Map<string, EvalWithState[]>();
@@ -99,6 +100,7 @@ const getMenuItemsWithSelect = queryOptions({
       score,
       prevScore,
       evalStatus,
+      hasScores,
     };
   },
 });
@@ -118,7 +120,7 @@ export const Route = createRootRouteWithContext<{
 export default function App() {
   const [
     {
-      data: { groupedEvals, score, prevScore, evalStatus },
+      data: { groupedEvals, score, prevScore, evalStatus, hasScores },
     },
     { data: serverState },
   ] = useSuspenseQueries({
@@ -155,6 +157,7 @@ export default function App() {
                   iconClassName="size-4"
                   evalStatus={evalStatus}
                   resultStatus={undefined}
+                  hasScores={hasScores}
                 />
               </div>
             </div>
@@ -171,6 +174,7 @@ export default function App() {
                       score={item.eval.score}
                       state={item.eval.state}
                       evalStatus={item.eval.evalStatus}
+                      hasScores={item.eval.hasScores}
                     />
                   );
                 } else {
@@ -215,6 +219,7 @@ const VariantGroup = (props: {
           state={variant.state}
           evalStatus={variant.evalStatus}
           isVariant={true}
+          hasScores={variant.hasScores}
         />
       ))}
     </>
@@ -228,6 +233,7 @@ const EvalSidebarItem = (props: {
   score: number;
   evalStatus: Db.EvalStatus;
   isVariant?: boolean;
+  hasScores: boolean;
 }) => {
   const serverState = useSuspenseQuery(getServerStateQueryOptions);
   const serverStateUtils = useServerStateUtils(serverState.data);
@@ -255,6 +261,7 @@ const EvalSidebarItem = (props: {
           isRunning={serverStateUtils.isRunningEvalName(props.name)}
           evalStatus={props.evalStatus}
           resultStatus={undefined}
+          hasScores={props.hasScores}
         />
       </Link>
     </SidebarMenuItem>

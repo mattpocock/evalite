@@ -128,6 +128,9 @@ function EvalComponent() {
     serverStateUtils.isRunningEvalName(name) &&
     evaluationWithoutLayoutShift?.created_at === mostRecentDate;
 
+  const hasScores =
+    possiblyRunningEvaluation.results.some((r) => r.scores.length > 0) ?? true;
+
   return (
     <>
       <title>{`${name} | Evalite`}</title>
@@ -149,6 +152,7 @@ function EvalComponent() {
               score={evalScore}
               state={getScoreState(evalScore, prevScore)}
               resultStatus={undefined}
+              hasScores={hasScores}
             ></Score>
             <Separator orientation="vertical" className="h-4 mx-4" />
             <span>{formatTime(possiblyRunningEvaluation.duration)}</span>
@@ -350,6 +354,7 @@ function EvalComponent() {
                               resultStatus={result.status}
                               evalStatus={possiblyRunningEvaluation.status}
                               state={"first"}
+                              hasScores={false}
                             />
                           </Wrapper>
                         </td>
