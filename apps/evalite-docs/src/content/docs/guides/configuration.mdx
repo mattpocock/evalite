@@ -1,0 +1,71 @@
+---
+title: Configuration
+---
+
+import { Steps } from "@astrojs/starlight/components";
+
+Since **Evalite is based on Vitest**, you can configure eval behavior using Vitest's configuration options. Each data point in your eval becomes a separate Vitest test case, which means all Vitest configuration options work with Evalite.
+
+## Basic Configuration
+
+<Steps>
+
+1. Create a `vitest.config.ts` file in your project root (or update it if it already exists):
+
+   ```ts
+   // vitest.config.ts
+
+   import { defineConfig } from "vitest";
+
+   export default defineConfig({
+     test: {
+       // Your configuration here
+     },
+   });
+   ```
+
+2. Run your evals as usual:
+
+   ```bash
+   evalite
+   ```
+
+   Or in watch mode:
+
+   ```bash
+   evalite watch
+   ```
+
+</Steps>
+
+## Important Configuration Options
+
+### `maxConcurrency`
+
+Control how many test cases run in parallel. By default, Vitest has a [concurrency limit of 5](https://vitest.dev/config/#maxconcurrency).
+
+For large datasets, increase this to run more tests in parallel:
+
+```ts
+export default defineConfig({
+  test: {
+    maxConcurrency: 100, // Run up to 100 tests in parallel
+  },
+});
+```
+
+This is useful for optimizing performance and managing API rate limits.
+
+### `testTimeout`
+
+Set the maximum time (in milliseconds) a test can run before timing out. Default is 5000ms.
+
+```ts
+export default defineConfig({
+  test: {
+    testTimeout: 30000, // 30 seconds
+  },
+});
+```
+
+For more Vitest configuration options, see the [Vitest documentation](https://vitest.dev/config/).

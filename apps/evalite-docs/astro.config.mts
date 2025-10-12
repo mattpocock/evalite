@@ -108,6 +108,10 @@ export default defineConfig({
               slug: "guides/multi-modal",
             },
             {
+              label: "Configuration",
+              slug: "guides/configuration",
+            },
+            {
               label: "Streams",
               slug: "guides/streams",
             },
