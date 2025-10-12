@@ -233,7 +233,7 @@ function ResultComponent() {
           </div>
         </div>
       </div>
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden w-full min-w-0">
         <div className="flex flex-row h-full">
           <div className="w-44 flex flex-col gap-3 flex-shrink-0 p-2">
             <TraceMenuItem
@@ -271,7 +271,7 @@ function ResultComponent() {
               </span>
             )}
           </div>
-          <div className="flex-grow border-l p-4">
+          <div className="flex-grow border-l p-4 min-w-0 w-full">
             {traceBeingViewed == null && (
               <>
                 {wholeEvalUsage && (
