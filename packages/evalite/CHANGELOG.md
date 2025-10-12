@@ -1,5 +1,11 @@
 # evalite
 
+## 0.14.6
+
+### Patch Changes
+
+- 9609cc5: Fixed CLI table rendering exceeding terminal width due to incorrect padding calculation
+
 ## 0.14.5
 
 ### Patch Changes
