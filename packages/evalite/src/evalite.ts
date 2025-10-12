@@ -153,7 +153,12 @@ function registerEvalite<TInput, TOutput, TExpected>(
 
   return describeFn(fullEvalName, async () => {
     const dataset = await datasetPromise;
-    it.concurrent.for(dataset.map((d, index) => ({ ...d, index })))(
+    // Filter dataset if any entry has `only: true`
+    const hasOnlyFlag = dataset.some((d) => d.only === true);
+    const filteredDataset = hasOnlyFlag
+      ? dataset.filter((d) => d.only === true)
+      : dataset;
+    it.concurrent.for(filteredDataset.map((d, index) => ({ ...d, index })))(
       fullEvalName,
       async (data, { task }) => {
         const cwd = inject("cwd");
