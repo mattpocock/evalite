@@ -1,14 +1,15 @@
 import { getTests, hasFailed } from "@vitest/runner/utils";
+import path from "node:path";
 import type { RunnerTestFile } from "vitest";
 import type {
   Reporter,
   TestCase,
   TestModule,
-  TestModuleState,
+  TestSpecification,
   TestSuite,
   Vitest,
 } from "vitest/node.js";
-import { BasicReporter, DefaultReporter } from "vitest/reporters";
+import { DefaultReporter } from "vitest/reporters";
 import type { SQLiteDatabase } from "./db.js";
 import { EvaliteRunner } from "./reporter/EvaliteRunner.js";
 import {
@@ -22,7 +23,6 @@ import {
 } from "./reporter/rendering.js";
 import type { Evalite } from "./types.js";
 import { average, max } from "./utils.js";
-import path from "node:path";
 
 export interface EvaliteReporterOptions {
   isWatching: boolean;
@@ -59,12 +59,6 @@ export default class EvaliteReporter
       port: this.opts.port,
     });
 
-    this.runner.sendEvent({
-      type: "RUN_BEGUN",
-      filepaths: this.ctx.state.getFiles().map((f) => f.filepath),
-      runType: "full",
-    });
-
     super.onInit(ctx);
   }
 
@@ -86,21 +80,30 @@ export default class EvaliteReporter
   override onWatcherRerun(files: string[], trigger?: string): void {
     this.runner.sendEvent({
       type: "RUN_BEGUN",
-      filepaths: files,
+      filepaths: this.ctx.state.getFiles().map((f) => f.filepath),
       runType: "partial",
     });
     super.onWatcherRerun(files, trigger);
   }
 
-  override onFinished = async (
-    files = this.ctx.state.getFiles(),
-    errors = this.ctx.state.getUnhandledErrors()
-  ) => {
+  override onTestRunEnd = () => {
     this.runner.sendEvent({
       type: "RUN_ENDED",
     });
 
-    super.onFinished(files, errors);
+    super.onTestRunEnd();
+  };
+
+  override onTestRunStart = (
+    specifications: ReadonlyArray<TestSpecification>
+  ) => {
+    this.runner.sendEvent({
+      type: "RUN_BEGUN",
+      filepaths: this.ctx.state.getFiles().map((f) => f.filepath),
+      runType: "full",
+    });
+
+    super.onTestRunStart(specifications);
   };
 
   override reportTestSummary(files: RunnerTestFile[]): void {

@@ -12,11 +12,11 @@ const storage = createStorage({
   }),
 });
 
-evalite("Content generation", {
+evalite("Content awesome stuff", {
   data: async () => {
     return [
       {
-        input: "Write a tweet on how to type React props",
+        input: "Foo awdawdawd",
       },
       {
         input: "Write a tweet about TypeScript template literal types.",
@@ -25,7 +25,7 @@ evalite("Content generation", {
         input: 'Write a tweet about "TypeScript is a superset of JavaScript."',
       },
       {
-        input: "Write a tweet about TypeScript utility types.",
+        input: "Write a tweet about TypeScript awdawdawd types.",
       },
       {
         input: "Write a tweet about how to add TypeScript to a React app.",

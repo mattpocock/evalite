@@ -1,7 +1,6 @@
 import {
   createEvalIfNotExists,
   createRun,
-  deleteAllResultsForEval,
   findResultByEvalIdAndOrder,
   getAllResultsForEval,
   insertResult,
@@ -25,7 +24,6 @@ export class EvaliteRunner {
   private opts: EvaliteRunnerOptions;
   private state: Evalite.ServerState = { type: "idle" };
   private didLastRunFailThreshold: "yes" | "no" | "unknown" = "unknown";
-  private cleanedEvalIds: Set<number | bigint> = new Set();
 
   constructor(opts: EvaliteRunnerOptions) {
     this.opts = opts;
@@ -95,15 +93,6 @@ export class EvaliteRunner {
                 variantName: event.initialResult.variantName,
                 variantGroup: event.initialResult.variantGroup,
               });
-
-              // Clean up old results for this eval if we haven't already
-              if (!this.cleanedEvalIds.has(evalId)) {
-                deleteAllResultsForEval({
-                  db: this.opts.db,
-                  evalId,
-                });
-                this.cleanedEvalIds.add(evalId);
-              }
 
               const resultId = insertResult({
                 db: this.opts.db,
@@ -250,13 +239,11 @@ export class EvaliteRunner {
             break;
 
           default:
-            throw new Error(`${event.type} not allowed in ${this.state.type}`);
+            return;
         }
       case "idle": {
         switch (event.type) {
           case "RUN_BEGUN":
-            // Reset cleaned evals for new run
-            this.cleanedEvalIds.clear();
             this.updateState({
               filepaths: event.filepaths,
               runType: event.runType,
