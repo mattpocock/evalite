@@ -128,6 +128,9 @@ function EvalComponent() {
     serverStateUtils.isRunningEvalName(name) &&
     evaluationWithoutLayoutShift?.created_at === mostRecentDate;
 
+  const evaluationWithoutLayoutShiftScores =
+    evaluationWithoutLayoutShift?.results[0]?.scores ?? [];
+
   const hasScores =
     possiblyRunningEvaluation.results.some((r) => r.scores.length > 0) ?? true;
 
@@ -205,6 +208,59 @@ function EvalComponent() {
             )}
           </div>
         )}
+        {evaluationWithoutLayoutShift &&
+          evaluationWithoutLayoutShift.results.length > 0 &&
+          evaluationWithoutLayoutShiftScores.length > 0 && (
+            <div className="mb-10">
+              <h2 className="mb-4 font-medium text-lg text-foreground/60">
+                Scores
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {evaluationWithoutLayoutShiftScores.map((scorer) => {
+                  const scorerName = scorer.name;
+                  const scorerAverage = average(
+                    evaluationWithoutLayoutShift.results,
+                    (r) => {
+                      const score = r.scores.find((s) => s.name === scorerName);
+                      return score?.score ?? 0;
+                    }
+                  );
+                  const prevScorerAverage = prevEvaluation
+                    ? average(prevEvaluation.results, (r) => {
+                        const score = r.scores.find(
+                          (s) => s.name === scorerName
+                        );
+                        return score?.score ?? 0;
+                      })
+                    : undefined;
+                  return (
+                    <div
+                      key={scorerName}
+                      className="border rounded-lg p-4 bg-card"
+                    >
+                      <div className="text-sm text-foreground/60 mb-2">
+                        {scorerName}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Score
+                          evalStatus={possiblyRunningEvaluation.status}
+                          isRunning={isRunningEval}
+                          score={scorerAverage}
+                          state={getScoreState(
+                            scorerAverage,
+                            prevScorerAverage
+                          )}
+                          resultStatus={undefined}
+                          iconClassName="size-4"
+                          hasScores={hasScores}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         {evaluationWithoutLayoutShift?.status === "fail" && (
           <div className="flex gap-4 px-4 my-14">
             <div className="flex-shrink-0">
