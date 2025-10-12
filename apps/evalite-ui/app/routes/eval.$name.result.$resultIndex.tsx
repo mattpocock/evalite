@@ -347,13 +347,6 @@ function ResultComponent() {
                     ) : null}
                   </Fragment>
                 ))}
-
-                {hasCustomColumns && (
-                  <>
-                    <MainBodySeparator />
-                    {inputOutputSection}
-                  </>
-                )}
               </>
             )}
             {traceBeingViewed && (
