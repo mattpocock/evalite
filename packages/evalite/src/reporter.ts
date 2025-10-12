@@ -140,15 +140,19 @@ export default class EvaliteReporter
       totalEvals: tests.length,
     });
 
-    if (files.length === 1 && failedTestsCount === 0) {
-      renderDetailedTable(
-        this.ctx.logger,
-        tests
-          .map((test) => {
-            return test.meta.evalite?.result;
-          })
-          .filter((result) => result !== undefined)
-      );
+    if (files.length === 1) {
+      const successfulResults = tests
+        .filter((test) => test.result?.state !== "fail")
+        .map((test) => test.meta.evalite?.result)
+        .filter((result) => result !== undefined);
+
+      if (successfulResults.length > 0) {
+        renderDetailedTable(
+          this.ctx.logger,
+          successfulResults,
+          failedTestsCount
+        );
+      }
     }
 
     if (this.opts.mode === "run-once-and-serve") {

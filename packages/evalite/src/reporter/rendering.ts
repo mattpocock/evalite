@@ -233,7 +233,8 @@ export function renderSummaryStats(
 
 export function renderDetailedTable(
   logger: { log: (msg: string) => void },
-  results: Evalite.Result[]
+  results: Evalite.Result[],
+  failedCount: number
 ) {
   renderTable(
     logger,
@@ -260,6 +261,17 @@ export function renderDetailedTable(
           : average(result.scores, (s) => s.score ?? 0),
     }))
   );
+
+  if (failedCount > 0) {
+    logger.log(
+      BADGE_PADDING +
+        c.dim(
+          failedCount === 1
+            ? `${failedCount} eval failed`
+            : `${failedCount} evals failed`
+        )
+    );
+  }
 }
 
 export function renderTask(opts: {
