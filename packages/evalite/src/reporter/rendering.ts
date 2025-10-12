@@ -300,3 +300,22 @@ export function renderTask(opts: {
 
   opts.logger.log(toLog.join(""));
 }
+
+export function renderServeModeFinalMessage(
+  logger: { log: (msg: string) => void },
+  port: number
+) {
+  logger.log("");
+  logger.log(
+    withLabel(
+      "blue",
+      "INFO",
+      "Tests won't re-run on file changes. Re-run evalite serve to try again."
+    )
+  );
+  logger.log(
+    BADGE_PADDING +
+      c.dim("Dev server available at ") +
+      c.cyan(`http://localhost:${c.bold(port)}/`)
+  );
+}

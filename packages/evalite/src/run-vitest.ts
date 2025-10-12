@@ -232,6 +232,7 @@ export const runEvalite = async (opts: {
           modifyExitCode: (code) => {
             exitCode = code;
           },
+          mode: opts.mode,
         }),
       ],
       mode: "test",

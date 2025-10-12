@@ -7,10 +7,12 @@ describe("createCommand", () => {
     const watch = vitest.fn();
     const runOnceAtPath = vitest.fn();
     const exportFn = vitest.fn();
+    const serveFn = vitest.fn();
     const program = createProgram({
       watch,
       runOnceAtPath,
       export: exportFn,
+      serve: serveFn,
     });
 
     await run(program, [], { process });
@@ -27,10 +29,12 @@ describe("createCommand", () => {
     const watch = vitest.fn();
     const runOnceAtPath = vitest.fn();
     const exportFn = vitest.fn();
+    const serveFn = vitest.fn();
     const program = createProgram({
       watch,
       runOnceAtPath,
       export: exportFn,
+      serve: serveFn,
     });
 
     await run(program, ["./src"], { process });
@@ -45,10 +49,12 @@ describe("createCommand", () => {
     const watch = vitest.fn();
     const runOnceAtPath = vitest.fn();
     const exportFn = vitest.fn();
+    const serveFn = vitest.fn();
     const program = createProgram({
       watch,
       runOnceAtPath,
       export: exportFn,
+      serve: serveFn,
     });
 
     await run(program, ["watch"], { process });
@@ -63,10 +69,12 @@ describe("createCommand", () => {
     const watch = vitest.fn();
     const runOnceAtPath = vitest.fn();
     const exportFn = vitest.fn();
+    const serveFn = vitest.fn();
     const program = createProgram({
       watch,
       runOnceAtPath,
       export: exportFn,
+      serve: serveFn,
     });
 
     await run(program, ["watch", "./src"], { process });
@@ -81,10 +89,12 @@ describe("createCommand", () => {
     const watch = vitest.fn();
     const runOnceAtPath = vitest.fn();
     const exportFn = vitest.fn();
+    const serveFn = vitest.fn();
     const program = createProgram({
       watch,
       runOnceAtPath,
       export: exportFn,
+      serve: serveFn,
     });
 
     await run(program, ["--threshold=50"], { process });
@@ -100,10 +110,12 @@ describe("createCommand", () => {
     const watch = vitest.fn();
     const runOnceAtPath = vitest.fn();
     const exportFn = vitest.fn();
+    const serveFn = vitest.fn();
     const program = createProgram({
       watch,
       runOnceAtPath,
       export: exportFn,
+      serve: serveFn,
     });
 
     await run(program, ["watch", "--threshold=50"], { process });
@@ -119,10 +131,12 @@ describe("createCommand", () => {
     const watch = vitest.fn();
     const runOnceAtPath = vitest.fn();
     const exportFn = vitest.fn();
+    const serveFn = vitest.fn();
     const program = createProgram({
       watch,
       runOnceAtPath,
       export: exportFn,
+      serve: serveFn,
     });
 
     // The run() function catches the error and doesn't reject
@@ -137,10 +151,12 @@ describe("createCommand", () => {
     const watch = vitest.fn();
     const runOnceAtPath = vitest.fn();
     const exportFn = vitest.fn();
+    const serveFn = vitest.fn();
     const program = createProgram({
       watch,
       runOnceAtPath,
       export: exportFn,
+      serve: serveFn,
     });
 
     await run(program, ["--outputPath=results.json"], { process });
@@ -150,5 +166,51 @@ describe("createCommand", () => {
       path: undefined,
       outputPath: "results.json",
     });
+  });
+
+  it("evalite serve", async () => {
+    const watch = vitest.fn();
+    const runOnceAtPath = vitest.fn();
+    const exportFn = vitest.fn();
+    const serveFn = vitest.fn();
+    const program = createProgram({
+      watch,
+      runOnceAtPath,
+      export: exportFn,
+      serve: serveFn,
+    });
+
+    await run(program, ["serve"], { process });
+
+    expect(serveFn).toHaveBeenCalledWith({
+      path: undefined,
+      threshold: undefined,
+      outputPath: undefined,
+    });
+    expect(watch).not.toHaveBeenCalled();
+    expect(runOnceAtPath).not.toHaveBeenCalled();
+  });
+
+  it("evalite serve with path", async () => {
+    const watch = vitest.fn();
+    const runOnceAtPath = vitest.fn();
+    const exportFn = vitest.fn();
+    const serveFn = vitest.fn();
+    const program = createProgram({
+      watch,
+      runOnceAtPath,
+      export: exportFn,
+      serve: serveFn,
+    });
+
+    await run(program, ["serve", "./src"], { process });
+
+    expect(serveFn).toHaveBeenCalledWith({
+      path: "./src",
+      threshold: undefined,
+      outputPath: undefined,
+    });
+    expect(watch).not.toHaveBeenCalled();
+    expect(runOnceAtPath).not.toHaveBeenCalled();
   });
 });
