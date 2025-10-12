@@ -205,6 +205,7 @@ function ResultComponent() {
                   <Score
                     isRunning={isRunning}
                     score={result.score}
+                    hasScores={result.scores.length > 0}
                     state={getScoreState(result.score, prevResult?.score)}
                     evalStatus={evaluation.status}
                     resultStatus={result.status}
@@ -322,6 +323,7 @@ function ResultComponent() {
                       description={score.description}
                     >
                       <Score
+                        hasScores={result.scores.length > 0}
                         isRunning={isRunning}
                         score={score.score ?? 0}
                         state={getScoreState(

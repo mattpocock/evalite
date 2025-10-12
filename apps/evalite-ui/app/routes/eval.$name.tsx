@@ -128,6 +128,9 @@ function EvalComponent() {
     serverStateUtils.isRunningEvalName(name) &&
     evaluationWithoutLayoutShift?.created_at === mostRecentDate;
 
+  const hasScores =
+    possiblyRunningEvaluation.results.some((r) => r.scores.length > 0) ?? true;
+
   return (
     <>
       <title>{`${name} | Evalite`}</title>
@@ -149,6 +152,7 @@ function EvalComponent() {
               score={evalScore}
               state={getScoreState(evalScore, prevScore)}
               resultStatus={undefined}
+              hasScores={hasScores}
             ></Score>
             <Separator orientation="vertical" className="h-4 mx-4" />
             <span>{formatTime(possiblyRunningEvaluation.duration)}</span>
@@ -240,10 +244,6 @@ function EvalComponent() {
                       <TableHead>Input</TableHead>
                       <TableHead>Output</TableHead>
                       {showExpectedColumn && <TableHead>Expected</TableHead>}
-                      {evaluationWithoutLayoutShift.results[0]?.scores
-                        .length === 0 && (
-                        <TableHead className="border-l">Score</TableHead>
-                      )}
                     </>
                   )}
                   {evaluationWithoutLayoutShift.results[0]?.scores.map(
@@ -341,19 +341,6 @@ function EvalComponent() {
                         </>
                       )}
 
-                      {result.scores.length === 0 && (
-                        <td className="border-l">
-                          <Wrapper>
-                            <Score
-                              score={0}
-                              isRunning={isRunningEval}
-                              resultStatus={result.status}
-                              evalStatus={possiblyRunningEvaluation.status}
-                              state={"first"}
-                            />
-                          </Wrapper>
-                        </td>
-                      )}
                       {result.scores.map((scorer, index) => {
                         const scoreInPreviousEvaluation =
                           prevEvaluation?.results
@@ -369,6 +356,7 @@ function EvalComponent() {
                           >
                             <Wrapper>
                               <Score
+                                hasScores={hasScores}
                                 score={scorer.score}
                                 isRunning={isRunningEval}
                                 resultStatus={result.status}
