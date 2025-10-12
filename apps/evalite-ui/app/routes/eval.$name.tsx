@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { Link, Outlet, useMatches } from "@tanstack/react-router";
-import { XCircleIcon } from "lucide-react";
+import { XCircleIcon, ChevronDown, ChevronRight } from "lucide-react";
 import type * as React from "react";
 
 import { DisplayInput } from "~/components/display-input";
@@ -18,6 +18,12 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "~/components/ui/collapsible";
+import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 import { formatTime, isArrayOfRenderedColumns } from "~/utils";
 import { useServerStateUtils } from "~/hooks/use-server-state-utils";
@@ -54,6 +60,34 @@ function EvalComponent() {
   const { name } = Route.useParams();
   const { timestamp } = Route.useSearch();
   const navigate = Route.useNavigate();
+  
+  // State for managing collapsed rows
+  const [collapsedRows, setCollapsedRows] = React.useState<Set<number>>(new Set());
+  
+  // Function to toggle row collapse state
+  const toggleRowCollapse = (index: number) => {
+    setCollapsedRows(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
+  
+  // Function to collapse all rows
+  const collapseAllRows = () => {
+    if (evaluationWithoutLayoutShift?.results) {
+      setCollapsedRows(new Set(evaluationWithoutLayoutShift.results.map((_, index) => index)));
+    }
+  };
+  
+  // Function to expand all rows
+  const expandAllRows = () => {
+    setCollapsedRows(new Set());
+  };
 
   const [
     {
@@ -278,12 +312,33 @@ function EvalComponent() {
         )}
         {evaluationWithoutLayoutShift && (
           <>
-            <h2 className="mb-4 font-medium text-lg text-foreground/60">
-              Results
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-medium text-lg text-foreground/60">
+                Results
+              </h2>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={expandAllRows}
+                  className="text-xs"
+                >
+                  Expand All
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={collapseAllRows}
+                  className="text-xs"
+                >
+                  Collapse All
+                </Button>
+              </div>
+            </div>
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12"></TableHead>
                   {isArrayOfRenderedColumns(
                     evaluationWithoutLayoutShift.results[0]?.rendered_columns
                   ) ? (
@@ -317,6 +372,8 @@ function EvalComponent() {
               </TableHeader>
               <TableBody>
                 {evaluationWithoutLayoutShift.results.map((result, index) => {
+                  const isCollapsed = collapsedRows.has(index);
+                  
                   const Wrapper = (props: { children: React.ReactNode }) => (
                     <Link
                       preload="intent"
@@ -337,95 +394,149 @@ function EvalComponent() {
                       {props.children}
                     </Link>
                   );
+                  
                   return (
-                    <TableRow
+                    <Collapsible
                       key={JSON.stringify(result.input)}
-                      className={cn("has-[.active]:bg-foreground/20!")}
+                      open={!isCollapsed}
+                      onOpenChange={() => toggleRowCollapse(index)}
                     >
-                      {isArrayOfRenderedColumns(result.rendered_columns) ? (
-                        <>
-                          {result.rendered_columns.map((column) => (
+                      <TableRow className={cn("has-[.active]:bg-foreground/20!")}>
+                        <td className="align-top">
+                          <CollapsibleTrigger asChild>
+                            <button
+                              className="p-1 hover:bg-muted rounded transition-colors"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                toggleRowCollapse(index);
+                              }}
+                            >
+                              {isCollapsed ? (
+                                <ChevronRight className="h-4 w-4" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4" />
+                              )}
+                            </button>
+                          </CollapsibleTrigger>
+                        </td>
+                        
+                        {isArrayOfRenderedColumns(result.rendered_columns) ? (
+                          <>
+                            {result.rendered_columns.map((column, colIndex) => (
+                              <td key={colIndex} className="align-top max-w-[300px] break-words">
+                                <DisplayInput
+                                  className={cn(
+                                    isRunningEval && "opacity-25",
+                                    "transition-opacity"
+                                  )}
+                                  input={column.value}
+                                  shouldTruncateText
+                                  Wrapper={Wrapper}
+                                />
+                              </td>
+                            ))}
+                          </>
+                        ) : (
+                          <>
                             <td className="align-top max-w-[300px] break-words">
                               <DisplayInput
                                 className={cn(
                                   isRunningEval && "opacity-25",
                                   "transition-opacity"
                                 )}
-                                input={column.value}
+                                input={result.input}
                                 shouldTruncateText
                                 Wrapper={Wrapper}
                               />
                             </td>
-                          ))}
-                        </>
-                      ) : (
-                        <>
-                          <td className="align-top max-w-[300px] break-words">
-                            <DisplayInput
-                              className={cn(
-                                isRunningEval && "opacity-25",
-                                "transition-opacity"
-                              )}
-                              input={result.input}
-                              shouldTruncateText
-                              Wrapper={Wrapper}
-                            />
-                          </td>
-                          <td className="align-top max-w-[300px] break-words">
-                            <DisplayInput
-                              className={cn(
-                                isRunningEval && "opacity-25",
-                                "transition-opacity"
-                              )}
-                              input={result.output}
-                              shouldTruncateText
-                              Wrapper={Wrapper}
-                            />
-                          </td>
-                          {showExpectedColumn && (
                             <td className="align-top max-w-[300px] break-words">
                               <DisplayInput
                                 className={cn(
                                   isRunningEval && "opacity-25",
                                   "transition-opacity"
                                 )}
-                                input={result.expected}
+                                input={result.output}
                                 shouldTruncateText
                                 Wrapper={Wrapper}
                               />
                             </td>
-                          )}
-                        </>
-                      )}
-
-                      {result.scores.map((scorer, index) => {
-                        const scoreInPreviousEvaluation =
-                          prevEvaluation?.results
-                            .find((r) => r.input === result.input)
-                            ?.scores.find((s) => s.name === scorer.name);
-                        return (
-                          <td
-                            key={scorer.id}
-                            className={cn(
-                              index === 0 && "border-l",
-                              "align-top"
+                            {showExpectedColumn && (
+                              <td className="align-top max-w-[300px] break-words">
+                                <DisplayInput
+                                  className={cn(
+                                    isRunningEval && "opacity-25",
+                                    "transition-opacity"
+                                  )}
+                                  input={result.expected}
+                                  shouldTruncateText
+                                  Wrapper={Wrapper}
+                                />
+                              </td>
                             )}
-                          >
-                            <Wrapper>
-                              <Score
-                                hasScores={hasScores}
-                                score={scorer.score}
-                                state={getScoreState({
-                                  score: scorer.score,
-                                  prevScore: scoreInPreviousEvaluation?.score,
-                                  status: result.status,
-                                })}
-                              />
-                            </Wrapper>
+                          </>
+                        )}
+
+                        {result.scores.map((scorer, scoreIndex) => {
+                          const scoreInPreviousEvaluation =
+                            prevEvaluation?.results
+                              .find((r) => r.input === result.input)
+                              ?.scores.find((s) => s.name === scorer.name);
+                          return (
+                            <td
+                              key={scorer.id}
+                              className={cn(
+                                scoreIndex === 0 && "border-l",
+                                "align-top"
+                              )}
+                            >
+                              <Wrapper>
+                                <Score
+                                  hasScores={hasScores}
+                                  score={scorer.score}
+                                  state={getScoreState({
+                                    score: scorer.score,
+                                    prevScore: scoreInPreviousEvaluation?.score,
+                                    status: result.status,
+                                  })}
+                                />
+                              </Wrapper>
+                            </td>
+                          );
+                        })}
+                      </TableRow>
+                      
+                      <CollapsibleContent>
+                        <TableRow>
+                          <td colSpan={100} className="p-0">
+                            <div className="border-t bg-muted/20 p-4">
+                              <div className="text-sm text-muted-foreground mb-2">
+                                Additional Details
+                              </div>
+                              <div className="grid gap-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">Status:</span>
+                                  <span className={cn(
+                                    "px-2 py-1 rounded text-xs",
+                                    result.status === "pass" ? "bg-green-100 text-green-800" :
+                                    result.status === "fail" ? "bg-red-100 text-red-800" :
+                                    "bg-yellow-100 text-yellow-800"
+                                  )}>
+                                    {result.status}
+                                  </span>
+                                </div>
+                                {result.error && (
+                                  <div className="flex items-start gap-2">
+                                    <span className="font-medium">Error:</span>
+                                    <span className="text-red-600 text-sm">{result.error}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           </td>
-                        );
-                      })}
-                    </TableRow>
+                        </TableRow>
+                      </CollapsibleContent>
+                    </Collapsible>
                   );
                 })}
               </TableBody>
