@@ -15,6 +15,7 @@ import {
   renderDetailedTable,
   renderInitMessage,
   renderScoreDisplay,
+  renderServeModeFinalMessage,
   renderSummaryStats,
   renderTask,
   renderThreshold,
@@ -31,6 +32,7 @@ export interface EvaliteReporterOptions {
   db: SQLiteDatabase;
   scoreThreshold: number | undefined;
   modifyExitCode: (exitCode: number) => void;
+  mode: "watch-for-file-changes" | "run-once-and-exit" | "run-once-and-serve";
 }
 
 export default class EvaliteReporter
@@ -147,6 +149,10 @@ export default class EvaliteReporter
           })
           .filter((result) => result !== undefined)
       );
+    }
+
+    if (this.opts.mode === "run-once-and-serve") {
+      renderServeModeFinalMessage(this.ctx.logger, this.opts.port);
     }
   }
 
