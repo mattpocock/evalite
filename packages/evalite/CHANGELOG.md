@@ -1,5 +1,11 @@
 # evalite
 
+## 0.14.1
+
+### Patch Changes
+
+- 177c8d8: Fixed a bug where when there was no scorer, it would still show up/down indicators from previous runs.
+
 ## 0.14.0
 
 ### Minor Changes
