@@ -1,5 +1,12 @@
 # evalite
 
+## 0.14.3
+
+### Patch Changes
+
+- 1c25a7a: Make Node API parameters optional with sensible defaults
+- 8af700d: Fixed a bug where visiting non-homepages would show an empty screen.
+
 ## 0.14.2
 
 ### Patch Changes
