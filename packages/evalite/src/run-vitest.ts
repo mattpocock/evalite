@@ -203,7 +203,10 @@ export const runEvalite = async (opts: {
 
   let server: ReturnType<typeof createServer> | undefined = undefined;
 
-  if (opts.mode === "watch-for-file-changes" || opts.mode === "run-once-and-serve") {
+  if (
+    opts.mode === "watch-for-file-changes" ||
+    opts.mode === "run-once-and-serve"
+  ) {
     server = createServer({
       db: db,
     });
@@ -226,7 +229,9 @@ export const runEvalite = async (opts: {
             server?.updateState(newState);
           },
           port: DEFAULT_SERVER_PORT,
-          isWatching: opts.mode === "watch-for-file-changes" || opts.mode === "run-once-and-serve",
+          isWatching:
+            opts.mode === "watch-for-file-changes" ||
+            opts.mode === "run-once-and-serve",
           db: db,
           scoreThreshold: opts.scoreThreshold,
           modifyExitCode: (code) => {
@@ -269,7 +274,8 @@ export const runEvalite = async (opts: {
     process.stdout
   );
 
-  const shouldKeepRunning = vitest.shouldKeepServer() || opts.mode === "run-once-and-serve";
+  const shouldKeepRunning =
+    vitest.shouldKeepServer() || opts.mode === "run-once-and-serve";
 
   if (!shouldKeepRunning) {
     dispose();
