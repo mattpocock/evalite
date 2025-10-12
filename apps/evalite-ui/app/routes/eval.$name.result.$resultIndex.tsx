@@ -203,12 +203,13 @@ function ResultComponent() {
               <BreadcrumbList>
                 <BreadcrumbItem>
                   <Score
-                    isRunning={isRunning}
                     score={result.score}
                     hasScores={result.scores.length > 0}
-                    state={getScoreState(result.score, prevResult?.score)}
-                    evalStatus={evaluation.status}
-                    resultStatus={result.status}
+                    state={getScoreState({
+                      score: result.score,
+                      prevScore: prevResult?.score,
+                      status: evaluation.status,
+                    })}
                   />
                 </BreadcrumbItem>
                 <Separator orientation="vertical" className="mx-1 h-4" />
@@ -324,16 +325,14 @@ function ResultComponent() {
                     >
                       <Score
                         hasScores={result.scores.length > 0}
-                        isRunning={isRunning}
                         score={score.score ?? 0}
-                        state={getScoreState(
-                          score.score ?? 0,
-                          prevResult?.scores.find(
+                        state={getScoreState({
+                          score: score.score ?? 0,
+                          prevScore: prevResult?.scores.find(
                             (prevScore) => prevScore.name === score.name
-                          )?.score
-                        )}
-                        evalStatus={evaluation.status}
-                        resultStatus={result.status}
+                          )?.score,
+                          status: result.status,
+                        })}
                       />
                     </MainBodySection>
                     {score.metadata ? (

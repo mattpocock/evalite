@@ -65,7 +65,11 @@ const getMenuItemsWithSelect = queryOptions({
     // Add state to evals
     const evalsWithState: EvalWithState[] = currentEvals.map((e) => ({
       ...e,
-      state: getScoreState(e.score, e.prevScore),
+      state: getScoreState({
+        status: e.evalStatus,
+        score: e.score,
+        prevScore: e.prevScore,
+      }),
     }));
 
     const hasScores = currentEvals.some((e) => e.hasScores);
@@ -151,12 +155,13 @@ export default function App() {
               </p>
               <div className="text-foreground/60 font-medium text-2xl">
                 <Score
-                  isRunning={serverState.type === "running"}
                   score={score}
-                  state={getScoreState(score, prevScore)}
+                  state={getScoreState({
+                    score,
+                    prevScore,
+                    status: evalStatus,
+                  })}
                   iconClassName="size-4"
-                  evalStatus={evalStatus}
-                  resultStatus={undefined}
                   hasScores={hasScores}
                 />
               </div>
@@ -235,9 +240,6 @@ const EvalSidebarItem = (props: {
   isVariant?: boolean;
   hasScores: boolean;
 }) => {
-  const serverState = useSuspenseQuery(getServerStateQueryOptions);
-  const serverStateUtils = useServerStateUtils(serverState.data);
-
   return (
     <SidebarMenuItem key={props.name}>
       <Link
@@ -258,9 +260,6 @@ const EvalSidebarItem = (props: {
         <Score
           score={props.score}
           state={props.state}
-          isRunning={serverStateUtils.isRunningEvalName(props.name)}
-          evalStatus={props.evalStatus}
-          resultStatus={undefined}
           hasScores={props.hasScores}
         />
       </Link>

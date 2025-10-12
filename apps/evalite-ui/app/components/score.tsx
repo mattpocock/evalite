@@ -8,21 +8,23 @@ import {
 } from "lucide-react";
 import { cn } from "~/lib/utils";
 
-export type ScoreState = "up" | "down" | "same" | "first";
+export type ScoreState =
+  | "up"
+  | "down"
+  | "same"
+  | "first"
+  | "loading"
+  | "failed";
 
 export const Score = (props: {
   score: number;
   state: ScoreState;
-  isRunning: boolean;
-  evalStatus: Db.EvalStatus;
-  resultStatus: Db.Result["status"] | undefined;
   iconClassName?: string;
   hasScores: boolean;
 }) => {
-  const isRunning = props.isRunning || props.evalStatus === "running";
   return (
     <span className="flex items-center space-x-2">
-      {isRunning ? (
+      {props.state === "loading" ? (
         <span>---%</span>
       ) : !props.hasScores ? (
         <span className="text-muted-foreground">-</span>
@@ -33,7 +35,7 @@ export const Score = (props: {
       )}
       {(() => {
         switch (true) {
-          case isRunning:
+          case props.state === "loading":
             return (
               <LoaderCircleIcon
                 className={cn(
@@ -42,16 +44,16 @@ export const Score = (props: {
                 )}
               />
             );
+          case props.state === "failed":
+            return (
+              <XCircleIcon
+                className={cn("size-3 text-red-500", props.iconClassName)}
+              />
+            );
           case !props.hasScores:
             return (
               <ChevronRightCircleIcon
                 className={cn("size-3 text-blue-500", props.iconClassName)}
-              />
-            );
-          case props.evalStatus === "fail" || props.resultStatus === "fail":
-            return (
-              <XCircleIcon
-                className={cn("size-3 text-red-500", props.iconClassName)}
               />
             );
           case props.state === "up":
@@ -86,16 +88,25 @@ export const Score = (props: {
   );
 };
 
-export const getScoreState = (
-  score: number,
-  prevScore: number | null | undefined
-) => {
+export const getScoreState = (opts: {
+  status: Db.EvalStatus;
+  score: number;
+  prevScore: number | null | undefined;
+}) => {
+  if (opts.status === "fail") {
+    return "failed";
+  }
+
+  if (opts.status === "running") {
+    return "loading";
+  }
+
   const state: ScoreState =
-    typeof prevScore === "undefined" || prevScore === null
+    typeof opts.prevScore === "undefined" || opts.prevScore === null
       ? "first"
-      : score > prevScore
+      : opts.score > opts.prevScore
         ? "up"
-        : score < prevScore
+        : opts.score < opts.prevScore
           ? "down"
           : "same";
 

@@ -150,11 +150,12 @@ function EvalComponent() {
           </h1>
           <div className="flex items-center">
             <Score
-              evalStatus={possiblyRunningEvaluation.status}
-              isRunning={isRunningEval}
               score={evalScore}
-              state={getScoreState(evalScore, prevScore)}
-              resultStatus={undefined}
+              state={getScoreState({
+                score: evalScore,
+                prevScore,
+                status: possiblyRunningEvaluation.status,
+              })}
               hasScores={hasScores}
             ></Score>
             <Separator orientation="vertical" className="h-4 mx-4" />
@@ -225,6 +226,7 @@ function EvalComponent() {
                       return score?.score ?? 0;
                     }
                   );
+
                   const prevScorerAverage = prevEvaluation
                     ? average(prevEvaluation.results, (r) => {
                         const score = r.scores.find(
@@ -233,6 +235,7 @@ function EvalComponent() {
                         return score?.score ?? 0;
                       })
                     : undefined;
+
                   return (
                     <div
                       key={scorerName}
@@ -243,14 +246,12 @@ function EvalComponent() {
                       </div>
                       <div className="flex items-center justify-between">
                         <Score
-                          evalStatus={possiblyRunningEvaluation.status}
-                          isRunning={isRunningEval}
                           score={scorerAverage}
-                          state={getScoreState(
-                            scorerAverage,
-                            prevScorerAverage
-                          )}
-                          resultStatus={undefined}
+                          state={getScoreState({
+                            score: scorerAverage,
+                            prevScore: prevScorerAverage,
+                            status: possiblyRunningEvaluation.status,
+                          })}
                           iconClassName="size-4"
                           hasScores={hasScores}
                         />
@@ -414,13 +415,11 @@ function EvalComponent() {
                               <Score
                                 hasScores={hasScores}
                                 score={scorer.score}
-                                isRunning={isRunningEval}
-                                resultStatus={result.status}
-                                evalStatus={possiblyRunningEvaluation.status}
-                                state={getScoreState(
-                                  scorer.score,
-                                  scoreInPreviousEvaluation?.score
-                                )}
+                                state={getScoreState({
+                                  score: scorer.score,
+                                  prevScore: scoreInPreviousEvaluation?.score,
+                                  status: result.status,
+                                })}
                               />
                             </Wrapper>
                           </td>

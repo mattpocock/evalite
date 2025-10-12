@@ -31,6 +31,12 @@ evalite("Test Objects", {
         return JSON.stringify(output) === JSON.stringify(expected) ? 1 : 0;
       },
     }),
+    {
+      name: "Is Same 4",
+      scorer: ({ output, expected }) => {
+        return JSON.stringify(output) === JSON.stringify(expected) ? 1 : 0;
+      },
+    },
   ],
   columns: async ({ input, output, expected }) => {
     return [
