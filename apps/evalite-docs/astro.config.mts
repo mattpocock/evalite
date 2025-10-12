@@ -92,10 +92,6 @@ export default defineConfig({
               slug: "guides/environment-variables",
             },
             {
-              label: "Concurrency",
-              slug: "guides/concurrency",
-            },
-            {
               label: "Scorers",
               slug: "guides/scorers",
             },
@@ -110,6 +106,10 @@ export default defineConfig({
             {
               label: "Multi-Modal",
               slug: "guides/multi-modal",
+            },
+            {
+              label: "Configuration",
+              slug: "guides/configuration",
             },
             {
               label: "Streams",
