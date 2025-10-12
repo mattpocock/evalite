@@ -244,10 +244,6 @@ function EvalComponent() {
                       <TableHead>Input</TableHead>
                       <TableHead>Output</TableHead>
                       {showExpectedColumn && <TableHead>Expected</TableHead>}
-                      {evaluationWithoutLayoutShift.results[0]?.scores
-                        .length === 0 && (
-                        <TableHead className="border-l">Score</TableHead>
-                      )}
                     </>
                   )}
                   {evaluationWithoutLayoutShift.results[0]?.scores.map(
@@ -345,20 +341,6 @@ function EvalComponent() {
                         </>
                       )}
 
-                      {result.scores.length === 0 && (
-                        <td className="border-l">
-                          <Wrapper>
-                            <Score
-                              score={0}
-                              isRunning={isRunningEval}
-                              resultStatus={result.status}
-                              evalStatus={possiblyRunningEvaluation.status}
-                              state={"first"}
-                              hasScores={false}
-                            />
-                          </Wrapper>
-                        </td>
-                      )}
                       {result.scores.map((scorer, index) => {
                         const scoreInPreviousEvaluation =
                           prevEvaluation?.results
@@ -374,6 +356,7 @@ function EvalComponent() {
                           >
                             <Wrapper>
                               <Score
+                                hasScores={hasScores}
                                 score={scorer.score}
                                 isRunning={isRunningEval}
                                 resultStatus={result.status}

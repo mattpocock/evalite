@@ -20,12 +20,11 @@ export const Score = (props: {
   hasScores: boolean;
 }) => {
   const isRunning = props.isRunning || props.evalStatus === "running";
-  const hasScores = props.hasScores;
   return (
     <span className="flex items-center space-x-2">
       {isRunning ? (
         <span>---%</span>
-      ) : !hasScores ? (
+      ) : !props.hasScores ? (
         <span className="text-muted-foreground">-</span>
       ) : (
         <span>
