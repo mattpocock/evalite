@@ -105,10 +105,15 @@ export const evalite = <TInput, TOutput, TExpected = TOutput>(
   opts: Evalite.RunnerOpts<TInput, TOutput, TExpected>
 ) => registerEvalite(evalName, opts);
 
-evalite.experimental_skip = <TInput, TOutput, TExpected>(
+evalite.skip = <TInput, TOutput, TExpected>(
   evalName: string,
   opts: Evalite.RunnerOpts<TInput, TOutput, TExpected>
 ) => registerEvalite(evalName, opts, { modifier: "skip" });
+
+/**
+ * @deprecated Use `evalite.skip` instead.
+ */
+evalite.experimental_skip = evalite.skip;
 
 evalite.each = <TVariant>(
   variants: Array<{ name: string; input: TVariant }>

@@ -4,18 +4,16 @@ title: Skipping Evals
 
 ## Skipping Entire Evals
 
-Evalite has an `experimental_skip` modifier that you can use to skip a test.
+You can use `evalite.skip()` to skip an entire eval without running it.
 
 ```ts
-evalite.experimental_skip("My Eval", {
+evalite.skip("My Eval", {
   data: () => [],
   task: () => {},
 });
 ```
 
-This will skip the test and not run it.
-
-This is currently in an experimental state, since it doesn't yet display in the Evalite UI.
+This is useful when you want to temporarily disable an eval during development or testing.
 
 ## Focusing on Specific Evals
 
