@@ -128,6 +128,9 @@ function EvalComponent() {
     serverStateUtils.isRunningEvalName(name) &&
     evaluationWithoutLayoutShift?.created_at === mostRecentDate;
 
+  const evaluationWithoutLayoutShiftScores =
+    evaluationWithoutLayoutShift?.results[0]?.scores ?? [];
+
   return (
     <>
       <title>{`${name} | Evalite`}</title>
@@ -203,13 +206,13 @@ function EvalComponent() {
         )}
         {evaluationWithoutLayoutShift &&
           evaluationWithoutLayoutShift.results.length > 0 &&
-          evaluationWithoutLayoutShift.results[0]?.scores.length > 0 && (
+          evaluationWithoutLayoutShiftScores.length > 0 && (
             <div className="mb-10">
               <h2 className="mb-4 font-medium text-lg text-foreground/60">
-                Scorer Averages
+                Scores
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {evaluationWithoutLayoutShift.results[0].scores.map((scorer) => {
+                {evaluationWithoutLayoutShiftScores.map((scorer) => {
                   const scorerName = scorer.name;
                   const scorerAverage = average(
                     evaluationWithoutLayoutShift.results,
@@ -239,7 +242,10 @@ function EvalComponent() {
                           evalStatus={possiblyRunningEvaluation.status}
                           isRunning={isRunningEval}
                           score={scorerAverage}
-                          state={getScoreState(scorerAverage, prevScorerAverage)}
+                          state={getScoreState(
+                            scorerAverage,
+                            prevScorerAverage
+                          )}
                           resultStatus={undefined}
                           iconClassName="size-4"
                         />
