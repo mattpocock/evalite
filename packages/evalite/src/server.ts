@@ -141,6 +141,16 @@ export const createServer = (opts: { db: SQLiteDatabase }) => {
       })
     );
 
+    const allResults = getResults(
+      opts.db,
+      allEvals.map((e) => e.id)
+    );
+
+    const allScores = getScores(
+      opts.db,
+      allResults.map((r) => r.id)
+    );
+
     const createEvalMenuItem = (
       e: (typeof allEvals)[number]
     ): Evalite.SDK.GetMenuItemsResultEval => {
@@ -150,6 +160,12 @@ export const createServer = (opts: { db: SQLiteDatabase }) => {
         (s) => s.eval_id === e.prevEval?.id
       )?.average;
 
+      const evalResults = allResults.filter((r) => r.eval_id === e.id);
+      const evalScores = allScores.filter((s) =>
+        evalResults.some((r) => r.id === s.result_id)
+      );
+      const hasScores = evalScores.length > 0;
+
       return {
         filepath: e.filepath,
         name: e.name,
@@ -158,6 +174,7 @@ export const createServer = (opts: { db: SQLiteDatabase }) => {
         evalStatus: e.status,
         variantName: e.variant_name,
         variantGroup: e.variant_group,
+        hasScores,
       };
     };
 
