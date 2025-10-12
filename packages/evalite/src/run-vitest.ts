@@ -156,8 +156,8 @@ const exportResultsToJSON = async (opts: {
  * watch mode, score thresholds, and result exporting.
  *
  * @param opts - Configuration options for running evaluations
- * @param opts.path - Optional path filter to run specific eval files
- * @param opts.cwd - Working directory (defaults to current directory)
+ * @param opts.path - Optional path filter to run specific eval files (defaults to undefined, which runs all evals)
+ * @param opts.cwd - Working directory (defaults to process.cwd())
  * @param opts.testOutputWritable - Optional writable stream for test output
  * @param opts.mode - Execution mode: "watch-for-file-changes", "run-once-and-exit", or "run-once-and-serve"
  * @param opts.scoreThreshold - Optional score threshold (0-100) to fail the process if scores are below
@@ -167,10 +167,8 @@ const exportResultsToJSON = async (opts: {
  * ```typescript
  * import { runEvalite } from "evalite/runner";
  *
- * // Run once and exit
+ * // Run once and exit - simplified usage
  * await runEvalite({
- *   path: undefined,
- *   cwd: process.cwd(),
  *   mode: "run-once-and-exit",
  *   scoreThreshold: 80,
  *   outputPath: "./results.json"
@@ -178,23 +176,29 @@ const exportResultsToJSON = async (opts: {
  *
  * // Watch mode for development
  * await runEvalite({
- *   path: undefined,
- *   cwd: process.cwd(),
  *   mode: "watch-for-file-changes"
+ * });
+ *
+ * // Run specific eval file with custom working directory
+ * await runEvalite({
+ *   path: "tests/my-eval.eval.ts",
+ *   cwd: "/path/to/project",
+ *   mode: "run-once-and-exit"
  * });
  * ```
  */
 export const runEvalite = async (opts: {
-  path: string | undefined;
-  cwd: string | undefined;
+  path?: string | undefined;
+  cwd?: string | undefined;
   testOutputWritable?: Writable;
   mode: "watch-for-file-changes" | "run-once-and-exit" | "run-once-and-serve";
   scoreThreshold?: number;
   outputPath?: string;
   hideTable?: boolean;
 }) => {
-  const dbLocation = path.join(opts.cwd ?? "", DB_LOCATION);
-  const filesLocation = path.join(opts.cwd ?? "", FILES_LOCATION);
+  const cwd = opts.cwd ?? process.cwd();
+  const dbLocation = path.join(cwd, DB_LOCATION);
+  const filesLocation = path.join(cwd, FILES_LOCATION);
   await mkdir(path.dirname(dbLocation), { recursive: true });
   await mkdir(filesLocation, { recursive: true });
 
@@ -221,7 +225,7 @@ export const runEvalite = async (opts: {
     {
       // Everything passed here cannot be
       // overridden by the user
-      root: opts.cwd,
+      root: cwd,
       include: ["**/*.eval.?(m)ts"],
       watch: opts.mode === "watch-for-file-changes",
       reporters: [
@@ -266,7 +270,7 @@ export const runEvalite = async (opts: {
     }
   );
 
-  vitest.provide("cwd", opts.cwd ?? "");
+  vitest.provide("cwd", cwd);
 
   await vitest.start(filters);
 
@@ -287,7 +291,7 @@ export const runEvalite = async (opts: {
       await exportResultsToJSON({
         db,
         outputPath: opts.outputPath,
-        cwd: opts.cwd ?? "",
+        cwd,
       });
     }
 

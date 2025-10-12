@@ -12,11 +12,11 @@ Import the `runEvalite` function from `evalite/runner`:
 import { runEvalite } from "evalite/runner";
 
 await runEvalite({
-  path: undefined, // Optional: filter to specific files
-  cwd: process.cwd(),
   mode: "run-once-and-exit",
 });
 ```
+
+That's it! The `path` and `cwd` parameters are optional and default to running all evals in the current directory.
 
 ## Run Modes
 
@@ -26,8 +26,6 @@ This mode runs all evals once and exits. It's ideal for CI/CD pipelines:
 
 ```typescript
 await runEvalite({
-  path: undefined,
-  cwd: process.cwd(),
   mode: "run-once-and-exit",
 });
 ```
@@ -38,8 +36,6 @@ This mode watches for file changes and re-runs evals automatically. It also star
 
 ```typescript
 await runEvalite({
-  path: undefined,
-  cwd: process.cwd(),
   mode: "watch-for-file-changes",
 });
 ```
@@ -52,23 +48,21 @@ await runEvalite({
 
 ### `path`
 
-Optional path filter to run specific eval files:
+Optional path filter to run specific eval files. Defaults to `undefined` (runs all evals):
 
 ```typescript
 await runEvalite({
   path: "my-eval.eval.ts",
-  cwd: process.cwd(),
   mode: "run-once-and-exit",
 });
 ```
 
 ### `cwd`
 
-The working directory to run evals from. Defaults to the current directory:
+The working directory to run evals from. Defaults to `process.cwd()`:
 
 ```typescript
 await runEvalite({
-  path: undefined,
   cwd: "/path/to/my/project",
   mode: "run-once-and-exit",
 });
@@ -80,8 +74,6 @@ Set a minimum score threshold (0-100). If the average score falls below this thr
 
 ```typescript
 await runEvalite({
-  path: undefined,
-  cwd: process.cwd(),
   mode: "run-once-and-exit",
   scoreThreshold: 80, // Fail if score is below 80
 });
@@ -95,8 +87,6 @@ Export the results to a JSON file after the run completes:
 
 ```typescript
 await runEvalite({
-  path: undefined,
-  cwd: process.cwd(),
   mode: "run-once-and-exit",
   outputPath: "./results.json",
 });
@@ -114,8 +104,6 @@ import { runEvalite } from "evalite/runner";
 async function runEvals() {
   try {
     await runEvalite({
-      path: undefined, // Run all evals
-      cwd: process.cwd(),
       mode: "run-once-and-exit",
       scoreThreshold: 75, // Fail if average score < 75
       outputPath: "./evalite-results.json", // Export results
