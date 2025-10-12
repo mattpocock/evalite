@@ -2,6 +2,8 @@
 title: Skipping Evals
 ---
 
+## Skipping Entire Evals
+
 Evalite has an `experimental_skip` modifier that you can use to skip a test.
 
 ```ts
@@ -14,3 +16,22 @@ evalite.experimental_skip("My Eval", {
 This will skip the test and not run it.
 
 This is currently in an experimental state, since it doesn't yet display in the Evalite UI.
+
+## Focusing on Specific Evals
+
+You can use the `only` flag on data entries to focus on specific inputs during development.
+
+```ts
+evalite("My Eval", {
+  data: () => [
+    { input: "test1", expected: "output1" },
+    { input: "test2", expected: "output2", only: true },
+    { input: "test3", expected: "output3" },
+  ],
+  task: async (input) => {
+    // Only runs for "test2"
+  },
+});
+```
+
+When any data entry has `only: true`, only those evals will be run.
