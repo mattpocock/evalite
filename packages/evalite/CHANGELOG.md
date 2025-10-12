@@ -1,5 +1,23 @@
 # evalite
 
+## 0.14.0
+
+### Minor Changes
+
+- be75faa: Adds 'outputPath' cli config option for writing evaluation results to a file
+- 9160ba3: Upgraded to Vitest 3.
+- ae03644: Added Evalite serve
+- fb9f096: Added static export
+
+### Patch Changes
+
+- 57dd386: Display error messages instead of empty objects when tests fail
+- 28e4577: Rename runVitest to runEvalite as official Node API
+- 7c3bf8a: Added score averages in the UI
+- 7ffcf54: Make it possible to pass data as an array, not a function that returns an array.
+- 2dd6cea: Fixed overflow text error on trace view
+- 9a0556a: In UI, show evals without scorers as '-', not '0%'.
+
 ## 0.13.0
 
 ### Minor Changes
