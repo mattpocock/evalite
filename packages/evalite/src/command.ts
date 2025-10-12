@@ -15,6 +15,7 @@ type ProgramOpts = {
   path: string | undefined;
   threshold: number | undefined;
   outputPath: string | undefined;
+  hideTable: boolean | undefined;
 };
 
 const commonParameters = {
@@ -37,12 +38,18 @@ const commonParameters = {
         "Path to write test results in JSON format after evaluation completes.",
       optional: true,
     },
+    hideTable: {
+      kind: "boolean",
+      brief: "Hides the detailed table output in the CLI.",
+      optional: true,
+    },
   },
 } as const;
 
 type Flags = {
   threshold: number | undefined;
   outputPath: string | undefined;
+  hideTable: boolean | undefined;
 };
 
 export const createProgram = (commands: {
@@ -61,6 +68,7 @@ export const createProgram = (commands: {
         path,
         threshold: flags.threshold,
         outputPath: flags.outputPath,
+        hideTable: flags.hideTable,
       });
     },
     docs: {
@@ -75,6 +83,7 @@ export const createProgram = (commands: {
         path,
         threshold: flags.threshold,
         outputPath: flags.outputPath,
+        hideTable: flags.hideTable,
       });
     },
     docs: {
@@ -94,6 +103,7 @@ export const createProgram = (commands: {
         path,
         threshold: flags.threshold,
         outputPath: flags.outputPath,
+        hideTable: flags.hideTable,
       });
     },
     docs: {
@@ -167,6 +177,7 @@ export const program = createProgram({
       cwd: undefined,
       mode: "watch-for-file-changes",
       outputPath: path.outputPath,
+      hideTable: path.hideTable,
     });
   },
   runOnceAtPath: (path) => {

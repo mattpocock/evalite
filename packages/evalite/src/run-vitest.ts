@@ -191,6 +191,7 @@ export const runEvalite = async (opts: {
   mode: "watch-for-file-changes" | "run-once-and-exit" | "run-once-and-serve";
   scoreThreshold?: number;
   outputPath?: string;
+  hideTable?: boolean;
 }) => {
   const dbLocation = path.join(opts.cwd ?? "", DB_LOCATION);
   const filesLocation = path.join(opts.cwd ?? "", FILES_LOCATION);
@@ -238,6 +239,7 @@ export const runEvalite = async (opts: {
             exitCode = code;
           },
           mode: opts.mode,
+          hideTable: opts.hideTable,
         }),
       ],
       mode: "test",

@@ -33,6 +33,7 @@ export interface EvaliteReporterOptions {
   scoreThreshold: number | undefined;
   modifyExitCode: (exitCode: number) => void;
   mode: "watch-for-file-changes" | "run-once-and-exit" | "run-once-and-serve";
+  hideTable?: boolean;
 }
 
 export default class EvaliteReporter
@@ -140,7 +141,7 @@ export default class EvaliteReporter
       totalEvals: tests.length,
     });
 
-    if (files.length === 1) {
+    if (files.length === 1 && !this.opts.hideTable) {
       const successfulResults = tests
         .filter((test) => test.result?.state !== "fail")
         .map((test) => test.meta.evalite?.result)

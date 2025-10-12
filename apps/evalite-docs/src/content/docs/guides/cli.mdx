@@ -16,6 +16,16 @@ This will watch for changes to your `.eval.ts` files and re-run the evals when t
 >
 > I strongly recommend implementing a caching layer in your LLM calls when using watch mode. This will keep your evals running fast and avoid burning through your API credits.
 
+### Hiding the Table Output
+
+When debugging with `console.log`, the detailed table output can make it harder to see your logs. You can hide it with `--hideTable`:
+
+```bash
+evalite watch --hideTable
+```
+
+This keeps the score summary but removes the detailed results table from the CLI output.
+
 ## Serve Mode
 
 You can run evals once and serve the UI without re-running on file changes:
