@@ -85,8 +85,8 @@ it("Should verify stdout shows correct test count for only flag", async () => {
 
   const output = captured.getOutput();
 
-  // Should show 1 test passed (not 3)
-  expect(output).toContain("1 passed");
+  // Should show 1 eval ran (not 3)
+  expect(output).toContain("Evals  1");
 });
 
 it("Should work with variants when only: true is present", async () => {
