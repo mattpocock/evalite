@@ -9,7 +9,7 @@
   },
   "private": true,
   "scripts": {
-    "dev": "turbo watch dev",
+    "dev": "pnpm turbo daemon start && turbo watch dev",
     "docs:dev": "(cd apps/evalite-docs && pnpm run dev)",
     "wsl:dev": "pnpm run -r --parallel dev",
     "ci": "turbo build test lint after-build && pnpm check-format",

@@ -1,6 +1,6 @@
 import type { Evalite } from "evalite/types";
 import { EvaliteFile } from "evalite/utils";
-import { AlertCircle, ChevronDown, DownloadIcon } from "lucide-react";
+import { AlertCircle, ChevronDown, ChevronUp, DownloadIcon } from "lucide-react";
 import React, { Fragment, useLayoutEffect, useRef, useState } from "react";
 import { JSONTree } from "react-json-tree";
 import ReactMarkdown from "react-markdown";
@@ -98,6 +98,19 @@ const DisplayText = ({
         >
           <ChevronDown />
           Show more
+        </Button>
+      )}
+      {status === "showing-more" && shouldTruncateText && (
+        <Button
+          onClick={() => {
+            setStatus("showing-show-more-button");
+          }}
+          variant="secondary"
+          size="sm"
+          className="mt-3 mb-5"
+        >
+          <ChevronUp />
+          Show less
         </Button>
       )}
     </div>
