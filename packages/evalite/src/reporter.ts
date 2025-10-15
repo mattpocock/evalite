@@ -8,7 +8,7 @@ import type {
   TestSuite,
   Vitest,
 } from "vitest/node.js";
-import { BasicReporter, DefaultReporter } from "vitest/reporters";
+import { BaseReporter, BasicReporter } from "vitest/reporters";
 import type { SQLiteDatabase } from "./db.js";
 import { EvaliteRunner } from "./reporter/EvaliteRunner.js";
 import {
@@ -38,7 +38,7 @@ export interface EvaliteReporterOptions {
 }
 
 export default class EvaliteReporter
-  extends DefaultReporter
+  extends BaseReporter
   implements Reporter
 {
   private opts: EvaliteReporterOptions;
@@ -68,8 +68,6 @@ export default class EvaliteReporter
       filepaths: this.ctx.state.getFiles().map((f) => f.filepath),
       runType: "full",
     });
-
-    super.onInit(ctx);
   }
 
   override onWatcherStart(
@@ -93,7 +91,6 @@ export default class EvaliteReporter
       filepaths: files,
       runType: "partial",
     });
-    super.onWatcherRerun(files, trigger);
   }
 
   override onFinished = async (
@@ -104,7 +101,8 @@ export default class EvaliteReporter
       type: "RUN_ENDED",
     });
 
-    super.onFinished(files, errors);
+    // Call reportTestSummary manually since BaseReporter's onFinished does
+    this.reportTestSummary(files);
   };
 
   override reportTestSummary(files: RunnerTestFile[]): void {
@@ -213,7 +211,6 @@ export default class EvaliteReporter
 
     // If we already got a RESULT_SUBMITTED, nothing to do
     if (hasResultSubmitted) {
-      super.onTestCaseResult(test);
       return;
     }
 
@@ -225,7 +222,6 @@ export default class EvaliteReporter
 
     if (!resultStartedAnnotation) {
       // No evalite annotations at all - not an evalite test
-      super.onTestCaseResult(test);
       return;
     }
 
@@ -251,8 +247,6 @@ export default class EvaliteReporter
         },
       });
     }
-
-    super.onTestCaseResult(test);
   }
 
   protected override printAnnotations(
