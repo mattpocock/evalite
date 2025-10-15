@@ -31,9 +31,15 @@ it("Should allow non-serializable data (like validators/schemas) in expected fie
   // Should successfully run without serialization errors
   expect(evals["Non-serializable data"]).toBeDefined();
   expect(evals["Non-serializable data"]?.[0]?.status).toBe("success");
-  expect(evals["Non-serializable data"]?.[0]?.results[0]?.status).toBe("success");
+  expect(evals["Non-serializable data"]?.[0]?.results[0]?.status).toBe(
+    "success"
+  );
 
   // Should have a score of 1 (validator passed)
-  expect(evals["Non-serializable data"]?.[0]?.results[0]?.scores[0]?.score).toBe(1);
-  expect(evals["Non-serializable data"]?.[0]?.results[0]?.scores[0]?.name).toBe("Validator check");
+  expect(
+    evals["Non-serializable data"]?.[0]?.results[0]?.scores[0]?.score
+  ).toBe(1);
+  expect(evals["Non-serializable data"]?.[0]?.results[0]?.scores[0]?.name).toBe(
+    "Validator check"
+  );
 });
