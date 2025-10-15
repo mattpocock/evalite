@@ -9,13 +9,15 @@
   },
   "private": true,
   "scripts": {
-    "dev": "pnpm turbo daemon start && turbo watch dev",
+    "build:evalite": "pnpm --filter evalite build",
+    "build:evalite-ui": "pnpm --filter evalite-ui build && pnpm --filter evalite-ui after-build",
+    "build": "pnpm run \"/build:/\"",
+    "dev": "pnpm build:evalite && pnpm build:evalite-ui && pnpm --filter evalite --filter evalite-tests --parallel run dev",
+    "test": "pnpm build && pnpm --filter evalite --filter evalite-tests test",
+    "example": "pnpm build && pnpm --filter example --filter evalite-ui --filter evalite --parallel dev",
+    "ci": "pnpm build && pnpm test && pnpm --filter evalite --filter evalite-tests lint && pnpm check-format",
     "docs:dev": "(cd apps/evalite-docs && pnpm run dev)",
-    "wsl:dev": "pnpm run -r --parallel dev",
-    "ci": "turbo build test lint after-build && pnpm check-format",
-    "build": "TURBO_DAEMON=false turbo build after-build",
     "release": "pnpm run build && changeset publish",
-    "test-example": "cd packages/example && pnpm evalite watch",
     "prepare": "husky",
     "format": "prettier --write .",
     "check-format": "prettier --check ."
@@ -31,7 +33,6 @@
     "prettier": "^3.3.3",
     "remark-gfm": "^4.0.1",
     "tsx": "^4.19.0",
-    "turbo": "2.5.8",
     "typescript": "5.6.2",
     "vitest": "^3.2.4"
   },
