@@ -183,7 +183,7 @@ export default class EvaliteReporter
     }
   }
 
-  override onTestModuleQueued(file: TestModule): void {
+  onTestModuleQueued(file: TestModule): void {
     return;
   }
 
@@ -260,7 +260,7 @@ export default class EvaliteReporter
     return;
   }
 
-  override onTestModuleCollected(module: TestModule): void {
+  onTestModuleCollected(module: TestModule): void {
     return;
   }
 
