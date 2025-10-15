@@ -1,6 +1,11 @@
 import type { Evalite } from "evalite/types";
 import { EvaliteFile } from "evalite/utils";
-import { AlertCircle, ChevronDown, ChevronUp, DownloadIcon } from "lucide-react";
+import {
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  DownloadIcon,
+} from "lucide-react";
 import React, { Fragment, useLayoutEffect, useRef, useState } from "react";
 import { JSONTree } from "react-json-tree";
 import ReactMarkdown from "react-markdown";
