@@ -1,5 +1,11 @@
 # evalite
 
+## 0.14.7
+
+### Patch Changes
+
+- ee00ab9: Added collapse functionality to expanded table rows - users can now click 'Show less' to collapse content after expanding it.
+
 ## 0.14.6
 
 ### Patch Changes
