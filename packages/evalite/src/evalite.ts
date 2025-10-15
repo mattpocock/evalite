@@ -29,6 +29,29 @@ const joinArrayOfUnknownResults = (results: unknown[]): unknown => {
   }, "");
 };
 
+const makeSerializable = (obj: unknown): unknown => {
+  try {
+    structuredClone(obj);
+    return obj; // Already serializable, return as-is
+  } catch {
+    // Use JSON stringify/parse to handle non-serializable values
+    return JSON.parse(
+      JSON.stringify(obj, (key, value) => {
+        if (typeof value === "function") {
+          return "[Function]";
+        }
+        if (typeof value === "symbol") {
+          return "[Symbol]";
+        }
+        if (typeof value === "bigint") {
+          return value.toString() + "n";
+        }
+        return value;
+      })
+    );
+  }
+};
+
 const executeTask = async <TInput, TOutput, TVariant = undefined>(
   task: Evalite.Task<TInput, TOutput, TVariant>,
   input: TInput,
@@ -158,14 +181,19 @@ function registerEvalite<TInput, TOutput, TExpected>(
 
   return describeFn(fullEvalName, async () => {
     const dataset = await datasetPromise;
+
     // Filter dataset if any entry has `only: true`
     const hasOnlyFlag = dataset.some((d) => d.only === true);
     const filteredDataset = hasOnlyFlag
       ? dataset.filter((d) => d.only === true)
       : dataset;
-    it.concurrent.for(filteredDataset.map((d, index) => ({ ...d, index })))(
-      fullEvalName,
-      async (data, { task }) => {
+
+    // Create individual tests manually to avoid serialization
+    // This allows non-serializable data (like Zod schemas) in closures
+    for (let index = 0; index < filteredDataset.length; index++) {
+      const data = { ...filteredDataset[index]!, index };
+
+      it.concurrent(fullEvalName, async ({ task }) => {
         const cwd = inject("cwd");
 
         const rootDir = path.join(cwd, FILES_LOCATION);
@@ -201,23 +229,28 @@ function registerEvalite<TInput, TOutput, TExpected>(
         const traces: Evalite.Trace[] = [];
         reportTraceLocalStorage.enterWith((trace) => traces.push(trace));
 
-        const [input, expected] = await Promise.all([
+        const [inputForMeta, expectedForMeta] = await Promise.all([
           createEvaliteFileIfNeeded({ rootDir, input: data.input }),
           createEvaliteFileIfNeeded({ rootDir, input: data.expected }),
         ]);
+
+        // Ensure data is serializable for Vitest's task.meta
+        const serializableInput = makeSerializable(inputForMeta);
+        const serializableExpected = makeSerializable(expectedForMeta);
 
         task.meta.evalite.resultAfterFilesSaved = {
           evalName: fullEvalName,
           filepath: task.file.filepath,
           order: data.index,
-          input,
-          expected,
+          input: serializableInput,
+          expected: serializableExpected,
           variantName: vitestOpts.variantName,
           variantGroup: vitestOpts.variantGroup,
           status: "running",
         };
 
         try {
+          // Pass raw data (from closure) to scorers - allows non-serializable data
           const { output, scores, duration, columns } = await runTask({
             expected: data.expected,
             input: data.input,
@@ -237,15 +270,17 @@ function registerEvalite<TInput, TOutput, TExpected>(
               handleFilesInColumns(rootDir, columns),
             ]);
 
+          const serializableOutput = makeSerializable(outputWithFiles);
+
           task.meta.evalite.duration = Math.round(performance.now() - start);
           task.meta.evalite.result = {
             evalName: fullEvalName,
             filepath: task.file.filepath,
             order: data.index,
             duration: Math.round(performance.now() - start),
-            expected: expected,
-            input: input,
-            output: outputWithFiles,
+            expected: serializableExpected,
+            input: serializableInput,
+            output: serializableOutput,
             scores,
             traces: tracesWithFiles,
             status: "success",
@@ -271,8 +306,8 @@ function registerEvalite<TInput, TOutput, TExpected>(
             filepath: task.file.filepath,
             order: data.index,
             duration: task.meta.evalite.duration,
-            expected: expected,
-            input: input,
+            expected: serializableExpected,
+            input: serializableInput,
             output: serializedError,
             scores: [],
             traces: await handleFilesInTraces(rootDir, traces),
@@ -285,8 +320,8 @@ function registerEvalite<TInput, TOutput, TExpected>(
         }
 
         await Promise.all(filePromises);
-      }
-    );
+      });
+    }
   });
 }
 

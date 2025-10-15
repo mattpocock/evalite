@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vitest",
-    "test": "vitest run --passWithNoTests",
+    "dev": "vitest -w",
+    "test": "vitest run",
     "lint": "tsc"
   },
   "dependencies": {
