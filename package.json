@@ -38,5 +38,11 @@
   },
   "resolutions": {
     "typescript": "5.6.2"
+  },
+  "devDependencies": {
+    "lint-staged": "^16.2.4"
+  },
+  "lint-staged": {
+    "*": "prettier --write --ignore-unknown"
   }
 }
