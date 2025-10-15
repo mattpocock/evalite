@@ -11,7 +11,7 @@
   "scripts": {
     "build:evalite": "pnpm --filter evalite build",
     "build:evalite-ui": "pnpm --filter evalite-ui build && pnpm --filter evalite-ui after-build",
-    "build": "pnpm run \"/build:/\"",
+    "build": "pnpm run build:evalite && pnpm run build:evalite-ui",
     "dev": "pnpm build:evalite && pnpm build:evalite-ui && pnpm --filter evalite --filter evalite-tests --parallel run dev",
     "test": "pnpm build && pnpm --filter evalite --filter evalite-tests test",
     "example": "pnpm build && pnpm --filter example --filter evalite-ui --filter evalite --parallel dev",

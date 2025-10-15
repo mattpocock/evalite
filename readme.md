@@ -11,13 +11,16 @@
 OPENAI_API_KEY=your-api-key
 ```
 
-2. Run `pnpm run dev`. This will:
+2. Run development commands:
 
-- Run the TS type checker on `evalite`, `evalite-core`
-- Run some tests at `evalite-tests`
-- Run the UI dev server at http://localhost:5173
-- Run `evalite watch` on the examples in `packages/example`
+```bash
+pnpm run dev          # Build, then run tsc -w on evalite + vitest on evalite-tests
+pnpm run example      # Build, then run evalite watch + UI dev server at http://localhost:5173
+pnpm run test         # Build and run all tests
+```
 
 > [!IMPORTANT]
 >
 > You may need to run `pnpm build` in root, then `npm link` inside `packages/evalite` to get the global `evalite` command to work.
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for full documentation.

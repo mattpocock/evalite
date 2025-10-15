@@ -1,5 +1,32 @@
 # Contributing to Evalite
 
+## Development Commands
+
+This monorepo uses pnpm workspaces (no Turbo). All scripts use `pnpm --filter` to target specific packages.
+
+**Available scripts:**
+
+```bash
+pnpm run dev          # Build evalite + UI, then run tsc -w on evalite + vitest on evalite-tests
+pnpm run example      # Build, then run evalite watch + UI dev server (parallel)
+pnpm run test         # Build, then run tests on evalite + evalite-tests
+pnpm run build        # Build evalite, then evalite-ui
+pnpm run ci           # Full CI: build, test, lint, check-format
+```
+
+**Individual package scripts:**
+
+```bash
+pnpm build:evalite     # Build evalite package only
+pnpm build:evalite-ui  # Build UI and copy to evalite/dist/ui
+```
+
+**Setup:**
+
+1. Create `.env` in `packages/example` with `OPENAI_API_KEY=your-key`
+2. Run `pnpm install`
+3. For global `evalite` command: `pnpm build && cd packages/evalite && npm link`
+
 ## Styling Guidelines
 
 This project uses **Tailwind CSS v4** with a custom design system built on semantic color tokens and OKLCH color space. Follow these guidelines to maintain consistency.
