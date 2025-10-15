@@ -31,7 +31,6 @@
     "@types/node": "^22.7.7",
     "husky": "^9.1.7",
     "prettier": "^3.3.3",
-    "remark-gfm": "^4.0.1",
     "tsx": "^4.19.0",
     "typescript": "5.6.2",
     "vitest": "^3.2.4"
