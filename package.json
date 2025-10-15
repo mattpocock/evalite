@@ -9,16 +9,16 @@
   },
   "private": true,
   "scripts": {
-    "dev": "pnpm turbo daemon start && turbo watch dev",
+    "dev": "wireit",
     "docs:dev": "(cd apps/evalite-docs && pnpm run dev)",
-    "wsl:dev": "pnpm run -r --parallel dev",
-    "ci": "turbo build test lint after-build && pnpm check-format",
-    "build": "TURBO_DAEMON=false turbo build after-build",
+    "ci": "wireit",
+    "build": "wireit",
     "release": "pnpm run build && changeset publish",
     "test-example": "cd packages/example && pnpm evalite watch",
     "prepare": "husky",
     "format": "prettier --write .",
-    "check-format": "prettier --check ."
+    "check-format": "wireit",
+    "postinstall": "pnpm run build"
   },
   "keywords": [],
   "author": "Matt Pocock",
@@ -31,11 +31,44 @@
     "prettier": "^3.3.3",
     "remark-gfm": "^4.0.1",
     "tsx": "^4.19.0",
-    "turbo": "2.5.8",
     "typescript": "5.6.2",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "wireit": "^0.14.9"
   },
   "resolutions": {
     "typescript": "5.6.2"
+  },
+  "wireit": {
+    "dev": {
+      "dependencies": [
+        "./packages/evalite:dev",
+        "./packages/evalite-tests:dev",
+        "./apps/evalite-ui:dev",
+        "./packages/example:dev"
+      ]
+    },
+    "ci": {
+      "dependencies": [
+        "./packages/evalite:build",
+        "./packages/evalite:test",
+        "./apps/evalite-ui:build",
+        "./apps/evalite-ui:after-build",
+        "./apps/evalite-ui:lint",
+        "./apps/evalite-ui:test",
+        "./packages/evalite-tests:test",
+        "./packages/evalite-tests:lint",
+        "check-format"
+      ]
+    },
+    "build": {
+      "dependencies": [
+        "./packages/evalite:build",
+        "./apps/evalite-ui:build",
+        "./apps/evalite-ui:after-build"
+      ]
+    },
+    "check-format": {
+      "command": "prettier --check ."
+    }
   }
 }

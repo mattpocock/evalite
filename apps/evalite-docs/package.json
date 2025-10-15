@@ -4,11 +4,24 @@
   "private": true,
   "version": "0.0.1",
   "scripts": {
-    "dev": "astro dev",
+    "dev": "wireit",
     "start": "astro dev",
-    "build": "astro build",
+    "build": "wireit",
     "preview": "astro preview",
     "astro": "astro"
+  },
+  "wireit": {
+    "dev": {
+      "command": "astro dev",
+      "service": true,
+      "clean": false
+    },
+    "build": {
+      "command": "astro build",
+      "output": [
+        "dist/**"
+      ]
+    }
   },
   "dependencies": {
     "@astrojs/starlight": "^0.29.2",

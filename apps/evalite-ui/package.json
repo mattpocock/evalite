@@ -4,11 +4,45 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "build": "vite build",
-    "after-build": "rm -rf ../../packages/evalite/dist/ui && cp -r dist ../../packages/evalite/dist/ui",
-    "dev": "vite",
-    "lint": "tsr generate && tsc",
-    "test": "vitest run"
+    "build": "wireit",
+    "after-build": "wireit",
+    "dev": "wireit",
+    "lint": "wireit",
+    "test": "wireit"
+  },
+  "wireit": {
+    "build": {
+      "command": "vite build",
+      "dependencies": [
+        "../../packages/evalite:build"
+      ],
+      "output": [
+        "dist/**"
+      ]
+    },
+    "after-build": {
+      "command": "rm -rf ../../packages/evalite/dist/ui && cp -r dist ../../packages/evalite/dist/ui",
+      "dependencies": [
+        "build"
+      ]
+    },
+    "dev": {
+      "command": "vite",
+      "service": true,
+      "dependencies": [
+        "../../packages/evalite:dev"
+      ],
+      "clean": false
+    },
+    "lint": {
+      "command": "tsr generate && tsc"
+    },
+    "test": {
+      "command": "vitest run",
+      "dependencies": [
+        "build"
+      ]
+    }
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.1",

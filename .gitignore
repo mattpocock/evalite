@@ -1,6 +1,7 @@
 node_modules
 dist
 .turbo
+.wireit
 *.tsbuildinfo
 *.local.*
 *.local

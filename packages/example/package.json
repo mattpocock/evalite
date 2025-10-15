@@ -7,7 +7,17 @@
     "./dist/*"
   ],
   "scripts": {
-    "dev": "evalite watch"
+    "dev": "wireit"
+  },
+  "wireit": {
+    "dev": {
+      "command": "evalite watch",
+      "service": true,
+      "dependencies": [
+        "../evalite:dev"
+      ],
+      "clean": false
+    }
   },
   "dependencies": {
     "unstorage": "^1.17.1",

@@ -27,9 +27,38 @@
     "./tsconfig-warning/*"
   ],
   "scripts": {
-    "dev": "tsc -w",
-    "build": "tsc && chmod +x ./dist/bin.js",
-    "test": "vitest run"
+    "dev": "wireit",
+    "build": "wireit",
+    "test": "wireit"
+  },
+  "wireit": {
+    "build": {
+      "command": "tsc",
+      "files": [
+        "src/**/*.ts",
+        "tsconfig.json"
+      ],
+      "clean": false,
+      "output": [
+        "dist/**",
+        ".tsbuildinfo"
+      ]
+    },
+    "dev": {
+      "command": "tsc -w",
+      "service": true,
+      "files": [
+        "src/**/*.ts",
+        "tsconfig.json"
+      ],
+      "clean": false,
+      "readyWhen": {
+        "lineMatches": "Watching for file changes."
+      }
+    },
+    "test": {
+      "command": "vitest run"
+    }
   },
   "exports": {
     ".": "./dist/index.js",

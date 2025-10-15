@@ -4,9 +4,30 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vitest",
-    "test": "vitest run --passWithNoTests",
-    "lint": "tsc"
+    "dev": "wireit",
+    "test": "wireit",
+    "lint": "wireit"
+  },
+  "wireit": {
+    "dev": {
+      "command": "vitest -w",
+      "service": true,
+      "dependencies": [
+        "../../apps/evalite-ui:after-build",
+        "../../packages/evalite:dev"
+      ],
+      "clean": false
+    },
+    "test": {
+      "command": "vitest run",
+      "dependencies": [
+        "../../apps/evalite-ui:after-build",
+        "../../packages/evalite:build"
+      ]
+    },
+    "lint": {
+      "command": "tsc"
+    }
   },
   "dependencies": {
     "evalite": "workspace:*",
