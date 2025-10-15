@@ -1,5 +1,5 @@
 import { getTests, hasFailed } from "@vitest/runner/utils";
-import type { RunnerTestFile } from "vitest";
+import type { RunnerTestFile, TestAnnotation } from "vitest";
 import type {
   Reporter,
   TestCase,
@@ -24,6 +24,7 @@ import {
 import type { Evalite } from "./types.js";
 import { average, max } from "./utils.js";
 import path from "node:path";
+import { deserializeAnnotation } from "./reporter/events.js";
 
 export interface EvaliteReporterOptions {
   isWatching: boolean;
@@ -113,11 +114,8 @@ export default class EvaliteReporter
       (test) => test.result?.state === "fail"
     ).length;
 
-    const scores = tests.flatMap((test) => {
-      const scores = test.meta.evalite?.result?.scores;
-
-      return scores ?? [];
-    });
+    // Get scores from runner's collected results
+    const scores = this.runner.getAllScores();
 
     const averageScore =
       scores.length === 0 ? null : average(scores, (score) => score.score ?? 0);
@@ -142,10 +140,7 @@ export default class EvaliteReporter
     });
 
     if (files.length === 1 && !this.opts.hideTable) {
-      const successfulResults = tests
-        .filter((test) => test.result?.state !== "fail")
-        .map((test) => test.meta.evalite?.result)
-        .filter((result) => result !== undefined);
+      const successfulResults = this.runner.getSuccessfulResults();
 
       if (successfulResults.length > 0) {
         renderDetailedTable(
@@ -169,16 +164,25 @@ export default class EvaliteReporter
     return;
   }
 
-  override onTestCaseReady(testCase: TestCase) {
-    const meta = testCase.meta();
-    if (!meta.evalite?.initialResult) {
-      throw new Error("No initial result present");
+  onTestCaseAnnotate(testCase: TestCase, annotation: TestAnnotation): void {
+    const data = deserializeAnnotation(annotation.message);
+
+    if (!data) {
+      // Not an evalite annotation - ignore
+      return;
     }
 
-    this.runner.sendEvent({
-      type: "RESULT_STARTED",
-      initialResult: meta.evalite.initialResult,
-    });
+    if (data.type === "RESULT_STARTED") {
+      this.runner.sendEvent({
+        type: "RESULT_STARTED",
+        initialResult: data.initialResult,
+      });
+    } else if (data.type === "RESULT_SUBMITTED") {
+      this.runner.sendEvent({
+        type: "RESULT_SUBMITTED",
+        result: data.result,
+      });
+    }
   }
 
   override onTestModuleQueued(file: TestModule): void {
@@ -200,6 +204,68 @@ export default class EvaliteReporter
     return;
   }
 
+  override onTestCaseResult(test: TestCase): void {
+    // Check if we received a RESULT_SUBMITTED annotation
+    const hasResultSubmitted = test.annotations().some((annotation) => {
+      const data = deserializeAnnotation(annotation.message);
+      return data?.type === "RESULT_SUBMITTED";
+    });
+
+    // If we already got a RESULT_SUBMITTED, nothing to do
+    if (hasResultSubmitted) {
+      super.onTestCaseResult(test);
+      return;
+    }
+
+    // Check if we have a RESULT_STARTED annotation
+    const resultStartedAnnotation = test.annotations().find((annotation) => {
+      const data = deserializeAnnotation(annotation.message);
+      return data?.type === "RESULT_STARTED";
+    });
+
+    if (!resultStartedAnnotation) {
+      // No evalite annotations at all - not an evalite test
+      super.onTestCaseResult(test);
+      return;
+    }
+
+    // Test finished but never submitted a result - likely timeout
+    const data = deserializeAnnotation(resultStartedAnnotation.message);
+    if (data && data.type === "RESULT_STARTED") {
+      this.runner.sendEvent({
+        type: "RESULT_SUBMITTED",
+        result: {
+          evalName: data.initialResult.evalName,
+          filepath: data.initialResult.filepath,
+          order: data.initialResult.order,
+          duration: 0,
+          expected: "",
+          input: "",
+          output: null,
+          scores: [],
+          traces: [],
+          status: "fail",
+          renderedColumns: [],
+          variantName: data.initialResult.variantName,
+          variantGroup: data.initialResult.variantGroup,
+        },
+      });
+    }
+
+    super.onTestCaseResult(test);
+  }
+
+  protected override printAnnotations(
+    _test: TestCase,
+    _console: "log" | "error",
+    _padding?: number
+  ): void {
+    // Evalite uses annotations internally for reporter communication.
+    // Users cannot add custom annotations via the Evalite API,
+    // so we suppress all annotation output.
+    return;
+  }
+
   override onTestModuleCollected(module: TestModule): void {
     return;
   }
@@ -209,9 +275,7 @@ export default class EvaliteReporter
 
     const hasFailed = tests.some((test) => test.result()?.state === "failed");
 
-    const scores = tests.flatMap(
-      (test) => test.meta().evalite?.result?.scores || []
-    );
+    const scores = this.runner.getScoresForModule(mod.moduleId);
 
     renderTask({
       logger: this.ctx.logger,
@@ -221,42 +285,6 @@ export default class EvaliteReporter
         numberOfEvals: tests.length,
         scores,
       },
-    });
-  }
-
-  override onTestCaseResult(testCase: TestCase) {
-    const meta = testCase.meta();
-
-    if (meta.evalite?.result) {
-      this.runner.sendEvent({
-        type: "RESULT_SUBMITTED",
-        result: meta.evalite.result,
-      });
-
-      return;
-    }
-
-    if (!meta.evalite?.resultAfterFilesSaved) {
-      throw new Error("No usable result present");
-    }
-
-    // At this point, the test has finished
-    // but not reported a result. We should
-    // indicate that the test has failed
-
-    const result: Evalite.Result = {
-      ...meta.evalite.resultAfterFilesSaved,
-      status: "fail",
-      output: null,
-      duration: 0,
-      scores: [],
-      traces: [],
-      renderedColumns: [],
-    };
-
-    this.runner.sendEvent({
-      type: "RESULT_SUBMITTED",
-      result: result,
     });
   }
 }

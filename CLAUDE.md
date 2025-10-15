@@ -16,18 +16,17 @@ pnpm run dev
 
 This runs:
 
-- TypeScript type checker on `evalite` and `evalite-core` packages
+- TypeScript type checker on `evalite` package
 - Tests in `evalite-tests` package
-- UI dev server at http://localhost:5173
-- `evalite watch` on examples in `packages/example`
-
-**On WSL**: Use `pnpm run wsl:dev` instead
+- Live reload for both packages
 
 **Build all packages**:
 
 ```bash
 pnpm build
 ```
+
+This builds `evalite` package first, then `evalite-ui`, copying UI assets to `packages/evalite/dist/ui`.
 
 **Run CI pipeline** (build, test, lint):
 
@@ -38,7 +37,7 @@ pnpm ci
 **Test the example evals**:
 
 ```bash
-pnpm run test-example
+pnpm run example
 # Or: cd packages/example && pnpm evalite watch
 ```
 
@@ -55,63 +54,48 @@ cd packages/evalite-tests && pnpm test
 cd packages/evalite && pnpm lint
 ```
 
-## Working with TurboRepo Filters
+## Working with pnpm Filters
 
-When working on specific packages in this monorepo, **prefer using TurboRepo's `--filter` flag** instead of changing directories. This ensures that all dependencies are built in the correct order before running tasks.
-
-### Why Use Filters?
-
-TurboRepo's filter system:
-
-- Automatically builds dependencies before running tasks (e.g., builds `evalite` before running `evalite-tests`)
-- Leverages Turbo's caching for faster builds
-- Ensures proper dependency resolution based on `turbo.json` configuration
-- Provides better visibility into the task dependency graph
+When working on specific packages in this monorepo, **use pnpm's `--filter` flag** to run commands on specific packages.
 
 ### Common Filter Commands
 
-**Build a specific package** (and its dependencies):
+**Build a specific package**:
 
 ```bash
-pnpm turbo build --filter=evalite
-pnpm turbo build --filter=evalite-ui
+pnpm --filter evalite build
+pnpm --filter evalite-ui build
 ```
 
-**Run tests for a specific package** (builds dependencies first):
+**Run tests for a specific package**:
 
 ```bash
-pnpm turbo test --filter=evalite-tests
+pnpm --filter evalite-tests test
 ```
 
 **Run dev mode for a specific package**:
 
 ```bash
-pnpm turbo dev --filter=evalite-ui
-pnpm turbo dev --filter=evalite
+pnpm --filter evalite dev
+pnpm --filter evalite-ui dev
 ```
 
-**Lint a specific package** (ensures it's built first):
+**Lint a specific package**:
 
 ```bash
-pnpm turbo lint --filter=evalite
-pnpm turbo lint --filter=evalite-tests
-```
-
-**Run multiple tasks on a filtered package**:
-
-```bash
-pnpm turbo build test lint --filter=evalite
+pnpm --filter evalite lint
+pnpm --filter evalite-tests lint
 ```
 
 ### Filter Patterns
 
-TurboRepo supports several filter patterns:
+pnpm supports several filter patterns:
 
-- `--filter=evalite` - Run task for the `evalite` package only
-- `--filter=evalite...` - Run task for `evalite` and all its dependencies
-- `--filter=...evalite` - Run task for `evalite` and all packages that depend on it
-- `--filter=./packages/*` - Run task for all packages in the packages directory
-- `--filter=!evalite` - Run task for all packages except `evalite`
+- `--filter evalite` - Run task for the `evalite` package only
+- `--filter evalite...` - Run task for `evalite` and all its dependencies
+- `--filter ...evalite` - Run task for `evalite` and all packages that depend on it
+- `--filter "./packages/*"` - Run task for all packages in the packages directory
+- `--filter "!evalite"` - Run task for all packages except `evalite`
 
 ### Examples for Common Workflows
 
@@ -119,53 +103,45 @@ TurboRepo supports several filter patterns:
 
 ```bash
 # Build evalite and watch for changes
-pnpm turbo dev --filter=evalite
+pnpm --filter evalite dev
 
 # Run tests after making changes
-pnpm turbo test --filter=evalite
+pnpm --filter evalite test
 ```
 
 **Working on the UI**:
 
 ```bash
-# Builds evalite first, then starts UI dev server
-pnpm turbo dev --filter=evalite-ui
+# Build evalite first, then start UI dev server
+pnpm run build:evalite && pnpm --filter evalite-ui dev
 ```
 
 **Working on integration tests**:
 
 ```bash
-# Ensures evalite and evalite-ui are built before running tests
-pnpm turbo test --filter=evalite-tests
+# Ensure evalite is built before running tests
+pnpm run build && pnpm --filter evalite-tests test
 ```
 
-**Building multiple related packages**:
-
-```bash
-# Build evalite and all packages that depend on it
-pnpm turbo build --filter=...evalite
-```
-
-### When to Use vs. Not Use Filters
+### When to Use Filters
 
 **Use filters when**:
 
-- You need to ensure dependencies are built first
-- You want to leverage Turbo's caching
+- You need to run commands on specific packages
+- You want to avoid changing directories
 - You're running build, test, or lint tasks
-- You're working in a CI/CD environment
 
 **Direct package commands are fine for**:
 
 - Quick one-off commands (like `pnpm install`)
 - Running the evalite CLI itself (e.g., `cd packages/example && pnpm evalite watch`)
-- Commands that don't have dependencies on other packages
+- When already in the package directory
 
 ## Architecture
 
 ### Monorepo Structure
 
-This is a pnpm workspace with Turborepo for task orchestration:
+This is a pnpm workspace:
 
 - **`packages/evalite`**: Main package that users install. Exports the `evalite()` function, CLI binary (`evalite`), server, database layer, and utilities. Built with TypeScript.
 
@@ -244,8 +220,6 @@ OPENAI_API_KEY=your-api-key
 ```
 
 **File extensions**: Both `.eval.ts` and `.eval.mts` files are supported (see changeset #151)
-
-**Turbo dependency graph**: Most tasks depend on `^build` (build dependencies first). The `after-build` task runs after `build` completes.
 
 ## Changesets
 

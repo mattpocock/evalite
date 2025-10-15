@@ -24,6 +24,7 @@ export class EvaliteRunner {
   private opts: EvaliteRunnerOptions;
   private state: Evalite.ServerState = { type: "idle" };
   private didLastRunFailThreshold: "yes" | "no" | "unknown" = "unknown";
+  private collectedResults: Map<string, Evalite.Result> = new Map();
 
   constructor(opts: EvaliteRunnerOptions) {
     this.opts = opts;
@@ -35,6 +36,24 @@ export class EvaliteRunner {
 
   getDidLastRunFailThreshold(): "yes" | "no" | "unknown" {
     return this.didLastRunFailThreshold;
+  }
+
+  getAllScores(): Evalite.Score[] {
+    return Array.from(this.collectedResults.values()).flatMap(
+      (result) => result.scores
+    );
+  }
+
+  getSuccessfulResults(): Evalite.Result[] {
+    return Array.from(this.collectedResults.values()).filter(
+      (result) => result.status === "success"
+    );
+  }
+
+  getScoresForModule(moduleId: string): Evalite.Score[] {
+    return Array.from(this.collectedResults.values())
+      .filter((result) => result.filepath === moduleId)
+      .flatMap((result) => result.scores);
   }
 
   handleTestSummary(data: {
@@ -123,6 +142,10 @@ export class EvaliteRunner {
             break;
           case "RESULT_SUBMITTED":
             {
+              // Store result in memory for reporting
+              const resultKey = `${event.result.filepath}:${event.result.evalName}:${event.result.order}`;
+              this.collectedResults.set(resultKey, event.result);
+
               const runId =
                 this.state.runId ??
                 createRun({
@@ -247,6 +270,9 @@ export class EvaliteRunner {
       case "idle": {
         switch (event.type) {
           case "RUN_BEGUN":
+            // Clear collected results for new run
+            this.collectedResults.clear();
+
             this.updateState({
               filepaths: event.filepaths,
               runType: event.runType,

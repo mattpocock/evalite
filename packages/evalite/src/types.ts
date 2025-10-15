@@ -29,7 +29,20 @@ export declare namespace Evalite {
     variantGroup: string | undefined;
   }
 
-  export interface ResultAfterFilesSaved extends InitialResult {
+  export type ResultStatus = "success" | "fail" | "running";
+
+  export type RenderedColumn = {
+    label: string;
+    value: unknown;
+  };
+
+  export interface Result {
+    evalName: string;
+    filepath: string;
+    order: number;
+    status: ResultStatus;
+    variantName: string | undefined;
+    variantGroup: string | undefined;
     /**
      * Technically, input and expected are known at the start
      * of the evaluation. But because they may be files, they
@@ -39,23 +52,6 @@ export declare namespace Evalite {
      */
     input: unknown;
     expected?: unknown;
-  }
-
-  export type ResultStatus = "success" | "fail" | "running";
-
-  export type RenderedColumn = {
-    label: string;
-    value: unknown;
-  };
-
-  export interface Result extends ResultAfterFilesSaved {
-    /**
-     * Technically, input and expected are known at the start
-     * of the evaluation. But because they may be files, they
-     * need to be saved asynchronously.
-     *
-     * This is why they are only included in the final result.
-     */
     output: unknown;
     scores: Score[];
     duration: number;
@@ -85,13 +81,6 @@ export declare namespace Evalite {
     input: TInput;
     output: TOutput;
     expected?: TExpected;
-  };
-
-  export type TaskMeta = {
-    initialResult?: InitialResult;
-    resultAfterFilesSaved?: ResultAfterFilesSaved;
-    result?: Result;
-    duration: number | undefined;
   };
 
   export type Task<TInput, TOutput, TVariant = undefined> = (

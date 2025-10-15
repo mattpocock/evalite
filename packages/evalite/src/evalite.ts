@@ -7,12 +7,7 @@ import { createEvaliteFileIfNeeded } from "./utils.js";
 import type { Evalite } from "./types.js";
 import { FILES_LOCATION } from "./backend-only-constants.js";
 import { createScorer } from "./index.js";
-
-declare module "vitest" {
-  interface TaskMeta {
-    evalite?: Evalite.TaskMeta;
-  }
-}
+import { serializeAnnotation } from "./reporter/events.js";
 
 const joinArrayOfUnknownResults = (results: unknown[]): unknown => {
   return results.reduce((acc, result) => {
@@ -193,23 +188,25 @@ function registerEvalite<TInput, TOutput, TExpected>(
     for (let index = 0; index < filteredDataset.length; index++) {
       const data = { ...filteredDataset[index]!, index };
 
-      it.concurrent(fullEvalName, async ({ task }) => {
+      it.concurrent(fullEvalName, async ({ task, annotate }) => {
         const cwd = inject("cwd");
 
         const rootDir = path.join(cwd, FILES_LOCATION);
 
-        task.meta.evalite = {
-          duration: undefined,
-        };
-
-        task.meta.evalite.initialResult = {
-          evalName: fullEvalName,
-          filepath: task.file.filepath,
-          order: data.index,
-          variantName: vitestOpts.variantName,
-          variantGroup: vitestOpts.variantGroup,
-          status: "running",
-        };
+        // Send RESULT_STARTED annotation immediately
+        await annotate(
+          serializeAnnotation({
+            type: "RESULT_STARTED",
+            initialResult: {
+              evalName: fullEvalName,
+              filepath: task.file.filepath,
+              order: data.index,
+              variantName: vitestOpts.variantName,
+              variantGroup: vitestOpts.variantGroup,
+              status: "running",
+            },
+          })
+        );
 
         const start = performance.now();
 
@@ -234,20 +231,9 @@ function registerEvalite<TInput, TOutput, TExpected>(
           createEvaliteFileIfNeeded({ rootDir, input: data.expected }),
         ]);
 
-        // Ensure data is serializable for Vitest's task.meta
+        // Ensure data is serializable
         const serializableInput = makeSerializable(inputForMeta);
         const serializableExpected = makeSerializable(expectedForMeta);
-
-        task.meta.evalite.resultAfterFilesSaved = {
-          evalName: fullEvalName,
-          filepath: task.file.filepath,
-          order: data.index,
-          input: serializableInput,
-          expected: serializableExpected,
-          variantName: vitestOpts.variantName,
-          variantGroup: vitestOpts.variantGroup,
-          status: "running",
-        };
 
         try {
           // Pass raw data (from closure) to scorers - allows non-serializable data
@@ -272,24 +258,29 @@ function registerEvalite<TInput, TOutput, TExpected>(
 
           const serializableOutput = makeSerializable(outputWithFiles);
 
-          task.meta.evalite.duration = Math.round(performance.now() - start);
-          task.meta.evalite.result = {
-            evalName: fullEvalName,
-            filepath: task.file.filepath,
-            order: data.index,
-            duration: Math.round(performance.now() - start),
-            expected: serializableExpected,
-            input: serializableInput,
-            output: serializableOutput,
-            scores,
-            traces: tracesWithFiles,
-            status: "success",
-            renderedColumns,
-            variantName: vitestOpts.variantName,
-            variantGroup: vitestOpts.variantGroup,
-          };
+          // Send RESULT_SUBMITTED annotation
+          await annotate(
+            serializeAnnotation({
+              type: "RESULT_SUBMITTED",
+              result: {
+                evalName: fullEvalName,
+                filepath: task.file.filepath,
+                order: data.index,
+                duration: Math.round(performance.now() - start),
+                expected: serializableExpected,
+                input: serializableInput,
+                output: serializableOutput,
+                scores,
+                traces: tracesWithFiles,
+                status: "success",
+                renderedColumns,
+                variantName: vitestOpts.variantName,
+                variantGroup: vitestOpts.variantGroup,
+              },
+            })
+          );
         } catch (e) {
-          task.meta.evalite.duration = Math.round(performance.now() - start);
+          const duration = Math.round(performance.now() - start);
 
           // Serialize error for better display in UI
           const serializedError =
@@ -301,21 +292,27 @@ function registerEvalite<TInput, TOutput, TExpected>(
                 }
               : e;
 
-          task.meta.evalite.result = {
-            evalName: fullEvalName,
-            filepath: task.file.filepath,
-            order: data.index,
-            duration: task.meta.evalite.duration,
-            expected: serializableExpected,
-            input: serializableInput,
-            output: serializedError,
-            scores: [],
-            traces: await handleFilesInTraces(rootDir, traces),
-            status: "fail",
-            renderedColumns: [],
-            variantName: vitestOpts.variantName,
-            variantGroup: vitestOpts.variantGroup,
-          };
+          // Send RESULT_SUBMITTED annotation for failure
+          await annotate(
+            serializeAnnotation({
+              type: "RESULT_SUBMITTED",
+              result: {
+                evalName: fullEvalName,
+                filepath: task.file.filepath,
+                order: data.index,
+                duration,
+                expected: serializableExpected,
+                input: serializableInput,
+                output: serializedError,
+                scores: [],
+                traces: await handleFilesInTraces(rootDir, traces),
+                status: "fail",
+                renderedColumns: [],
+                variantName: vitestOpts.variantName,
+                variantGroup: vitestOpts.variantGroup,
+              },
+            })
+          );
           throw e;
         }
 
