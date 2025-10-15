@@ -8,7 +8,7 @@ import type {
   TestSuite,
   Vitest,
 } from "vitest/node.js";
-import { BaseReporter, BasicReporter } from "vitest/reporters";
+import { BasicReporter } from "vitest/reporters";
 import type { SQLiteDatabase } from "./db.js";
 import { EvaliteRunner } from "./reporter/EvaliteRunner.js";
 import {
@@ -38,7 +38,7 @@ export interface EvaliteReporterOptions {
 }
 
 export default class EvaliteReporter
-  extends BaseReporter
+  extends BasicReporter
   implements Reporter
 {
   private opts: EvaliteReporterOptions;
@@ -101,7 +101,7 @@ export default class EvaliteReporter
       type: "RUN_ENDED",
     });
 
-    // Call reportTestSummary manually since BaseReporter's onFinished does
+    // Call reportTestSummary manually since BasicReporter's onFinished doesn't
     this.reportTestSummary(files);
   };
 
