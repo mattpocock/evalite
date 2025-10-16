@@ -1,5 +1,15 @@
 # evalite
 
+## 0.15.0
+
+### Minor Changes
+
+- 39fb50e: Migrated to Vitest Annotations API for improved test progress timing. Requires Vitest 3.2.4 or later.
+
+### Patch Changes
+
+- 7aa5927: Removed serialization requirement for eval datasets, allowing non-serializable data like Zod schemas in input/expected fields
+
 ## 0.14.7
 
 ### Patch Changes
