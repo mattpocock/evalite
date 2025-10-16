@@ -1,20 +1,9 @@
-import {
-  createEvalIfNotExists,
-  createRun,
-  findResultByEvalIdAndOrder,
-  getAllResultsForEval,
-  insertResult,
-  insertScore,
-  insertTrace,
-  updateEvalStatusAndDuration,
-  updateResult,
-  type SQLiteDatabase,
-} from "../db.js";
+import type { EvaliteAdapter } from "../adapters/types.js";
 import type { Evalite } from "../types.js";
 import type { ReporterEvent } from "./events.js";
 
 export interface EvaliteRunnerOptions {
-  db: SQLiteDatabase;
+  adapter: EvaliteAdapter;
   logNewState: (event: Evalite.ServerState) => void;
   modifyExitCode: (exitCode: number) => void;
   scoreThreshold: number | undefined;
@@ -102,13 +91,9 @@ export class EvaliteRunner {
             {
               const runId =
                 this.state.runId ??
-                createRun({
-                  db: this.opts.db,
-                  runType: this.state.runType,
-                });
+                this.opts.adapter.createRun(this.state.runType);
 
-              const evalId = createEvalIfNotExists({
-                db: this.opts.db,
+              const evalId = this.opts.adapter.createEvalIfNotExists({
                 filepath: event.initialResult.filepath,
                 name: event.initialResult.evalName,
                 runId,
@@ -116,8 +101,7 @@ export class EvaliteRunner {
                 variantGroup: event.initialResult.variantGroup,
               });
 
-              const resultId = insertResult({
-                db: this.opts.db,
+              const resultId = this.opts.adapter.insertResult({
                 evalId,
                 order: event.initialResult.order,
                 input: "",
@@ -148,13 +132,9 @@ export class EvaliteRunner {
 
               const runId =
                 this.state.runId ??
-                createRun({
-                  db: this.opts.db,
-                  runType: this.state.runType,
-                });
+                this.opts.adapter.createRun(this.state.runType);
 
-              const evalId = createEvalIfNotExists({
-                db: this.opts.db,
+              const evalId = this.opts.adapter.createEvalIfNotExists({
                 filepath: event.result.filepath,
                 name: event.result.evalName,
                 runId,
@@ -163,15 +143,13 @@ export class EvaliteRunner {
               });
 
               let existingResultId: number | bigint | undefined =
-                findResultByEvalIdAndOrder({
-                  db: this.opts.db,
+                this.opts.adapter.findResultByEvalIdAndOrder({
                   evalId,
                   order: event.result.order,
                 });
 
               if (existingResultId) {
-                updateResult({
-                  db: this.opts.db,
+                this.opts.adapter.updateResult({
                   resultId: existingResultId,
                   output: event.result.output,
                   duration: event.result.duration,
@@ -181,8 +159,7 @@ export class EvaliteRunner {
                   expected: event.result.expected,
                 });
               } else {
-                existingResultId = insertResult({
-                  db: this.opts.db,
+                existingResultId = this.opts.adapter.insertResult({
                   evalId,
                   order: event.result.order,
                   input: event.result.input,
@@ -195,8 +172,7 @@ export class EvaliteRunner {
               }
 
               for (const score of event.result.scores) {
-                insertScore({
-                  db: this.opts.db,
+                this.opts.adapter.insertScore({
                   resultId: existingResultId,
                   description: score.description,
                   name: score.name,
@@ -208,8 +184,7 @@ export class EvaliteRunner {
               let traceOrder = 0;
               for (const trace of event.result.traces) {
                 traceOrder++;
-                insertTrace({
-                  db: this.opts.db,
+                this.opts.adapter.insertTrace({
                   resultId: existingResultId,
                   input: trace.input,
                   output: trace.output,
@@ -222,10 +197,7 @@ export class EvaliteRunner {
                 });
               }
 
-              const allResults = getAllResultsForEval({
-                db: this.opts.db,
-                evalId,
-              });
+              const allResults = this.opts.adapter.getAllResultsForEval(evalId);
 
               const resultIdsRunning = this.state.resultIdsRunning.filter(
                 (id) => id !== existingResultId
@@ -241,8 +213,7 @@ export class EvaliteRunner {
 
               // Update the eval status and duration
               if (isEvalComplete) {
-                updateEvalStatusAndDuration({
-                  db: this.opts.db,
+                this.opts.adapter.updateEvalStatusAndDuration({
                   evalId,
                   status: allResults.some((r) => r.status === "fail")
                     ? "fail"

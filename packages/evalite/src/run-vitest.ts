@@ -3,17 +3,8 @@ import path from "path";
 import { Writable } from "stream";
 import { createVitest, registerConsoleShortcuts } from "vitest/node";
 import EvaliteReporter from "./reporter.js";
-import {
-  createDatabase,
-  getMostRecentRun,
-  getEvals,
-  getEvalsAverageScores,
-  type SQLiteDatabase,
-  getResults,
-  getScores,
-  getTraces,
-  getAverageScoresFromResults,
-} from "./db.js";
+import { createSqliteAdapter } from "./adapters/sqlite.js";
+import type { EvaliteAdapter } from "./adapters/types.js";
 import type { Evalite } from "./types.js";
 import { createServer } from "./server.js";
 import { DEFAULT_SERVER_PORT } from "./constants.js";
@@ -26,41 +17,35 @@ declare module "vitest" {
 }
 
 const exportResultsToJSON = async (opts: {
-  db: SQLiteDatabase;
+  adapter: EvaliteAdapter;
   outputPath: string;
   cwd: string;
 }) => {
-  const latestFullRun = getMostRecentRun(opts.db, "full");
+  const latestFullRun = opts.adapter.getMostRecentRun("full");
 
   if (!latestFullRun) {
     console.warn("No completed run found to export");
     return;
   }
 
-  const allEvals = getEvals(opts.db, [latestFullRun.id], ["fail", "success"]);
-  const evalResults = getResults(
-    opts.db,
-    allEvals.map((e) => e.id).filter((i) => typeof i === "number")
+  const allEvals = opts.adapter.getEvals(
+    [latestFullRun.id],
+    ["fail", "success"]
+  );
+  const evalResults = opts.adapter.getResults(
+    allEvals.map((e: any) => e.id).filter((i: any) => typeof i === "number")
   );
 
-  const allScores = getScores(
-    opts.db,
-    evalResults.map((r) => r.id)
+  const allScores = opts.adapter.getScores(evalResults.map((r: any) => r.id));
+
+  const allTraces = opts.adapter.getTraces(evalResults.map((r: any) => r.id));
+
+  const evalsAverageScores = opts.adapter.getEvalsAverageScores(
+    allEvals.map((e: any) => e.id)
   );
 
-  const allTraces = getTraces(
-    opts.db,
-    evalResults.map((r) => r.id)
-  );
-
-  const evalsAverageScores = getEvalsAverageScores(
-    opts.db,
-    allEvals.map((e) => e.id)
-  );
-
-  const resultsAverageScores = getAverageScoresFromResults(
-    opts.db,
-    evalResults.map((r) => r.id)
+  const resultsAverageScores = opts.adapter.getAverageScoresFromResults(
+    evalResults.map((r: any) => r.id)
   );
 
   // Group results by eval and transform to camelCase
@@ -70,13 +55,13 @@ const exportResultsToJSON = async (opts: {
       runType: latestFullRun.runType,
       createdAt: latestFullRun.created_at,
     },
-    evals: allEvals.map((evaluation) => {
+    evals: allEvals.map((evaluation: any) => {
       const evalAvgScore = evalsAverageScores.find(
-        (e) => e.eval_id === evaluation.id
+        (e: any) => e.eval_id === evaluation.id
       );
 
       const resultsForEval = evalResults.filter(
-        (r) => r.eval_id === evaluation.id
+        (r: any) => r.eval_id === evaluation.id
       );
 
       return {
@@ -89,17 +74,17 @@ const exportResultsToJSON = async (opts: {
         variantGroup: evaluation.variant_group,
         createdAt: evaluation.created_at,
         averageScore: evalAvgScore?.average ?? 0,
-        results: resultsForEval.map((result) => {
+        results: resultsForEval.map((result: any) => {
           const resultAvgScore = resultsAverageScores.find(
-            (r) => r.result_id === result.id
+            (r: any) => r.result_id === result.id
           );
 
           const scoresForResult = allScores.filter(
-            (s) => s.result_id === result.id
+            (s: any) => s.result_id === result.id
           );
 
           const tracesForResult = allTraces.filter(
-            (t) => t.result_id === result.id
+            (t: any) => t.result_id === result.id
           );
 
           return {
@@ -113,7 +98,7 @@ const exportResultsToJSON = async (opts: {
             renderedColumns: result.rendered_columns,
             createdAt: result.created_at,
             averageScore: resultAvgScore?.average ?? 0,
-            scores: scoresForResult.map((score) => ({
+            scores: scoresForResult.map((score: any) => ({
               id: score.id,
               name: score.name,
               score: score.score,
@@ -121,7 +106,7 @@ const exportResultsToJSON = async (opts: {
               metadata: score.metadata,
               createdAt: score.created_at,
             })),
-            traces: tracesForResult.map((trace) => ({
+            traces: tracesForResult.map((trace: any) => ({
               id: trace.id,
               input: trace.input,
               output: trace.output,
@@ -202,7 +187,7 @@ export const runEvalite = async (opts: {
   await mkdir(path.dirname(dbLocation), { recursive: true });
   await mkdir(filesLocation, { recursive: true });
 
-  const db = createDatabase(dbLocation);
+  const adapter = createSqliteAdapter(dbLocation);
   const filters = opts.path ? [opts.path] : undefined;
   process.env.EVALITE_REPORT_TRACES = "true";
 
@@ -213,7 +198,7 @@ export const runEvalite = async (opts: {
     opts.mode === "run-once-and-serve"
   ) {
     server = createServer({
-      db: db,
+      adapter: adapter,
     });
     server.start(DEFAULT_SERVER_PORT);
   }
@@ -237,7 +222,7 @@ export const runEvalite = async (opts: {
           isWatching:
             opts.mode === "watch-for-file-changes" ||
             opts.mode === "run-once-and-serve",
-          db: db,
+          adapter: adapter,
           scoreThreshold: opts.scoreThreshold,
           modifyExitCode: (code) => {
             exitCode = code;
@@ -289,7 +274,7 @@ export const runEvalite = async (opts: {
 
     if (opts.outputPath) {
       await exportResultsToJSON({
-        db,
+        adapter,
         outputPath: opts.outputPath,
         cwd,
       });

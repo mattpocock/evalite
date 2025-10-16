@@ -3,19 +3,7 @@ import { fastifyWebsocket } from "@fastify/websocket";
 import fastify from "fastify";
 import path from "path";
 import { fileURLToPath } from "url";
-import {
-  getAverageScoresFromResults,
-  getEvalByName,
-  getEvals,
-  getEvalsAverageScores,
-  getHistoricalEvalsWithScoresByName,
-  getMostRecentRun,
-  getPreviousCompletedEval,
-  getResults,
-  getScores,
-  getTraces,
-  type SQLiteDatabase,
-} from "./db.js";
+import type { EvaliteAdapter } from "./adapters/types.js";
 import type { Evalite } from "./types.js";
 import { average } from "./utils.js";
 
@@ -62,7 +50,7 @@ export const handleWebsockets = (server: fastify.FastifyInstance) => {
   };
 };
 
-export const createServer = (opts: { db: SQLiteDatabase }) => {
+export const createServer = (opts: { adapter: EvaliteAdapter }) => {
   const UI_ROOT = path.join(
     path.dirname(fileURLToPath(import.meta.url)),
     "./ui"
@@ -95,7 +83,7 @@ export const createServer = (opts: { db: SQLiteDatabase }) => {
   server.get<{
     Reply: Evalite.SDK.GetMenuItemsResult;
   }>("/api/menu-items", async (req, reply) => {
-    const latestFullRun = getMostRecentRun(opts.db, "full");
+    const latestFullRun = opts.adapter.getMostRecentRun("full");
 
     if (!latestFullRun) {
       return reply.code(200).send({
@@ -106,7 +94,7 @@ export const createServer = (opts: { db: SQLiteDatabase }) => {
       });
     }
 
-    let latestPartialRun = getMostRecentRun(opts.db, "partial");
+    let latestPartialRun = opts.adapter.getMostRecentRun("partial");
 
     /**
      * Ignore latestPartialRun if the latestFullRun is more
@@ -120,19 +108,19 @@ export const createServer = (opts: { db: SQLiteDatabase }) => {
       latestPartialRun = undefined;
     }
 
-    const allEvals = getEvals(
-      opts.db,
-      [latestFullRun.id, latestPartialRun?.id].filter(
-        (id) => typeof id === "number"
-      ),
-      ["fail", "success", "running"]
-    ).map((e) => ({
-      ...e,
-      prevEval: getPreviousCompletedEval(opts.db, e.name, e.created_at),
-    }));
+    const allEvals = opts.adapter
+      .getEvals(
+        [latestFullRun.id, latestPartialRun?.id].filter(
+          (id) => typeof id === "number"
+        ),
+        ["fail", "success", "running"]
+      )
+      .map((e) => ({
+        ...e,
+        prevEval: opts.adapter.getPreviousCompletedEval(e.name, e.created_at),
+      }));
 
-    const evalsAverageScores = getEvalsAverageScores(
-      opts.db,
+    const evalsAverageScores = opts.adapter.getEvalsAverageScores(
       allEvals.flatMap((e) => {
         if (e.prevEval) {
           return [e.id, e.prevEval.id];
@@ -141,15 +129,9 @@ export const createServer = (opts: { db: SQLiteDatabase }) => {
       })
     );
 
-    const allResults = getResults(
-      opts.db,
-      allEvals.map((e) => e.id)
-    );
+    const allResults = opts.adapter.getResults(allEvals.map((e) => e.id));
 
-    const allScores = getScores(
-      opts.db,
-      allResults.map((r) => r.id)
-    );
+    const allScores = opts.adapter.getScores(allResults.map((r) => r.id));
 
     const createEvalMenuItem = (
       e: (typeof allEvals)[number]
@@ -233,7 +215,7 @@ export const createServer = (opts: { db: SQLiteDatabase }) => {
     handler: async (req, res) => {
       const name = req.query.name;
 
-      const evaluation = getEvalByName(opts.db, {
+      const evaluation = opts.adapter.getEvalByName({
         name,
         timestamp: req.query.timestamp,
       });
@@ -242,23 +224,18 @@ export const createServer = (opts: { db: SQLiteDatabase }) => {
         return res.code(404).send();
       }
 
-      const prevEvaluation = getPreviousCompletedEval(
-        opts.db,
+      const prevEvaluation = opts.adapter.getPreviousCompletedEval(
         name,
         evaluation.created_at
       );
 
-      const results = getResults(
-        opts.db,
+      const results = opts.adapter.getResults(
         [evaluation.id, prevEvaluation?.id].filter((i) => typeof i === "number")
       );
 
-      const scores = getScores(
-        opts.db,
-        results.map((r) => r.id)
-      );
+      const scores = opts.adapter.getScores(results.map((r) => r.id));
 
-      const history = getHistoricalEvalsWithScoresByName(opts.db, name);
+      const history = opts.adapter.getHistoricalEvalsWithScoresByName(name);
 
       return res.code(200).send({
         history: history.map((h) => ({
@@ -311,7 +288,7 @@ export const createServer = (opts: { db: SQLiteDatabase }) => {
       },
     },
     handler: async (req, res) => {
-      const evaluation = getEvalByName(opts.db, {
+      const evaluation = opts.adapter.getEvalByName({
         name: req.query.name,
         timestamp: req.query.timestamp,
         statuses: ["fail", "success"],
@@ -321,14 +298,12 @@ export const createServer = (opts: { db: SQLiteDatabase }) => {
         return res.code(404).send();
       }
 
-      const prevEvaluation = getPreviousCompletedEval(
-        opts.db,
+      const prevEvaluation = opts.adapter.getPreviousCompletedEval(
         req.query.name,
         evaluation.created_at
       );
 
-      const results = getResults(
-        opts.db,
+      const results = opts.adapter.getResults(
         [evaluation.id, prevEvaluation?.id].filter((i) => typeof i === "number")
       );
 
@@ -346,20 +321,13 @@ export const createServer = (opts: { db: SQLiteDatabase }) => {
         (r) => r.eval_id === prevEvaluation?.id
       );
 
-      const averageScores = getAverageScoresFromResults(
-        opts.db,
+      const averageScores = opts.adapter.getAverageScoresFromResults(
         results.map((r) => r.id)
       );
 
-      const scores = getScores(
-        opts.db,
-        results.map((r) => r.id)
-      );
+      const scores = opts.adapter.getScores(results.map((r) => r.id));
 
-      const traces = getTraces(
-        opts.db,
-        results.map((r) => r.id)
-      );
+      const traces = opts.adapter.getTraces(results.map((r) => r.id));
 
       const result: Evalite.SDK.GetResultResult["result"] = {
         ...thisResult,
