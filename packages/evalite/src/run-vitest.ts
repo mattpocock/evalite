@@ -21,7 +21,7 @@ const exportResultsToJSON = async (opts: {
   outputPath: string;
   cwd: string;
 }) => {
-  const latestFullRunResults = opts.adapter.runs.getMany({
+  const latestFullRunResults = await opts.adapter.runs.getMany({
     runType: "full",
     orderBy: "created_at",
     orderDirection: "desc",
@@ -33,28 +33,28 @@ const exportResultsToJSON = async (opts: {
     throw new Error("No completed run found to export");
   }
 
-  const allEvals = opts.adapter.evals.getMany({
+  const allEvals = await opts.adapter.evals.getMany({
     runIds: [latestFullRun.id],
     statuses: ["fail", "success"],
   });
 
-  const evalResults = opts.adapter.results.getMany({
+  const evalResults = await opts.adapter.results.getMany({
     evalIds: allEvals.map((e) => e.id),
   });
 
-  const allScores = opts.adapter.scores.getMany({
+  const allScores = await opts.adapter.scores.getMany({
     resultIds: evalResults.map((r) => r.id),
   });
 
-  const allTraces = opts.adapter.traces.getMany({
+  const allTraces = await opts.adapter.traces.getMany({
     resultIds: evalResults.map((r) => r.id),
   });
 
-  const evalsAverageScores = opts.adapter.evals.getAverageScores({
+  const evalsAverageScores = await opts.adapter.evals.getAverageScores({
     ids: allEvals.map((e) => e.id),
   });
 
-  const resultsAverageScores = opts.adapter.results.getAverageScores({
+  const resultsAverageScores = await opts.adapter.results.getAverageScores({
     ids: evalResults.map((r) => r.id),
   });
 

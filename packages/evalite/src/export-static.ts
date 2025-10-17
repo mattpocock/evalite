@@ -12,7 +12,6 @@ import {
   getResults,
   getScores,
   getTraces,
-  type Db,
 } from "./db.js";
 import type { Evalite } from "./types.js";
 import { average, EvaliteFile } from "./utils.js";
@@ -95,7 +94,10 @@ export const exportStaticUI = async (
     // Get the run to export
     const run = runId
       ? db
-          .prepare<{ id: number }, Db.Run>(`SELECT * FROM runs WHERE id = @id`)
+          .prepare<
+            { id: number },
+            Evalite.Adapter.Entities.Run
+          >(`SELECT * FROM runs WHERE id = @id`)
           .get({ id: runId })
       : getMostRecentRun(db, "full");
 

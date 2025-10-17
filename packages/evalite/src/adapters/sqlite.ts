@@ -1,5 +1,5 @@
 import type * as BetterSqlite3 from "better-sqlite3";
-import type { Db, EvalWithInlineResults } from "../db.js";
+import type { EvalWithInlineResults } from "../db.js";
 import {
   createDatabase as createSqliteDatabase,
   createEvalIfNotExists as dbCreateEvalIfNotExists,
@@ -35,11 +35,15 @@ export class SqliteAdapter implements EvaliteAdapter {
   }
 
   runs = {
-    create: (opts: Evalite.Adapter.Runs.CreateOpts): Db.Run => {
+    create: async (
+      opts: Evalite.Adapter.Runs.CreateOpts
+    ): Promise<Evalite.Adapter.Entities.Run> => {
       return dbCreateRun({ db: this.db, runType: opts.runType });
     },
 
-    getMany: (opts?: Evalite.Adapter.Runs.GetManyOpts): Db.Run[] => {
+    getMany: async (
+      opts?: Evalite.Adapter.Runs.GetManyOpts
+    ): Promise<Evalite.Adapter.Entities.Run[]> => {
       let query = `SELECT * FROM runs WHERE 1=1`;
       const params: {
         ids?: number[];
@@ -79,19 +83,25 @@ export class SqliteAdapter implements EvaliteAdapter {
         query += ` LIMIT ${opts.limit}`;
       }
 
-      return this.db.prepare<typeof params, Db.Run>(query).all(params);
+      return this.db
+        .prepare<typeof params, Evalite.Adapter.Entities.Run>(query)
+        .all(params);
     },
   };
 
   evals = {
-    createOrGet: (opts: Evalite.Adapter.Evals.CreateOrGetOpts): Db.Eval => {
+    createOrGet: async (
+      opts: Evalite.Adapter.Evals.CreateOrGetOpts
+    ): Promise<Evalite.Adapter.Entities.Eval> => {
       return dbCreateEvalIfNotExists({
         db: this.db,
         ...opts,
       });
     },
 
-    update: (opts: Evalite.Adapter.Evals.UpdateOpts): Db.Eval => {
+    update: async (
+      opts: Evalite.Adapter.Evals.UpdateOpts
+    ): Promise<Evalite.Adapter.Entities.Eval> => {
       return dbUpdateEvalStatusAndDuration({
         db: this.db,
         evalId: opts.id,
@@ -99,13 +109,15 @@ export class SqliteAdapter implements EvaliteAdapter {
       });
     },
 
-    getMany: (opts?: Evalite.Adapter.Evals.GetManyOpts): Db.Eval[] => {
+    getMany: async (
+      opts?: Evalite.Adapter.Evals.GetManyOpts
+    ): Promise<Evalite.Adapter.Entities.Eval[]> => {
       let query = `SELECT * FROM evals WHERE 1=1`;
       const params: {
         ids?: number[];
         runIds?: number[];
         name?: string;
-        statuses?: Db.EvalStatus[];
+        statuses?: Evalite.Adapter.Entities.EvalStatus[];
         createdAt?: string;
         createdAfter?: string;
         createdBefore?: string;
@@ -149,12 +161,14 @@ export class SqliteAdapter implements EvaliteAdapter {
         query += ` LIMIT ${opts.limit}`;
       }
 
-      return this.db.prepare<typeof params, Db.Eval>(query).all(params);
+      return this.db
+        .prepare<typeof params, Evalite.Adapter.Entities.Eval>(query)
+        .all(params);
     },
 
-    getAverageScores: (
+    getAverageScores: async (
       opts: Evalite.Adapter.Evals.GetAverageScoresOpts
-    ): Array<{ eval_id: number; average: number }> => {
+    ): Promise<Array<{ eval_id: number; average: number }>> => {
       return dbGetEvalsAverageScores(this.db, opts.ids);
     },
 
@@ -164,7 +178,9 @@ export class SqliteAdapter implements EvaliteAdapter {
   };
 
   results = {
-    create: (opts: Evalite.Adapter.Results.CreateOpts): Db.Result => {
+    create: async (
+      opts: Evalite.Adapter.Results.CreateOpts
+    ): Promise<Evalite.Adapter.Entities.Result> => {
       return dbInsertResult({
         db: this.db,
         evalId: opts.evalId,
@@ -178,7 +194,9 @@ export class SqliteAdapter implements EvaliteAdapter {
       });
     },
 
-    update: (opts: Evalite.Adapter.Results.UpdateOpts): Db.Result => {
+    update: async (
+      opts: Evalite.Adapter.Results.UpdateOpts
+    ): Promise<Evalite.Adapter.Entities.Result> => {
       return dbUpdateResult({
         db: this.db,
         resultId: opts.id,
@@ -186,7 +204,9 @@ export class SqliteAdapter implements EvaliteAdapter {
       });
     },
 
-    getMany: (opts?: Evalite.Adapter.Results.GetManyOpts): Db.Result[] => {
+    getMany: async (
+      opts?: Evalite.Adapter.Results.GetManyOpts
+    ): Promise<Evalite.Adapter.Entities.Result[]> => {
       let query = `SELECT * FROM results WHERE 1=1`;
       const params: {
         ids?: number[];
@@ -215,7 +235,7 @@ export class SqliteAdapter implements EvaliteAdapter {
       query += ` ORDER BY col_order ASC`;
 
       const results = this.db
-        .prepare<typeof params, Db.Result>(query)
+        .prepare<typeof params, Evalite.Adapter.Entities.Result>(query)
         .all(params);
 
       if (results.length === 0) return [];
@@ -226,15 +246,17 @@ export class SqliteAdapter implements EvaliteAdapter {
       );
     },
 
-    getAverageScores: (
+    getAverageScores: async (
       opts: Evalite.Adapter.Results.GetAverageScoresOpts
-    ): Array<{ result_id: number; average: number }> => {
+    ): Promise<Array<{ result_id: number; average: number }>> => {
       return dbGetAverageScoresFromResults(this.db, opts.ids);
     },
   };
 
   scores = {
-    create: (opts: Evalite.Adapter.Scores.CreateOpts): Db.Score => {
+    create: async (
+      opts: Evalite.Adapter.Scores.CreateOpts
+    ): Promise<Evalite.Adapter.Entities.Score> => {
       return dbInsertScore({
         db: this.db,
         resultId: opts.resultId,
@@ -245,7 +267,9 @@ export class SqliteAdapter implements EvaliteAdapter {
       });
     },
 
-    getMany: (opts?: Evalite.Adapter.Scores.GetManyOpts): Db.Score[] => {
+    getMany: async (
+      opts?: Evalite.Adapter.Scores.GetManyOpts
+    ): Promise<Evalite.Adapter.Entities.Score[]> => {
       let query = `SELECT * FROM scores WHERE 1=1`;
 
       if (opts?.ids && opts.ids.length > 0) {
@@ -256,7 +280,9 @@ export class SqliteAdapter implements EvaliteAdapter {
         query += ` AND result_id IN (${opts.resultIds.join(",")})`;
       }
 
-      const scores = this.db.prepare<{}, Db.Score>(query).all({});
+      const scores = this.db
+        .prepare<{}, Evalite.Adapter.Entities.Score>(query)
+        .all({});
 
       if (scores.length === 0) return [];
 
@@ -268,7 +294,9 @@ export class SqliteAdapter implements EvaliteAdapter {
   };
 
   traces = {
-    create: (opts: Evalite.Adapter.Traces.CreateOpts): Db.Trace => {
+    create: async (
+      opts: Evalite.Adapter.Traces.CreateOpts
+    ): Promise<Evalite.Adapter.Entities.Trace> => {
       return dbInsertTrace({
         db: this.db,
         resultId: opts.resultId,
@@ -283,7 +311,9 @@ export class SqliteAdapter implements EvaliteAdapter {
       });
     },
 
-    getMany: (opts?: Evalite.Adapter.Traces.GetManyOpts): Db.Trace[] => {
+    getMany: async (
+      opts?: Evalite.Adapter.Traces.GetManyOpts
+    ): Promise<Evalite.Adapter.Entities.Trace[]> => {
       let query = `SELECT * FROM traces WHERE 1=1`;
 
       if (opts?.ids && opts.ids.length > 0) {
@@ -296,7 +326,9 @@ export class SqliteAdapter implements EvaliteAdapter {
 
       query += ` ORDER BY col_order ASC`;
 
-      const traces = this.db.prepare<{}, Db.Trace>(query).all({});
+      const traces = this.db
+        .prepare<{}, Evalite.Adapter.Entities.Trace>(query)
+        .all({});
 
       if (traces.length === 0) return [];
 

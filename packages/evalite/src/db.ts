@@ -103,70 +103,13 @@ export const createDatabase = (url: string): BetterSqlite3.Database => {
   return db;
 };
 
-export declare namespace Db {
-  export type Run = {
-    id: number;
-    runType: Evalite.RunType;
-    created_at: string;
-  };
-
-  export type EvalStatus = "fail" | "success" | "running";
-
-  export type Eval = {
-    id: number;
-    run_id: number;
-    name: string;
-    status: EvalStatus;
-    filepath: string;
-    duration: number;
-    created_at: string;
-    variant_name?: string;
-    variant_group?: string;
-  };
-
-  export type Result = {
-    id: number;
-    eval_id: number;
-    duration: number;
-    input: unknown;
-    output: unknown;
-    expected?: unknown;
-    created_at: string;
-    col_order: number;
-    status: Evalite.ResultStatus;
-    rendered_columns?: unknown;
-  };
-
-  export type Score = {
-    id: number;
-    result_id: number;
-    name: string;
-    score: number;
-    description?: string;
-    metadata?: unknown;
-    created_at: string;
-  };
-
-  export type Trace = {
-    id: number;
-    result_id: number;
-    input: unknown;
-    output: unknown;
-    start_time: number;
-    end_time: number;
-    input_tokens?: number;
-    output_tokens?: number;
-    total_tokens?: number;
-    col_order: number;
-  };
+export interface ResultWithInlineScoresAndTraces
+  extends Evalite.Adapter.Entities.Result {
+  scores: Evalite.Adapter.Entities.Score[];
+  traces: Evalite.Adapter.Entities.Trace[];
 }
 
-export interface ResultWithInlineScoresAndTraces extends Db.Result {
-  scores: Db.Score[];
-  traces: Db.Trace[];
-}
-
-export interface EvalWithInlineResults extends Db.Eval {
+export interface EvalWithInlineResults extends Evalite.Adapter.Entities.Eval {
   results: ResultWithInlineScoresAndTraces[];
 }
 
@@ -179,7 +122,9 @@ export interface EvalWithInlineResults extends Db.Eval {
 export const getEvalsAsRecord = async (
   db: SQLiteDatabase
 ): Promise<Record<string, EvalWithInlineResults[]>> => {
-  const evals = db.prepare<unknown[], Db.Eval>(`SELECT * FROM evals`).all();
+  const evals = db
+    .prepare<unknown[], Evalite.Adapter.Entities.Eval>(`SELECT * FROM evals`)
+    .all();
 
   const allResults = getResults(
     db,
@@ -224,10 +169,10 @@ export const getEvalsAsRecord = async (
 export const getEvals = (
   db: BetterSqlite3.Database,
   runIds: number[],
-  allowedStatuses: Db.EvalStatus[]
+  allowedStatuses: Evalite.Adapter.Entities.EvalStatus[]
 ) => {
   return db
-    .prepare<unknown[], Db.Eval>(
+    .prepare<unknown[], Evalite.Adapter.Entities.Eval>(
       `
     SELECT * FROM evals
     WHERE run_id IN (${runIds.join(",")})
@@ -239,7 +184,7 @@ export const getEvals = (
 
 export const getResults = (db: BetterSqlite3.Database, evalIds: number[]) => {
   return db
-    .prepare<unknown[], Db.Result>(
+    .prepare<unknown[], Evalite.Adapter.Entities.Result>(
       `
     SELECT * FROM results
     WHERE eval_id IN (${evalIds.join(",")})
@@ -254,7 +199,7 @@ export const getResults = (db: BetterSqlite3.Database, evalIds: number[]) => {
 
 export const getScores = (db: BetterSqlite3.Database, resultIds: number[]) => {
   return db
-    .prepare<unknown[], Db.Score>(
+    .prepare<unknown[], Evalite.Adapter.Entities.Score>(
       `
     SELECT * FROM scores
     WHERE result_id IN (${resultIds.join(",")})
@@ -266,7 +211,7 @@ export const getScores = (db: BetterSqlite3.Database, resultIds: number[]) => {
 
 export const getTraces = (db: BetterSqlite3.Database, resultIds: number[]) => {
   return db
-    .prepare<unknown[], Db.Trace>(
+    .prepare<unknown[], Evalite.Adapter.Entities.Trace>(
       `
     SELECT * FROM traces
     WHERE result_id IN (${resultIds.join(",")})
@@ -282,7 +227,7 @@ export const getMostRecentRun = (
   runType: Evalite.RunType
 ) => {
   const run = db
-    .prepare<{ runType: string }, Db.Run>(
+    .prepare<{ runType: string }, Evalite.Adapter.Entities.Run>(
       `
     SELECT * FROM runs
     WHERE runType = @runType
@@ -301,7 +246,10 @@ export const getPreviousCompletedEval = (
   startTime: string
 ) => {
   const evaluation = db
-    .prepare<{ name: string; startTime: string }, Db.Eval>(
+    .prepare<
+      { name: string; startTime: string },
+      Evalite.Adapter.Entities.Eval
+    >(
       `
     SELECT * FROM evals
     WHERE name = @name AND created_at < @startTime
@@ -386,11 +334,14 @@ export const getEvalByName = (
   opts: {
     name: string;
     timestamp?: string;
-    statuses?: Db.EvalStatus[];
+    statuses?: Evalite.Adapter.Entities.EvalStatus[];
   }
 ) => {
   return db
-    .prepare<{ name: string; timestamp?: string }, Db.Eval>(
+    .prepare<
+      { name: string; timestamp?: string },
+      Evalite.Adapter.Entities.Eval
+    >(
       `
     SELECT * FROM evals
     WHERE name = @name
@@ -406,9 +357,12 @@ export const getEvalByName = (
 export const getHistoricalEvalsWithScoresByName = (
   db: BetterSqlite3.Database,
   name: string
-): (Db.Eval & { average_score: number })[] => {
+): (Evalite.Adapter.Entities.Eval & { average_score: number })[] => {
   return db
-    .prepare<{ name: string }, Db.Eval & { average_score: number }>(
+    .prepare<
+      { name: string },
+      Evalite.Adapter.Entities.Eval & { average_score: number }
+    >(
       `
     SELECT evals.*, AVG(scores.score) as average_score
     FROM evals
@@ -437,7 +391,7 @@ export const createEvalIfNotExists = ({
   filepath: string;
   variantName?: string;
   variantGroup?: string;
-}): Db.Eval => {
+}): Evalite.Adapter.Entities.Eval => {
   let evaluationId: number | bigint | undefined = db
     .prepare<
       { name: string; runId: number | bigint },
@@ -465,7 +419,7 @@ export const createEvalIfNotExists = ({
   return db
     .prepare<
       { id: number | bigint },
-      Db.Eval
+      Evalite.Adapter.Entities.Eval
     >(`SELECT * FROM evals WHERE id = @id`)
     .get({ id: evaluationId })!;
 };
@@ -476,7 +430,7 @@ export const createRun = ({
 }: {
   db: SQLiteDatabase;
   runType: Evalite.RunType;
-}): Db.Run => {
+}): Evalite.Adapter.Entities.Run => {
   const id = db
     .prepare(`INSERT INTO runs (runType) VALUES (@runType)`)
     .run({ runType }).lastInsertRowid;
@@ -484,7 +438,7 @@ export const createRun = ({
   return db
     .prepare<
       { id: number | bigint },
-      Db.Run
+      Evalite.Adapter.Entities.Run
     >(`SELECT * FROM runs WHERE id = @id`)
     .get({ id })!;
 };
@@ -509,7 +463,7 @@ export const insertResult = ({
   duration: number;
   status: string;
   renderedColumns: unknown;
-}): Db.Result => {
+}): Evalite.Adapter.Entities.Result => {
   const id = db
     .prepare(
       `INSERT INTO results (eval_id, col_order, input, expected, output, duration, status, rendered_columns)
@@ -530,7 +484,7 @@ export const insertResult = ({
     db
       .prepare<
         { id: number | bigint },
-        Db.Result
+        Evalite.Adapter.Entities.Result
       >(`SELECT * FROM results WHERE id = @id`)
       .get({ id })!,
     ["input", "output", "expected", "rendered_columns"]
@@ -555,7 +509,7 @@ export const updateResult = ({
   expected: unknown;
   status: string;
   renderedColumns: unknown;
-}): Db.Result => {
+}): Evalite.Adapter.Entities.Result => {
   db.prepare(
     `UPDATE results
      SET
@@ -580,7 +534,7 @@ export const updateResult = ({
     db
       .prepare<
         { id: number | bigint },
-        Db.Result
+        Evalite.Adapter.Entities.Result
       >(`SELECT * FROM results WHERE id = @id`)
       .get({ id: resultId })!,
     ["input", "output", "expected", "rendered_columns"]
@@ -601,7 +555,7 @@ export const insertScore = ({
   name: string;
   score: number;
   metadata: unknown;
-}): Db.Score => {
+}): Evalite.Adapter.Entities.Score => {
   const id = db
     .prepare(
       `INSERT INTO scores (result_id, name, score, metadata, description)
@@ -619,7 +573,7 @@ export const insertScore = ({
     db
       .prepare<
         { id: number | bigint },
-        Db.Score
+        Evalite.Adapter.Entities.Score
       >(`SELECT * FROM scores WHERE id = @id`)
       .get({ id })!,
     ["metadata"]
@@ -648,7 +602,7 @@ export const insertTrace = ({
   outputTokens: number | undefined;
   totalTokens: number | undefined;
   order: number;
-}): Db.Trace => {
+}): Evalite.Adapter.Entities.Trace => {
   const id = db
     .prepare(
       `INSERT INTO traces (result_id, input, output, start_time, end_time, input_tokens, output_tokens, total_tokens, col_order)
@@ -670,7 +624,7 @@ export const insertTrace = ({
     db
       .prepare<
         { id: number | bigint },
-        Db.Trace
+        Evalite.Adapter.Entities.Trace
       >(`SELECT * FROM traces WHERE id = @id`)
       .get({ id })!,
     ["input", "output"]
@@ -684,8 +638,8 @@ export const updateEvalStatusAndDuration = ({
 }: {
   db: SQLiteDatabase;
   evalId: number | bigint;
-  status: Db.EvalStatus;
-}): Db.Eval => {
+  status: Evalite.Adapter.Entities.EvalStatus;
+}): Evalite.Adapter.Entities.Eval => {
   db.prepare(
     `UPDATE evals
      SET status = @status,
@@ -699,7 +653,7 @@ export const updateEvalStatusAndDuration = ({
   return db
     .prepare<
       { id: number | bigint },
-      Db.Eval
+      Evalite.Adapter.Entities.Eval
     >(`SELECT * FROM evals WHERE id = @id`)
     .get({ id: evalId })!;
 };

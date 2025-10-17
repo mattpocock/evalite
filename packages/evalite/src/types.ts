@@ -1,5 +1,3 @@
-import type { Db } from "./db.js";
-
 export declare namespace Evalite {
   export type RunType = "full" | "partial";
 
@@ -155,9 +153,17 @@ export declare namespace Evalite {
         score: number;
         date: string;
       }[];
-      evaluation: Db.Eval & { results: (Db.Result & { scores: Db.Score[] })[] };
+      evaluation: Evalite.Adapter.Entities.Eval & {
+        results: (Evalite.Adapter.Entities.Result & {
+          scores: Evalite.Adapter.Entities.Score[];
+        })[];
+      };
       prevEvaluation:
-        | (Db.Eval & { results: (Db.Result & { scores: Db.Score[] })[] })
+        | (Evalite.Adapter.Entities.Eval & {
+            results: (Evalite.Adapter.Entities.Result & {
+              scores: Evalite.Adapter.Entities.Score[];
+            })[];
+          })
         | undefined;
     };
 
@@ -166,7 +172,7 @@ export declare namespace Evalite {
       score: number;
       name: string;
       prevScore: number | undefined;
-      evalStatus: Db.EvalStatus;
+      evalStatus: Evalite.Adapter.Entities.EvalStatus;
       variantName: string | undefined;
       variantGroup: string | undefined;
       hasScores: boolean;
@@ -176,19 +182,22 @@ export declare namespace Evalite {
       evals: GetMenuItemsResultEval[];
       score: number;
       prevScore: number | undefined;
-      evalStatus: Db.EvalStatus;
+      evalStatus: Evalite.Adapter.Entities.EvalStatus;
     };
 
     export type GetResultResult = {
-      result: Db.Result & {
-        traces: Db.Trace[];
+      result: Evalite.Adapter.Entities.Result & {
+        traces: Evalite.Adapter.Entities.Trace[];
         score: number;
-        scores: Db.Score[];
+        scores: Evalite.Adapter.Entities.Score[];
       };
       prevResult:
-        | (Db.Result & { score: number; scores: Db.Score[] })
+        | (Evalite.Adapter.Entities.Result & {
+            score: number;
+            scores: Evalite.Adapter.Entities.Score[];
+          })
         | undefined;
-      evaluation: Db.Eval;
+      evaluation: Evalite.Adapter.Entities.Eval;
     };
   }
 
@@ -197,6 +206,69 @@ export declare namespace Evalite {
    * These types define the interface for pluggable storage backends.
    */
   export namespace Adapter {
+    // ========== ENTITIES ==========
+    /**
+     * Database entity types that adapters must return.
+     * These are the canonical types for the adapter contract.
+     */
+    export namespace Entities {
+      export type Run = {
+        id: number;
+        runType: RunType;
+        created_at: string;
+      };
+
+      export type EvalStatus = "fail" | "success" | "running";
+
+      export type Eval = {
+        id: number;
+        run_id: number;
+        name: string;
+        status: EvalStatus;
+        filepath: string;
+        duration: number;
+        created_at: string;
+        variant_name?: string;
+        variant_group?: string;
+      };
+
+      export type Result = {
+        id: number;
+        eval_id: number;
+        duration: number;
+        input: unknown;
+        output: unknown;
+        expected?: unknown;
+        created_at: string;
+        col_order: number;
+        status: ResultStatus;
+        rendered_columns?: unknown;
+      };
+
+      export type Score = {
+        id: number;
+        result_id: number;
+        name: string;
+        score: number;
+        description?: string;
+        metadata?: unknown;
+        created_at: string;
+      };
+
+      export type Trace = {
+        id: number;
+        result_id: number;
+        input: unknown;
+        output: unknown;
+        start_time: number;
+        end_time: number;
+        input_tokens?: number;
+        output_tokens?: number;
+        total_tokens?: number;
+        col_order: number;
+      };
+    }
+
     // ========== RUNS ==========
     export namespace Runs {
       export interface CreateOpts {
@@ -227,14 +299,14 @@ export declare namespace Evalite {
 
       export interface UpdateOpts {
         id: number;
-        status: Db.EvalStatus;
+        status: Entities.EvalStatus;
       }
 
       export interface GetManyOpts {
         ids?: number[];
         runIds?: number[];
         name?: string;
-        statuses?: Db.EvalStatus[];
+        statuses?: Entities.EvalStatus[];
         createdAt?: string;
         createdAfter?: string;
         createdBefore?: string;

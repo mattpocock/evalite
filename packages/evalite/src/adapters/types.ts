@@ -1,4 +1,3 @@
-import type { Db } from "../db.js";
 import type { Evalite } from "../types.js";
 
 /**
@@ -83,33 +82,38 @@ export interface EvaliteAdapterLegacy {
    */
   updateEvalStatusAndDuration(opts: {
     evalId: number | bigint;
-    status: Db.EvalStatus;
+    status: Evalite.Adapter.Entities.EvalStatus;
   }): void;
 
   /**
    * Get evals for specific runs and statuses.
    */
-  getEvals(runIds: number[], allowedStatuses: Db.EvalStatus[]): Db.Eval[];
+  getEvals(
+    runIds: number[],
+    allowedStatuses: Evalite.Adapter.Entities.EvalStatus[]
+  ): Evalite.Adapter.Entities.Eval[];
 
   /**
    * Get results for specific evals.
    */
-  getResults(evalIds: number[]): Db.Result[];
+  getResults(evalIds: number[]): Evalite.Adapter.Entities.Result[];
 
   /**
    * Get scores for specific results.
    */
-  getScores(resultIds: number[]): Db.Score[];
+  getScores(resultIds: number[]): Evalite.Adapter.Entities.Score[];
 
   /**
    * Get traces for specific results.
    */
-  getTraces(resultIds: number[]): Db.Trace[];
+  getTraces(resultIds: number[]): Evalite.Adapter.Entities.Trace[];
 
   /**
    * Get the most recent run of a specific type.
    */
-  getMostRecentRun(runType: Evalite.RunType): Db.Run | undefined;
+  getMostRecentRun(
+    runType: Evalite.RunType
+  ): Evalite.Adapter.Entities.Run | undefined;
 
   /**
    * Get the previous completed eval by name.
@@ -117,7 +121,7 @@ export interface EvaliteAdapterLegacy {
   getPreviousCompletedEval(
     name: string,
     startTime: string
-  ): Db.Eval | undefined;
+  ): Evalite.Adapter.Entities.Eval | undefined;
 
   /**
    * Get average scores for specific results.
@@ -139,15 +143,15 @@ export interface EvaliteAdapterLegacy {
   getEvalByName(opts: {
     name: string;
     timestamp?: string;
-    statuses?: Db.EvalStatus[];
-  }): Db.Eval | undefined;
+    statuses?: Evalite.Adapter.Entities.EvalStatus[];
+  }): Evalite.Adapter.Entities.Eval | undefined;
 
   /**
    * Get historical evals with scores by name.
    */
   getHistoricalEvalsWithScoresByName(
     name: string
-  ): (Db.Eval & { average_score: number })[];
+  ): (Evalite.Adapter.Entities.Eval & { average_score: number })[];
 
   /**
    * Find result by eval ID and order.
@@ -188,12 +192,16 @@ export interface EvaliteAdapter {
     /**
      * Create a new run and return the complete run entity.
      */
-    create(opts: Evalite.Adapter.Runs.CreateOpts): Db.Run;
+    create(
+      opts: Evalite.Adapter.Runs.CreateOpts
+    ): Promise<Evalite.Adapter.Entities.Run>;
 
     /**
      * Get runs matching the specified criteria.
      */
-    getMany(opts?: Evalite.Adapter.Runs.GetManyOpts): Db.Run[];
+    getMany(
+      opts?: Evalite.Adapter.Runs.GetManyOpts
+    ): Promise<Evalite.Adapter.Entities.Run[]>;
   };
 
   /**
@@ -203,24 +211,30 @@ export interface EvaliteAdapter {
     /**
      * Create or get an existing eval and return the complete eval entity.
      */
-    createOrGet(opts: Evalite.Adapter.Evals.CreateOrGetOpts): Db.Eval;
+    createOrGet(
+      opts: Evalite.Adapter.Evals.CreateOrGetOpts
+    ): Promise<Evalite.Adapter.Entities.Eval>;
 
     /**
      * Update an eval and return the updated entity.
      */
-    update(opts: Evalite.Adapter.Evals.UpdateOpts): Db.Eval;
+    update(
+      opts: Evalite.Adapter.Evals.UpdateOpts
+    ): Promise<Evalite.Adapter.Entities.Eval>;
 
     /**
      * Get evals matching the specified criteria.
      */
-    getMany(opts?: Evalite.Adapter.Evals.GetManyOpts): Db.Eval[];
+    getMany(
+      opts?: Evalite.Adapter.Evals.GetManyOpts
+    ): Promise<Evalite.Adapter.Entities.Eval[]>;
 
     /**
      * Get average scores for the specified evals.
      */
     getAverageScores(
       opts: Evalite.Adapter.Evals.GetAverageScoresOpts
-    ): Array<{ eval_id: number; average: number }>;
+    ): Promise<Array<{ eval_id: number; average: number }>>;
 
     /**
      * Get all evals as a record (deprecated but needed for compatibility).
@@ -236,24 +250,30 @@ export interface EvaliteAdapter {
     /**
      * Create a new result and return the complete result entity.
      */
-    create(opts: Evalite.Adapter.Results.CreateOpts): Db.Result;
+    create(
+      opts: Evalite.Adapter.Results.CreateOpts
+    ): Promise<Evalite.Adapter.Entities.Result>;
 
     /**
      * Update a result and return the updated entity.
      */
-    update(opts: Evalite.Adapter.Results.UpdateOpts): Db.Result;
+    update(
+      opts: Evalite.Adapter.Results.UpdateOpts
+    ): Promise<Evalite.Adapter.Entities.Result>;
 
     /**
      * Get results matching the specified criteria.
      */
-    getMany(opts?: Evalite.Adapter.Results.GetManyOpts): Db.Result[];
+    getMany(
+      opts?: Evalite.Adapter.Results.GetManyOpts
+    ): Promise<Evalite.Adapter.Entities.Result[]>;
 
     /**
      * Get average scores for the specified results.
      */
     getAverageScores(
       opts: Evalite.Adapter.Results.GetAverageScoresOpts
-    ): Array<{ result_id: number; average: number }>;
+    ): Promise<Array<{ result_id: number; average: number }>>;
   };
 
   /**
@@ -263,12 +283,16 @@ export interface EvaliteAdapter {
     /**
      * Create a new score and return the complete score entity.
      */
-    create(opts: Evalite.Adapter.Scores.CreateOpts): Db.Score;
+    create(
+      opts: Evalite.Adapter.Scores.CreateOpts
+    ): Promise<Evalite.Adapter.Entities.Score>;
 
     /**
      * Get scores matching the specified criteria.
      */
-    getMany(opts?: Evalite.Adapter.Scores.GetManyOpts): Db.Score[];
+    getMany(
+      opts?: Evalite.Adapter.Scores.GetManyOpts
+    ): Promise<Evalite.Adapter.Entities.Score[]>;
   };
 
   /**
@@ -278,12 +302,16 @@ export interface EvaliteAdapter {
     /**
      * Create a new trace and return the complete trace entity.
      */
-    create(opts: Evalite.Adapter.Traces.CreateOpts): Db.Trace;
+    create(
+      opts: Evalite.Adapter.Traces.CreateOpts
+    ): Promise<Evalite.Adapter.Entities.Trace>;
 
     /**
      * Get traces matching the specified criteria.
      */
-    getMany(opts?: Evalite.Adapter.Traces.GetManyOpts): Db.Trace[];
+    getMany(
+      opts?: Evalite.Adapter.Traces.GetManyOpts
+    ): Promise<Evalite.Adapter.Entities.Trace[]>;
   };
 
   /**

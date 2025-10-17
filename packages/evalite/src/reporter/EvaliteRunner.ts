@@ -1,5 +1,4 @@
 import type { EvaliteAdapter } from "../adapters/types.js";
-import type { Db } from "../db.js";
 import type { Evalite } from "../types.js";
 import type { ReporterEvent } from "./events.js";
 
@@ -81,7 +80,7 @@ export class EvaliteRunner {
   /**
    * Handles the state management for the reporter
    */
-  sendEvent(event: ReporterEvent): void {
+  async sendEvent(event: ReporterEvent): Promise<void> {
     switch (this.state.type) {
       case "running":
         switch (event.type) {
@@ -90,16 +89,18 @@ export class EvaliteRunner {
             break;
           case "RESULT_STARTED":
             {
-              const run: Db.Run = this.state.runId
-                ? this.opts.adapter.runs.getMany({
-                    ids: [this.state.runId as number],
-                    limit: 1,
-                  })[0]!
-                : this.opts.adapter.runs.create({
+              const run: Evalite.Adapter.Entities.Run = this.state.runId
+                ? (
+                    await this.opts.adapter.runs.getMany({
+                      ids: [this.state.runId as number],
+                      limit: 1,
+                    })
+                  )[0]!
+                : await this.opts.adapter.runs.create({
                     runType: this.state.runType,
                   });
 
-              const evaluation = this.opts.adapter.evals.createOrGet({
+              const evaluation = await this.opts.adapter.evals.createOrGet({
                 filepath: event.initialResult.filepath,
                 name: event.initialResult.evalName,
                 runId: run.id,
@@ -107,7 +108,7 @@ export class EvaliteRunner {
                 variantGroup: event.initialResult.variantGroup,
               });
 
-              const result = this.opts.adapter.results.create({
+              const result = await this.opts.adapter.results.create({
                 evalId: evaluation.id,
                 order: event.initialResult.order,
                 input: "",
@@ -137,15 +138,17 @@ export class EvaliteRunner {
               this.collectedResults.set(resultKey, event.result);
 
               const run = this.state.runId
-                ? this.opts.adapter.runs.getMany({
-                    ids: [this.state.runId as number],
-                    limit: 1,
-                  })[0]!
-                : this.opts.adapter.runs.create({
+                ? (
+                    await this.opts.adapter.runs.getMany({
+                      ids: [this.state.runId as number],
+                      limit: 1,
+                    })
+                  )[0]!
+                : await this.opts.adapter.runs.create({
                     runType: this.state.runType,
                   });
 
-              const evaluation = this.opts.adapter.evals.createOrGet({
+              const evaluation = await this.opts.adapter.evals.createOrGet({
                 filepath: event.result.filepath,
                 name: event.result.evalName,
                 runId: run.id,
@@ -153,7 +156,7 @@ export class EvaliteRunner {
                 variantGroup: event.result.variantGroup,
               });
 
-              const existingResults = this.opts.adapter.results.getMany({
+              const existingResults = await this.opts.adapter.results.getMany({
                 evalIds: [evaluation.id],
                 order: event.result.order,
               });
@@ -161,7 +164,7 @@ export class EvaliteRunner {
               let resultId: number;
               const existingResult = existingResults[0];
               if (existingResult) {
-                const updated = this.opts.adapter.results.update({
+                const updated = await this.opts.adapter.results.update({
                   id: existingResult.id,
                   output: event.result.output,
                   duration: event.result.duration,
@@ -172,7 +175,7 @@ export class EvaliteRunner {
                 });
                 resultId = updated.id;
               } else {
-                const created = this.opts.adapter.results.create({
+                const created = await this.opts.adapter.results.create({
                   evalId: evaluation.id,
                   order: event.result.order,
                   input: event.result.input,
@@ -186,7 +189,7 @@ export class EvaliteRunner {
               }
 
               for (const score of event.result.scores) {
-                this.opts.adapter.scores.create({
+                await this.opts.adapter.scores.create({
                   resultId: resultId,
                   description: score.description,
                   name: score.name,
@@ -198,7 +201,7 @@ export class EvaliteRunner {
               let traceOrder = 0;
               for (const trace of event.result.traces) {
                 traceOrder++;
-                this.opts.adapter.traces.create({
+                await this.opts.adapter.traces.create({
                   resultId: resultId,
                   input: trace.input,
                   output: trace.output,
@@ -211,7 +214,7 @@ export class EvaliteRunner {
                 });
               }
 
-              const allResults = this.opts.adapter.results.getMany({
+              const allResults = await this.opts.adapter.results.getMany({
                 evalIds: [evaluation.id],
               });
 
@@ -229,7 +232,7 @@ export class EvaliteRunner {
 
               // Update the eval status and duration
               if (isEvalComplete) {
-                this.opts.adapter.evals.update({
+                await this.opts.adapter.evals.update({
                   id: evaluation.id,
                   status: allResults.some((r) => r.status === "fail")
                     ? "fail"

@@ -83,7 +83,7 @@ export const createServer = (opts: { adapter: EvaliteAdapter }) => {
   server.get<{
     Reply: Evalite.SDK.GetMenuItemsResult;
   }>("/api/menu-items", async (req, reply) => {
-    const latestFullRunResults = opts.adapter.runs.getMany({
+    const latestFullRunResults = await opts.adapter.runs.getMany({
       runType: "full",
       orderBy: "created_at",
       orderDirection: "desc",
@@ -101,7 +101,7 @@ export const createServer = (opts: { adapter: EvaliteAdapter }) => {
       });
     }
 
-    const latestPartialRunResults = opts.adapter.runs.getMany({
+    const latestPartialRunResults = await opts.adapter.runs.getMany({
       runType: "partial",
       orderBy: "created_at",
       orderDirection: "desc",
@@ -126,13 +126,14 @@ export const createServer = (opts: { adapter: EvaliteAdapter }) => {
       (id): id is number => typeof id === "number"
     );
 
-    const allEvals = opts.adapter.evals
-      .getMany({
-        runIds,
-        statuses: ["fail", "success", "running"],
-      })
-      .map((e) => {
-        const prevEvalResults = opts.adapter.evals.getMany({
+    const evalsFromDb = await opts.adapter.evals.getMany({
+      runIds,
+      statuses: ["fail", "success", "running"],
+    });
+
+    const allEvals = await Promise.all(
+      evalsFromDb.map(async (e) => {
+        const prevEvalResults = await opts.adapter.evals.getMany({
           name: e.name,
           createdBefore: e.created_at,
           statuses: ["fail", "success"],
@@ -144,9 +145,10 @@ export const createServer = (opts: { adapter: EvaliteAdapter }) => {
           ...e,
           prevEval: prevEvalResults[0],
         };
-      });
+      })
+    );
 
-    const evalsAverageScores = opts.adapter.evals.getAverageScores({
+    const evalsAverageScores = await opts.adapter.evals.getAverageScores({
       ids: allEvals.flatMap((e) => {
         if (e.prevEval) {
           return [e.id, e.prevEval.id];
@@ -155,11 +157,11 @@ export const createServer = (opts: { adapter: EvaliteAdapter }) => {
       }),
     });
 
-    const allResults = opts.adapter.results.getMany({
+    const allResults = await opts.adapter.results.getMany({
       evalIds: allEvals.map((e) => e.id),
     });
 
-    const allScores = opts.adapter.scores.getMany({
+    const allScores = await opts.adapter.scores.getMany({
       resultIds: allResults.map((r) => r.id),
     });
 
@@ -245,7 +247,7 @@ export const createServer = (opts: { adapter: EvaliteAdapter }) => {
     handler: async (req, res) => {
       const name = req.query.name;
 
-      const evaluationResults = opts.adapter.evals.getMany({
+      const evaluationResults = await opts.adapter.evals.getMany({
         name,
         createdAt: req.query.timestamp,
         orderBy: "created_at",
@@ -259,7 +261,7 @@ export const createServer = (opts: { adapter: EvaliteAdapter }) => {
         return res.code(404).send();
       }
 
-      const prevEvaluationResults = opts.adapter.evals.getMany({
+      const prevEvaluationResults = await opts.adapter.evals.getMany({
         name,
         createdBefore: evaluation.created_at,
         statuses: ["fail", "success"],
@@ -274,22 +276,22 @@ export const createServer = (opts: { adapter: EvaliteAdapter }) => {
         (i): i is number => typeof i === "number"
       );
 
-      const results = opts.adapter.results.getMany({
+      const results = await opts.adapter.results.getMany({
         evalIds,
       });
 
-      const scores = opts.adapter.scores.getMany({
+      const scores = await opts.adapter.scores.getMany({
         resultIds: results.map((r) => r.id),
       });
 
-      const historyEvals = opts.adapter.evals.getMany({
+      const historyEvals = await opts.adapter.evals.getMany({
         name,
         statuses: ["fail", "success"],
         orderBy: "created_at",
         orderDirection: "asc",
       });
 
-      const historyScores = opts.adapter.evals.getAverageScores({
+      const historyScores = await opts.adapter.evals.getAverageScores({
         ids: historyEvals.map((e) => e.id),
       });
 
@@ -350,7 +352,7 @@ export const createServer = (opts: { adapter: EvaliteAdapter }) => {
       },
     },
     handler: async (req, res) => {
-      const evaluationResults = opts.adapter.evals.getMany({
+      const evaluationResults = await opts.adapter.evals.getMany({
         name: req.query.name,
         createdAt: req.query.timestamp,
         statuses: ["fail", "success"],
@@ -365,7 +367,7 @@ export const createServer = (opts: { adapter: EvaliteAdapter }) => {
         return res.code(404).send();
       }
 
-      const prevEvaluationResults = opts.adapter.evals.getMany({
+      const prevEvaluationResults = await opts.adapter.evals.getMany({
         name: req.query.name,
         createdBefore: evaluation.created_at,
         statuses: ["fail", "success"],
@@ -380,7 +382,7 @@ export const createServer = (opts: { adapter: EvaliteAdapter }) => {
         (i): i is number => typeof i === "number"
       );
 
-      const results = opts.adapter.results.getMany({
+      const results = await opts.adapter.results.getMany({
         evalIds,
       });
 
@@ -398,15 +400,15 @@ export const createServer = (opts: { adapter: EvaliteAdapter }) => {
         (r) => r.eval_id === prevEvaluation?.id
       );
 
-      const averageScores = opts.adapter.results.getAverageScores({
+      const averageScores = await opts.adapter.results.getAverageScores({
         ids: results.map((r) => r.id),
       });
 
-      const scores = opts.adapter.scores.getMany({
+      const scores = await opts.adapter.scores.getMany({
         resultIds: results.map((r) => r.id),
       });
 
-      const traces = opts.adapter.traces.getMany({
+      const traces = await opts.adapter.traces.getMany({
         resultIds: results.map((r) => r.id),
       });
 
