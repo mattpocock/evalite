@@ -1,14 +1,7 @@
 import type * as BetterSqlite3 from "better-sqlite3";
 import {
   createDatabase as createSqliteDatabase,
-  createEvalIfNotExists as dbCreateEvalIfNotExists,
-  createRun as dbCreateRun,
-  getAverageScoresFromResults as dbGetAverageScoresFromResults,
-  insertResult as dbInsertResult,
-  insertScore as dbInsertScore,
-  insertTrace as dbInsertTrace,
-  updateEvalStatusAndDuration as dbUpdateEvalStatusAndDuration,
-  updateResult as dbUpdateResult,
+  jsonParseFields,
   jsonParseFieldsArray,
 } from "./db.js";
 import type { Evalite } from "../types.js";
@@ -25,6 +18,292 @@ export class SqliteAdapter implements EvaliteAdapter {
     this.db = db;
   }
 
+  private getAverageScoresFromResults(resultIds: number[]): {
+    result_id: number;
+    average: number;
+  }[] {
+    return this.db
+      .prepare<unknown[], { result_id: number; average: number }>(
+        `
+    SELECT result_id, AVG(score) as average
+    FROM scores
+    WHERE result_id IN (${resultIds.join(",")})
+    GROUP BY result_id
+  `
+      )
+      .all();
+  }
+
+  private createEvalIfNotExists({
+    runId,
+    name,
+    filepath,
+    variantName,
+    variantGroup,
+  }: {
+    runId: number | bigint;
+    name: string;
+    filepath: string;
+    variantName?: string;
+    variantGroup?: string;
+  }): Evalite.Adapter.Entities.Eval {
+    let evaluationId: number | bigint | undefined = this.db
+      .prepare<
+        { name: string; runId: number | bigint },
+        { id: number }
+      >(`SELECT id FROM evals WHERE name = @name AND run_id = @runId`)
+      .get({ name, runId })?.id;
+
+    if (!evaluationId) {
+      evaluationId = this.db
+        .prepare(
+          `INSERT INTO evals (run_id, name, filepath, duration, status, variant_name, variant_group)
+           VALUES (@runId, @name, @filepath, @duration, @status, @variantName, @variantGroup)`
+        )
+        .run({
+          runId,
+          name,
+          filepath,
+          duration: 0,
+          status: "running",
+          variantName: variantName ?? null,
+          variantGroup: variantGroup ?? null,
+        }).lastInsertRowid;
+    }
+
+    return this.db
+      .prepare<
+        { id: number | bigint },
+        Evalite.Adapter.Entities.Eval
+      >(`SELECT * FROM evals WHERE id = @id`)
+      .get({ id: evaluationId })!;
+  }
+
+  private createRun({
+    runType,
+  }: {
+    runType: Evalite.RunType;
+  }): Evalite.Adapter.Entities.Run {
+    const id = this.db
+      .prepare(`INSERT INTO runs (runType) VALUES (@runType)`)
+      .run({ runType }).lastInsertRowid;
+
+    return this.db
+      .prepare<
+        { id: number | bigint },
+        Evalite.Adapter.Entities.Run
+      >(`SELECT * FROM runs WHERE id = @id`)
+      .get({ id })!;
+  }
+
+  private insertResult({
+    evalId,
+    order,
+    input,
+    expected,
+    output,
+    duration,
+    status,
+    renderedColumns,
+  }: {
+    evalId: number | bigint;
+    order: number;
+    input: unknown;
+    expected: unknown;
+    output: unknown;
+    duration: number;
+    status: string;
+    renderedColumns: unknown;
+  }): Evalite.Adapter.Entities.Result {
+    const id = this.db
+      .prepare(
+        `INSERT INTO results (eval_id, col_order, input, expected, output, duration, status, rendered_columns)
+         VALUES (@eval_id, @col_order, @input, @expected, @output, @duration, @status, @rendered_columns)`
+      )
+      .run({
+        eval_id: evalId,
+        col_order: order,
+        input: JSON.stringify(input),
+        expected: JSON.stringify(expected),
+        output: JSON.stringify(output),
+        duration,
+        status,
+        rendered_columns: JSON.stringify(renderedColumns),
+      }).lastInsertRowid;
+
+    return jsonParseFields(
+      this.db
+        .prepare<
+          { id: number | bigint },
+          Evalite.Adapter.Entities.Result
+        >(`SELECT * FROM results WHERE id = @id`)
+        .get({ id })!,
+      ["input", "output", "expected", "rendered_columns"]
+    );
+  }
+
+  private updateResult({
+    resultId,
+    output,
+    duration,
+    status,
+    renderedColumns,
+    input,
+    expected,
+  }: {
+    resultId: number | bigint;
+    output: unknown;
+    duration: number;
+    input: unknown;
+    expected: unknown;
+    status: string;
+    renderedColumns: unknown;
+  }): Evalite.Adapter.Entities.Result {
+    this.db
+      .prepare(
+        `UPDATE results
+       SET
+        output = @output,
+        duration = @duration,
+        input = @input,
+        expected = @expected,
+        status = @status,
+        rendered_columns = @rendered_columns
+       WHERE id = @id`
+      )
+      .run({
+        id: resultId,
+        output: JSON.stringify(output),
+        duration,
+        status,
+        rendered_columns: JSON.stringify(renderedColumns),
+        input: JSON.stringify(input),
+        expected: JSON.stringify(expected),
+      });
+
+    return jsonParseFields(
+      this.db
+        .prepare<
+          { id: number | bigint },
+          Evalite.Adapter.Entities.Result
+        >(`SELECT * FROM results WHERE id = @id`)
+        .get({ id: resultId })!,
+      ["input", "output", "expected", "rendered_columns"]
+    );
+  }
+
+  private insertScore({
+    resultId,
+    description,
+    name,
+    score,
+    metadata,
+  }: {
+    resultId: number | bigint;
+    description: string | undefined;
+    name: string;
+    score: number;
+    metadata: unknown;
+  }): Evalite.Adapter.Entities.Score {
+    const id = this.db
+      .prepare(
+        `INSERT INTO scores (result_id, name, score, metadata, description)
+     VALUES (@result_id, @name, @score, @metadata, @description)`
+      )
+      .run({
+        result_id: resultId,
+        description,
+        name,
+        score,
+        metadata: JSON.stringify(metadata),
+      }).lastInsertRowid;
+
+    return jsonParseFields(
+      this.db
+        .prepare<
+          { id: number | bigint },
+          Evalite.Adapter.Entities.Score
+        >(`SELECT * FROM scores WHERE id = @id`)
+        .get({ id })!,
+      ["metadata"]
+    );
+  }
+
+  private insertTrace({
+    resultId,
+    input,
+    output,
+    start,
+    end,
+    inputTokens,
+    outputTokens,
+    totalTokens,
+    order,
+  }: {
+    resultId: number | bigint;
+    input: unknown;
+    output: unknown;
+    start: number;
+    end: number;
+    inputTokens: number | undefined;
+    outputTokens: number | undefined;
+    totalTokens: number | undefined;
+    order: number;
+  }): Evalite.Adapter.Entities.Trace {
+    const id = this.db
+      .prepare(
+        `INSERT INTO traces (result_id, input, output, start_time, end_time, input_tokens, output_tokens, total_tokens, col_order)
+     VALUES (@result_id, @input, @output, @start_time, @end_time, @input_tokens, @output_tokens, @total_tokens, @col_order)`
+      )
+      .run({
+        result_id: resultId,
+        input: JSON.stringify(input),
+        output: JSON.stringify(output),
+        start_time: Math.round(start),
+        end_time: Math.round(end),
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
+        total_tokens: totalTokens,
+        col_order: order,
+      }).lastInsertRowid;
+
+    return jsonParseFields(
+      this.db
+        .prepare<
+          { id: number | bigint },
+          Evalite.Adapter.Entities.Trace
+        >(`SELECT * FROM traces WHERE id = @id`)
+        .get({ id })!,
+      ["input", "output"]
+    );
+  }
+
+  private updateEvalStatusAndDuration({
+    evalId,
+    status,
+  }: {
+    evalId: number | bigint;
+    status: Evalite.Adapter.Entities.EvalStatus;
+  }): Evalite.Adapter.Entities.Eval {
+    this.db
+      .prepare(
+        `UPDATE evals
+       SET status = @status
+       WHERE id = @id`
+      )
+      .run({
+        id: evalId,
+        status,
+      });
+
+    return this.db
+      .prepare<
+        { id: number | bigint },
+        Evalite.Adapter.Entities.Eval
+      >(`SELECT * FROM evals WHERE id = @id`)
+      .get({ id: evalId })!;
+  }
+
   /**
    * Create a new SQLite adapter
    */
@@ -37,7 +316,7 @@ export class SqliteAdapter implements EvaliteAdapter {
     create: async (
       opts: Evalite.Adapter.Runs.CreateOpts
     ): Promise<Evalite.Adapter.Entities.Run> => {
-      return dbCreateRun({ db: this.db, runType: opts.runType });
+      return this.createRun({ runType: opts.runType });
     },
 
     getMany: async (
@@ -92,8 +371,7 @@ export class SqliteAdapter implements EvaliteAdapter {
     createOrGet: async (
       opts: Evalite.Adapter.Evals.CreateOrGetOpts
     ): Promise<Evalite.Adapter.Entities.Eval> => {
-      return dbCreateEvalIfNotExists({
-        db: this.db,
+      return this.createEvalIfNotExists({
         ...opts,
       });
     },
@@ -101,8 +379,7 @@ export class SqliteAdapter implements EvaliteAdapter {
     update: async (
       opts: Evalite.Adapter.Evals.UpdateOpts
     ): Promise<Evalite.Adapter.Entities.Eval> => {
-      return dbUpdateEvalStatusAndDuration({
-        db: this.db,
+      return this.updateEvalStatusAndDuration({
         evalId: opts.id,
         status: opts.status,
       });
@@ -170,8 +447,7 @@ export class SqliteAdapter implements EvaliteAdapter {
     create: async (
       opts: Evalite.Adapter.Results.CreateOpts
     ): Promise<Evalite.Adapter.Entities.Result> => {
-      return dbInsertResult({
-        db: this.db,
+      return this.insertResult({
         evalId: opts.evalId,
         order: opts.order,
         input: opts.input,
@@ -186,8 +462,7 @@ export class SqliteAdapter implements EvaliteAdapter {
     update: async (
       opts: Evalite.Adapter.Results.UpdateOpts
     ): Promise<Evalite.Adapter.Entities.Result> => {
-      return dbUpdateResult({
-        db: this.db,
+      return this.updateResult({
         resultId: opts.id,
         ...opts,
       });
@@ -236,7 +511,7 @@ export class SqliteAdapter implements EvaliteAdapter {
     getAverageScores: async (
       opts: Evalite.Adapter.Results.GetAverageScoresOpts
     ): Promise<Array<{ result_id: number; average: number }>> => {
-      return dbGetAverageScoresFromResults(this.db, opts.ids);
+      return this.getAverageScoresFromResults(opts.ids);
     },
   };
 
@@ -244,8 +519,7 @@ export class SqliteAdapter implements EvaliteAdapter {
     create: async (
       opts: Evalite.Adapter.Scores.CreateOpts
     ): Promise<Evalite.Adapter.Entities.Score> => {
-      return dbInsertScore({
-        db: this.db,
+      return this.insertScore({
         resultId: opts.resultId,
         name: opts.name,
         score: opts.score,
@@ -279,8 +553,7 @@ export class SqliteAdapter implements EvaliteAdapter {
     create: async (
       opts: Evalite.Adapter.Traces.CreateOpts
     ): Promise<Evalite.Adapter.Entities.Trace> => {
-      return dbInsertTrace({
-        db: this.db,
+      return this.insertTrace({
         resultId: opts.resultId,
         input: opts.input,
         output: opts.output,
