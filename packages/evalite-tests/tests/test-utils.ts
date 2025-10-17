@@ -57,10 +57,8 @@ export const captureStdout = () => {
  * Replaces deprecated getEvalsAsRecord.
  */
 export const getEvalsAsRecordViaAdapter = async (
-  dbLocation: string
+  adapter: ReturnType<typeof createSqliteAdapter>
 ): Promise<Record<string, EvalWithInlineResults[]>> => {
-  const adapter = createSqliteAdapter(dbLocation);
-
   const evals = await adapter.evals.getMany();
   const evalIds = evals.map((e) => e.id);
 
@@ -94,8 +92,6 @@ export const getEvalsAsRecordViaAdapter = async (
       results: resultsWithScoresAndTraces,
     });
   }
-
-  await adapter.close();
 
   return recordOfEvals;
 };

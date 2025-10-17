@@ -190,14 +190,20 @@ export const runEvalite = async (opts: {
   scoreThreshold?: number;
   outputPath?: string;
   hideTable?: boolean;
+  adapter?: EvaliteAdapter;
 }) => {
   const cwd = opts.cwd ?? process.cwd();
-  const dbLocation = path.join(cwd, DB_LOCATION);
   const filesLocation = path.join(cwd, FILES_LOCATION);
-  await mkdir(path.dirname(dbLocation), { recursive: true });
   await mkdir(filesLocation, { recursive: true });
 
-  const adapter = createSqliteAdapter(dbLocation);
+  let adapter = opts.adapter;
+
+  if (!adapter) {
+    const dbLocation = path.join(cwd, DB_LOCATION);
+    await mkdir(path.dirname(dbLocation), { recursive: true });
+    adapter = createSqliteAdapter(dbLocation);
+  }
+
   const filters = opts.path ? [opts.path] : undefined;
   process.env.EVALITE_REPORT_TRACES = "true";
 

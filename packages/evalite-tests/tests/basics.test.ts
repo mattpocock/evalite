@@ -1,5 +1,6 @@
 import { assert, expect, it } from "vitest";
 import { runEvalite } from "evalite/runner";
+import { createSqliteAdapter } from "evalite/db";
 import {
   captureStdout,
   loadFixture,
@@ -37,7 +38,8 @@ it("Should save the basic information in a db", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaAdapter(fixture.dbLocation);
+  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   expect(evals).toMatchObject({
     Basics: [
@@ -70,7 +72,8 @@ it("Should capture the duration as being more than 0", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaAdapter(fixture.dbLocation);
+  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   assert(typeof evals.Basics?.[0]?.duration === "number", "Duration exists");
   expect(evals.Basics?.[0]?.duration).toBeGreaterThan(0);
@@ -107,7 +110,8 @@ it("Should capture the filepath of the eval", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaAdapter(fixture.dbLocation);
+  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   expect(evals.Basics?.[0]?.filepath).toContain("basics.eval.ts");
 });

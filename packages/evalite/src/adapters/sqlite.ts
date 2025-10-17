@@ -322,6 +322,10 @@ export class SqliteAdapter implements EvaliteAdapter {
   async close(): Promise<void> {
     this.db.close();
   }
+
+  async [Symbol.asyncDispose](): Promise<void> {
+    await this.close();
+  }
 }
 
 /**

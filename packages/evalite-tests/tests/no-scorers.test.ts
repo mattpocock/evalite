@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
 import { runEvalite } from "evalite/runner";
+import { createSqliteAdapter } from "evalite/db";
 import {
   captureStdout,
   loadFixture,
@@ -40,7 +41,8 @@ it("DB should have empty scores array", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaAdapter(fixture.dbLocation);
+  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   console.dir(evals, { depth: null });
 

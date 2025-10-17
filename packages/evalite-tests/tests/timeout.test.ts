@@ -1,4 +1,5 @@
 import { expect, it, vitest } from "vitest";
+import { createSqliteAdapter } from "evalite/db";
 import { runVitest } from "evalite/runner";
 import {
   captureStdout,
@@ -60,7 +61,8 @@ it("Should record timeout information in the database", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaAdapter(fixture.dbLocation);
+  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   expect(evals.Timeout?.[0]).toMatchObject({
     name: "Timeout",

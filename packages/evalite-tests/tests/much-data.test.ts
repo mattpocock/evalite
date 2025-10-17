@@ -1,4 +1,5 @@
 import { runVitest } from "evalite/runner";
+import { createSqliteAdapter } from "evalite/db";
 import { expect, it } from "vitest";
 import {
   captureStdout,
@@ -18,7 +19,8 @@ it("Should report long datasets consistently in the same order", async () => {
     mode: "run-once-and-exit",
   });
 
-  const jsonDbEvals = await getEvalsAsRecordViaAdapter(fixture.dbLocation);
+  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  const jsonDbEvals = await getEvalsAsRecordViaAdapter(adapter);
 
   expect(jsonDbEvals["Much Data"]![0]!.results).toMatchObject([
     {

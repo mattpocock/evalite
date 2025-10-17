@@ -178,6 +178,11 @@ export interface EvaliteAdapterLegacy {
    * Close/cleanup the adapter (e.g., close database connection).
    */
   close(): Promise<void>;
+
+  /**
+   * Symbol.asyncDispose for use with `await using` syntax.
+   */
+  [Symbol.asyncDispose](): Promise<void>;
 }
 
 /**
@@ -312,4 +317,9 @@ export interface EvaliteAdapter {
    * Close/cleanup the adapter (e.g., close database connection).
    */
   close(): Promise<void>;
+
+  /**
+   * Symbol.asyncDispose for use with `await using` syntax.
+   */
+  [Symbol.asyncDispose](): Promise<void>;
 }

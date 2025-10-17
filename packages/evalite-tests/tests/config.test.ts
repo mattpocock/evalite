@@ -1,4 +1,5 @@
 import { runVitest } from "evalite/runner";
+import { createSqliteAdapter } from "evalite/db";
 import { assert, expect, it } from "vitest";
 import {
   captureStdout,
@@ -18,7 +19,8 @@ it("Should ignore includes in a vite.config.ts", async () => {
     testOutputWritable: captured.writable,
   });
 
-  const evals = await getEvalsAsRecordViaAdapter(fixture.dbLocation);
+  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   expect(evals.Basics).toHaveLength(1);
 });

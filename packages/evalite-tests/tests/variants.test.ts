@@ -1,4 +1,5 @@
 import { expect, it } from "vitest";
+import { createSqliteAdapter } from "evalite/db";
 import { runVitest } from "evalite/runner";
 import { captureStdout, loadFixture } from "./test-utils.js";
 import { getEvalsAsRecordViaAdapter } from "./test-utils.js";
@@ -15,7 +16,8 @@ it("Should create separate evals for each variant", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaAdapter(fixture.dbLocation);
+  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   // Should have 3 separate evals, one for each variant
   expect(evals["Compare models [Variant A]"]).toBeDefined();
@@ -35,7 +37,8 @@ it("Should store variant metadata in database", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaAdapter(fixture.dbLocation);
+  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   expect(evals["Compare models [Variant A]"]?.[0]).toMatchObject({
     variant_name: "Variant A",
@@ -65,7 +68,8 @@ it("Should pass correct variant value to task function", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaAdapter(fixture.dbLocation);
+  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   // Each variant should have results with different outputs based on variant value
   expect(evals["Compare models [Variant A]"]?.[0]?.results[0]?.output).toBe(
