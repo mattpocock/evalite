@@ -1,8 +1,5 @@
 import { expect, it } from "vitest";
-import { createSqliteAdapter } from "evalite/sqlite-adapter";
-import { runEvalite } from "evalite/runner";
-import { captureStdout, loadFixture } from "./test-utils.js";
-import { getEvalsAsRecordViaAdapter } from "./test-utils.js";
+import { getEvalsAsRecordViaAdapter, loadFixture } from "./test-utils.js";
 
 it("Should create separate evals for each variant", async () => {
   await using fixture = await loadFixture("variants");

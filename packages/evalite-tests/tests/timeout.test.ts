@@ -1,11 +1,5 @@
 import { expect, it, vitest } from "vitest";
-import { createSqliteAdapter } from "evalite/sqlite-adapter";
-import { runEvalite } from "evalite/runner";
-import {
-  captureStdout,
-  loadFixture,
-  getEvalsAsRecordViaAdapter,
-} from "./test-utils.js";
+import { getEvalsAsRecordViaAdapter, loadFixture } from "./test-utils.js";
 
 it("Should set exitCode to 1 if there is a timeout", async () => {
   await using fixture = await loadFixture("timeout");

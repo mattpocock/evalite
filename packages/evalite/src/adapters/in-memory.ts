@@ -112,10 +112,7 @@ export class InMemoryAdapter implements EvaliteAdapter {
       const updated = {
         ...evalEntity,
         status: opts.status,
-        duration:
-          opts.status !== "running"
-            ? Date.now() - new Date(evalEntity.created_at).getTime()
-            : 0,
+        duration: 0,
       };
 
       this.evalsStore.set(opts.id, updated);

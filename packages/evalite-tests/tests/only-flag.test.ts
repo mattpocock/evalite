@@ -1,11 +1,5 @@
 import { expect, it } from "vitest";
-import { runEvalite } from "evalite/runner";
-import { createSqliteAdapter } from "evalite/sqlite-adapter";
-import {
-  captureStdout,
-  loadFixture,
-  getEvalsAsRecordViaAdapter,
-} from "./test-utils.js";
+import { getEvalsAsRecordViaAdapter, loadFixture } from "./test-utils.js";
 
 it("Should run only the marked entry when only: true is present", async () => {
   await using fixture = await loadFixture("only-flag-single");
