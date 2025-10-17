@@ -50,10 +50,6 @@ const exportResultsToJSON = async (opts: {
     resultIds: evalResults.map((r) => r.id),
   });
 
-  const evalsAverageScores = await opts.adapter.evals.getAverageScores({
-    ids: allEvals.map((e) => e.id),
-  });
-
   const resultsAverageScores = await opts.adapter.results.getAverageScores({
     ids: evalResults.map((r) => r.id),
   });
@@ -66,13 +62,19 @@ const exportResultsToJSON = async (opts: {
       createdAt: latestFullRun.created_at,
     },
     evals: allEvals.map((evaluation: any) => {
-      const evalAvgScore = evalsAverageScores.find(
-        (e: any) => e.eval_id === evaluation.id
-      );
-
       const resultsForEval = evalResults.filter(
         (r: any) => r.eval_id === evaluation.id
       );
+
+      const scoresForEval = allScores.filter((s: any) =>
+        resultsForEval.some((r: any) => r.id === s.result_id)
+      );
+
+      const evalAvgScore =
+        scoresForEval.length > 0
+          ? scoresForEval.reduce((sum: number, s: any) => sum + s.score, 0) /
+            scoresForEval.length
+          : 0;
 
       return {
         id: evaluation.id,
@@ -83,7 +85,7 @@ const exportResultsToJSON = async (opts: {
         variantName: evaluation.variant_name,
         variantGroup: evaluation.variant_group,
         createdAt: evaluation.created_at,
-        averageScore: evalAvgScore?.average ?? 0,
+        averageScore: evalAvgScore,
         results: resultsForEval.map((result: any) => {
           const resultAvgScore = resultsAverageScores.find(
             (r: any) => r.result_id === result.id

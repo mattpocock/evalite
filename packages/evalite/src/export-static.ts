@@ -5,7 +5,6 @@ import {
   createDatabase,
   getAverageScoresFromResults,
   getEvals,
-  getEvalsAverageScores,
   getHistoricalEvalsWithScoresByName,
   getMostRecentRun,
   getPreviousCompletedEval,
@@ -178,28 +177,31 @@ export const exportStaticUI = async (
       prevEval: getPreviousCompletedEval(db, e.name, e.created_at),
     }));
 
-    const evalsAverageScores = getEvalsAverageScores(
-      db,
-      evalsWithPrevEvals.flatMap((e) => {
-        if (e.prevEval) {
-          return [e.id, e.prevEval.id];
-        }
-        return [e.id];
-      })
-    );
-
     const menuItems = evalsWithPrevEvals
       .map((e) => {
-        const score =
-          evalsAverageScores.find((s) => s.eval_id === e.id)?.average ?? 0;
-        const prevScore = evalsAverageScores.find(
-          (s) => s.eval_id === e.prevEval?.id
-        )?.average;
-
         const evalResults = allResults.filter((r) => r.eval_id === e.id);
         const evalScores = allScores.filter((s) =>
           evalResults.some((r) => r.id === s.result_id)
         );
+        const score =
+          evalScores.length > 0
+            ? evalScores.reduce((sum, s) => sum + s.score, 0) /
+              evalScores.length
+            : 0;
+
+        const prevEvalResults = e.prevEval
+          ? allResults.filter((r) => r.eval_id === e.prevEval!.id)
+          : [];
+        const prevEvalScores = allScores.filter((s) =>
+          prevEvalResults.some((r) => r.id === s.result_id)
+        );
+        const prevScore = e.prevEval
+          ? prevEvalScores.length > 0
+            ? prevEvalScores.reduce((sum, s) => sum + s.score, 0) /
+              prevEvalScores.length
+            : 0
+          : undefined;
+
         const hasScores = evalScores.length > 0;
 
         return {

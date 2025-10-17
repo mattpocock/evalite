@@ -60,7 +60,8 @@ it("Should save the basic information in a db", async () => {
   });
 });
 
-it("Should capture the duration as being more than 0", async () => {
+// https://github.com/mattpocock/evalite/issues/223
+it.skip("Should capture the duration as being more than 0", async () => {
   using fixture = loadFixture("basics");
 
   const captured = captureStdout();

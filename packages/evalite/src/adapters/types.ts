@@ -131,13 +131,6 @@ export interface EvaliteAdapterLegacy {
   ): { result_id: number; average: number }[];
 
   /**
-   * Get average scores for specific evals.
-   */
-  getEvalsAverageScores(
-    evalIds: number[]
-  ): { eval_id: number; average: number }[];
-
-  /**
    * Get a single eval by name.
    */
   getEvalByName(opts: {
@@ -233,13 +226,6 @@ export interface EvaliteAdapter {
     getMany(
       opts?: Evalite.Adapter.Evals.GetManyOpts
     ): Promise<Evalite.Adapter.Entities.Eval[]>;
-
-    /**
-     * Get average scores for the specified evals.
-     */
-    getAverageScores(
-      opts: Evalite.Adapter.Evals.GetAverageScoresOpts
-    ): Promise<Array<{ eval_id: number; average: number }>>;
   };
 
   /**

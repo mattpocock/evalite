@@ -4,7 +4,6 @@ import {
   createEvalIfNotExists as dbCreateEvalIfNotExists,
   createRun as dbCreateRun,
   getAverageScoresFromResults as dbGetAverageScoresFromResults,
-  getEvalsAverageScores as dbGetEvalsAverageScores,
   insertResult as dbInsertResult,
   insertScore as dbInsertScore,
   insertTrace as dbInsertTrace,
@@ -160,12 +159,6 @@ export class SqliteAdapter implements EvaliteAdapter {
       return this.db
         .prepare<typeof params, Evalite.Adapter.Entities.Eval>(query)
         .all(params);
-    },
-
-    getAverageScores: async (
-      opts: Evalite.Adapter.Evals.GetAverageScoresOpts
-    ): Promise<Array<{ eval_id: number; average: number }>> => {
-      return dbGetEvalsAverageScores(this.db, opts.ids);
     },
   };
 

@@ -285,28 +285,6 @@ export const getAverageScoresFromResults = (
     .all();
 };
 
-export const getEvalsAverageScores = (
-  db: BetterSqlite3.Database,
-  evalIds: number[]
-): {
-  eval_id: number;
-  average: number;
-}[] => {
-  const result = db
-    .prepare<unknown[], { eval_id: number; average: number }>(
-      `
-    SELECT r.eval_id, AVG(s.score) as average
-    FROM scores s
-    JOIN results r ON s.result_id = r.id
-    WHERE r.eval_id IN (${evalIds.join(",")})
-    GROUP BY r.eval_id
-  `
-    )
-    .all();
-
-  return result;
-};
-
 type Prettify<T> = {
   [K in keyof T]: T[K];
 } & {};
@@ -656,8 +634,7 @@ export const updateEvalStatusAndDuration = ({
 }): Evalite.Adapter.Entities.Eval => {
   db.prepare(
     `UPDATE evals
-     SET status = @status,
-     duration = (SELECT MAX(duration) FROM results WHERE eval_id = @id)
+     SET status = @status
      WHERE id = @id`
   ).run({
     id: evalId,

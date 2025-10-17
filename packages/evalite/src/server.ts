@@ -148,15 +148,6 @@ export const createServer = (opts: { adapter: EvaliteAdapter }) => {
       })
     );
 
-    const evalsAverageScores = await opts.adapter.evals.getAverageScores({
-      ids: allEvals.flatMap((e) => {
-        if (e.prevEval) {
-          return [e.id, e.prevEval.id];
-        }
-        return [e.id];
-      }),
-    });
-
     const allResults = await opts.adapter.results.getMany({
       evalIds: allEvals.map((e) => e.id),
     });
@@ -165,14 +156,22 @@ export const createServer = (opts: { adapter: EvaliteAdapter }) => {
       resultIds: allResults.map((r) => r.id),
     });
 
+    const calcEvalAverage = (evalId: number): number => {
+      const evalResults = allResults.filter((r) => r.eval_id === evalId);
+      const evalScores = allScores.filter((s) =>
+        evalResults.some((r) => r.id === s.result_id)
+      );
+      if (evalScores.length === 0) return 0;
+      return (
+        evalScores.reduce((sum, s) => sum + s.score, 0) / evalScores.length
+      );
+    };
+
     const createEvalMenuItem = (
       e: (typeof allEvals)[number]
     ): Evalite.SDK.GetMenuItemsResultEval => {
-      const score =
-        evalsAverageScores.find((s) => s.eval_id === e.id)?.average ?? 0;
-      const prevScore = evalsAverageScores.find(
-        (s) => s.eval_id === e.prevEval?.id
-      )?.average;
+      const score = calcEvalAverage(e.id);
+      const prevScore = e.prevEval ? calcEvalAverage(e.prevEval.id) : undefined;
 
       const evalResults = allResults.filter((r) => r.eval_id === e.id);
       const evalScores = allScores.filter((s) =>
@@ -291,15 +290,29 @@ export const createServer = (opts: { adapter: EvaliteAdapter }) => {
         orderDirection: "asc",
       });
 
-      const historyScores = await opts.adapter.evals.getAverageScores({
-        ids: historyEvals.map((e) => e.id),
+      const historyResults = await opts.adapter.results.getMany({
+        evalIds: historyEvals.map((e) => e.id),
       });
 
-      const history = historyEvals.map((e) => ({
-        average_score:
-          historyScores.find((s) => s.eval_id === e.id)?.average ?? 0,
-        created_at: e.created_at,
-      }));
+      const historyScores = await opts.adapter.scores.getMany({
+        resultIds: historyResults.map((r) => r.id),
+      });
+
+      const history = historyEvals.map((e) => {
+        const evalResults = historyResults.filter((r) => r.eval_id === e.id);
+        const evalScores = historyScores.filter((s) =>
+          evalResults.some((r) => r.id === s.result_id)
+        );
+        const average_score =
+          evalScores.length > 0
+            ? evalScores.reduce((sum, s) => sum + s.score, 0) /
+              evalScores.length
+            : 0;
+        return {
+          average_score,
+          created_at: e.created_at,
+        };
+      });
 
       return res.code(200).send({
         history: history.map((h) => ({
