@@ -1,5 +1,6 @@
 import { runVitest } from "evalite/runner";
 import { exportStaticUI } from "evalite/export-static";
+import { createSqliteAdapter } from "evalite/db";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, it } from "vitest";
@@ -20,8 +21,11 @@ it("Should export all required files and directory structure", async () => {
 
   // Export to a temp directory
   const exportDir = path.join(fixture.dir, "evalite-export");
+
+  await using adapter = createSqliteAdapter(fixture.dbLocation);
+
   await exportStaticUI({
-    cwd: fixture.dir,
+    adapter,
     outputPath: exportDir,
   });
 
@@ -64,8 +68,10 @@ it("Should remap file paths to unique filenames", async () => {
 
   // Export to a temp directory
   const exportDir = path.join(fixture.dir, "evalite-export");
+  await using adapter = createSqliteAdapter(fixture.dbLocation);
+
   await exportStaticUI({
-    cwd: fixture.dir,
+    adapter,
     outputPath: exportDir,
   });
 

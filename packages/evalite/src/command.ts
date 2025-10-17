@@ -6,6 +6,9 @@ import {
 } from "@stricli/auto-complete";
 import { createRequire } from "node:module";
 import { exportStaticUI } from "./export-static.js";
+import { createSqliteAdapter } from "./db.js";
+import path from "node:path";
+import { DB_LOCATION } from "./backend-only-constants.js";
 
 const packageJson = createRequire(import.meta.url)(
   "../package.json"
@@ -198,11 +201,19 @@ export const program = createProgram({
       outputPath: path.outputPath,
     });
   },
-  export: (opts) => {
-    return exportStaticUI({
-      cwd: process.cwd(),
-      outputPath: opts.output ?? "./evalite-export",
-      runId: opts.runId,
-    });
+  export: async (opts) => {
+    const cwd = process.cwd();
+    const dbPath = path.join(cwd, DB_LOCATION);
+    const adapter = createSqliteAdapter(dbPath);
+
+    try {
+      await exportStaticUI({
+        adapter,
+        outputPath: opts.output ?? "./evalite-export",
+        runId: opts.runId,
+      });
+    } finally {
+      await adapter.close();
+    }
   },
 });
