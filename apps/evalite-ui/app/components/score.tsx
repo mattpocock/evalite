@@ -1,4 +1,3 @@
-import type { Db } from "evalite/db";
 import {
   ChevronDownCircleIcon,
   ChevronRightCircleIcon,

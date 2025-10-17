@@ -163,6 +163,7 @@ export class EvaliteRunner {
 
               let resultId: number;
               const existingResult = existingResults[0];
+
               if (existingResult) {
                 const updated = await this.opts.adapter.results.update({
                   id: existingResult.id,

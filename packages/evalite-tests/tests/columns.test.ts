@@ -1,7 +1,10 @@
 import { runVitest } from "evalite/runner";
 import { expect, it } from "vitest";
-import { captureStdout, loadFixture } from "./test-utils.js";
-import { createDatabase, getEvalsAsRecord } from "evalite/db";
+import {
+  captureStdout,
+  loadFixture,
+  getEvalsAsRecordViaAdapter,
+} from "./test-utils.js";
 
 it("Should allow you to render columns based on the input and output", async () => {
   using fixture = loadFixture("columns");
@@ -15,9 +18,7 @@ it("Should allow you to render columns based on the input and output", async () 
     mode: "run-once-and-exit",
   });
 
-  const db = createDatabase(fixture.dbLocation);
-
-  const evals = await getEvalsAsRecord(db);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.dbLocation);
 
   expect(evals.Columns![0]).toMatchObject({
     results: [

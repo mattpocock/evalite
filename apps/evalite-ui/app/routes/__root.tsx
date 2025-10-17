@@ -12,7 +12,6 @@ import {
   Outlet,
 } from "@tanstack/react-router";
 
-import type { Db } from "evalite/db";
 import type { Evalite } from "evalite/types";
 import { FolderOpen } from "lucide-react";
 import { lazy } from "react";

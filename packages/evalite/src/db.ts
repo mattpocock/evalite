@@ -6,6 +6,9 @@ import { max } from "./utils.js";
 
 export type SQLiteDatabase = BetterSqlite3.Database;
 
+export { createSqliteAdapter } from "./adapters/sqlite.js";
+export type { EvaliteAdapter } from "./adapters/types.js";
+
 export const createDatabase = (url: string): BetterSqlite3.Database => {
   const db: BetterSqlite3.Database = new Database(url);
   db.pragma("journal_mode = WAL");
@@ -308,10 +311,14 @@ type Prettify<T> = {
   [K in keyof T]: T[K];
 } & {};
 
+export type JsonParseFields<T extends object, K extends keyof T> = Prettify<
+  Omit<T, K> & Record<K, unknown>
+>;
+
 export const jsonParseFields = <T extends object, K extends keyof T>(
   obj: T,
   fields: K[]
-): Prettify<Omit<T, K> & Record<K, unknown>> => {
+): JsonParseFields<T, K> => {
   const objToReturn: any = {};
 
   for (const key of Object.keys(obj)) {
@@ -324,6 +331,13 @@ export const jsonParseFields = <T extends object, K extends keyof T>(
   }
 
   return objToReturn;
+};
+
+export const jsonParseFieldsArray = <T extends object, K extends keyof T>(
+  obj: T[],
+  fields: K[]
+): JsonParseFields<T, K>[] => {
+  return obj.map((o) => jsonParseFields(o, fields));
 };
 
 /**

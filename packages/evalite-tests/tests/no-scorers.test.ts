@@ -1,7 +1,10 @@
 import { expect, it } from "vitest";
 import { runEvalite } from "evalite/runner";
-import { captureStdout, loadFixture } from "./test-utils.js";
-import { createDatabase, getEvalsAsRecord } from "evalite/db";
+import {
+  captureStdout,
+  loadFixture,
+  getEvalsAsRecordViaAdapter,
+} from "./test-utils.js";
 
 it("Terminal output should contain '-' instead of '0%' or '100%'", async () => {
   using fixture = loadFixture("no-scorers");
@@ -37,9 +40,9 @@ it("DB should have empty scores array", async () => {
     mode: "run-once-and-exit",
   });
 
-  const db = createDatabase(fixture.dbLocation);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.dbLocation);
 
-  const evals = await getEvalsAsRecord(db);
+  console.dir(evals, { depth: null });
 
   expect(evals["No Scorers"]).toBeDefined();
   expect(evals["No Scorers"]?.[0]?.results).toBeDefined();

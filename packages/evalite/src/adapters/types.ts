@@ -235,12 +235,6 @@ export interface EvaliteAdapter {
     getAverageScores(
       opts: Evalite.Adapter.Evals.GetAverageScoresOpts
     ): Promise<Array<{ eval_id: number; average: number }>>;
-
-    /**
-     * Get all evals as a record (deprecated but needed for compatibility).
-     * @deprecated Will be removed in a future version.
-     */
-    getAsRecord(): Promise<Record<string, any[]>>;
   };
 
   /**

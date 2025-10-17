@@ -1,4 +1,4 @@
-import { createDatabase, getEvalsAsRecord } from "evalite/db";
+import { getEvalsAsRecordViaAdapter } from "./test-utils.js";
 import { EvaliteFile } from "evalite";
 import { runVitest } from "evalite/runner";
 import { readdir, readFile } from "node:fs/promises";
@@ -31,9 +31,7 @@ it("Should save files returned from task() in node_modules", async () => {
 
   expect(file).toBeTruthy();
 
-  const db = createDatabase(fixture.dbLocation);
-
-  const evals = await getEvalsAsRecord(db);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.dbLocation);
 
   expect(evals).toMatchObject({
     Files: [
@@ -68,9 +66,7 @@ it("Should save files reported in traces", async () => {
 
   const filePath = path.join(dir, files[0]!);
 
-  const db = createDatabase(fixture.dbLocation);
-
-  const evals = await getEvalsAsRecord(db);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.dbLocation);
 
   expect(evals).toMatchObject({
     FilesWithTraces: [
@@ -129,9 +125,7 @@ it("Should let users add files to data().input and data().expected", async () =>
 
   expect(file).toBeTruthy();
 
-  const db = createDatabase(fixture.dbLocation);
-
-  const evals = await getEvalsAsRecord(db);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.dbLocation);
 
   expect(evals.FilesInInput![0]).toMatchObject({
     results: [
@@ -167,9 +161,7 @@ it("Should let users add files to columns", async () => {
 
   expect(file).toBeTruthy();
 
-  const db = createDatabase(fixture.dbLocation);
-
-  const evals = await getEvalsAsRecord(db);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.dbLocation);
 
   expect(evals.FilesWithColumns![0]).toMatchObject({
     results: [
@@ -209,9 +201,7 @@ it("Should let users add files to experimental_customColumns", async () => {
 
   expect(file).toBeTruthy();
 
-  const db = createDatabase(fixture.dbLocation);
-
-  const evals = await getEvalsAsRecord(db);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.dbLocation);
 
   expect(evals.experimental_customColumns![0]).toMatchObject({
     results: [

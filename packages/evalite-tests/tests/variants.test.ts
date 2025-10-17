@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { runVitest } from "evalite/runner";
 import { captureStdout, loadFixture } from "./test-utils.js";
-import { createDatabase, getEvalsAsRecord } from "evalite/db";
+import { getEvalsAsRecordViaAdapter } from "./test-utils.js";
 
 it("Should create separate evals for each variant", async () => {
   using fixture = loadFixture("variants");
@@ -15,9 +15,7 @@ it("Should create separate evals for each variant", async () => {
     mode: "run-once-and-exit",
   });
 
-  const db = createDatabase(fixture.dbLocation);
-
-  const evals = await getEvalsAsRecord(db);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.dbLocation);
 
   // Should have 3 separate evals, one for each variant
   expect(evals["Compare models [Variant A]"]).toBeDefined();
@@ -37,9 +35,7 @@ it("Should store variant metadata in database", async () => {
     mode: "run-once-and-exit",
   });
 
-  const db = createDatabase(fixture.dbLocation);
-
-  const evals = await getEvalsAsRecord(db);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.dbLocation);
 
   expect(evals["Compare models [Variant A]"]?.[0]).toMatchObject({
     variant_name: "Variant A",
@@ -69,9 +65,7 @@ it("Should pass correct variant value to task function", async () => {
     mode: "run-once-and-exit",
   });
 
-  const db = createDatabase(fixture.dbLocation);
-
-  const evals = await getEvalsAsRecord(db);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.dbLocation);
 
   // Each variant should have results with different outputs based on variant value
   expect(evals["Compare models [Variant A]"]?.[0]?.results[0]?.output).toBe(

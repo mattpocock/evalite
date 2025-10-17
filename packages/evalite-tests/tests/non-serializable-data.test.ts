@@ -1,4 +1,4 @@
-import { createDatabase, getEvalsAsRecord } from "evalite/db";
+import { getEvalsAsRecordViaAdapter } from "./test-utils.js";
 import { runVitest } from "evalite/runner";
 import { expect, it, vitest } from "vitest";
 import { captureStdout, loadFixture } from "./test-utils.js";
@@ -25,8 +25,7 @@ it("Should allow non-serializable data (like validators/schemas) in expected fie
   // Should complete successfully
   expect(output).toContain("non-serializable-data.eval.ts");
 
-  const db = createDatabase(fixture.dbLocation);
-  const evals = await getEvalsAsRecord(db);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.dbLocation);
 
   // Should successfully run without serialization errors
   expect(evals["Non-serializable data"]).toBeDefined();

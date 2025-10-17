@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { runVitest } from "evalite/runner";
 import { captureStdout, loadFixture } from "./test-utils.js";
-import { createDatabase, getEvalsAsRecord } from "evalite/db";
+import { getEvalsAsRecordViaAdapter } from "./test-utils.js";
 
 it("Should report traces from reportTrace", async () => {
   using fixture = loadFixture("traces");
@@ -15,9 +15,7 @@ it("Should report traces from reportTrace", async () => {
     mode: "run-once-and-exit",
   });
 
-  const db = createDatabase(fixture.dbLocation);
-
-  const evals = await getEvalsAsRecord(db);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.dbLocation);
 
   expect(evals.Traces![0]).toMatchObject({
     results: [

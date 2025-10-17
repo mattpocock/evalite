@@ -4,6 +4,7 @@ import { cpSync, rmSync } from "fs";
 import path from "path";
 import { Writable } from "stream";
 import stripAnsi from "strip-ansi";
+import { createSqliteAdapter, type EvalWithInlineResults } from "evalite/db";
 
 const FIXTURES_DIR = path.join(import.meta.dirname, "./fixtures");
 const PLAYGROUND_DIR = path.join(import.meta.dirname, "./playground");
@@ -49,4 +50,52 @@ export const captureStdout = () => {
     writable,
     getOutput: () => stripAnsi(output),
   };
+};
+
+/**
+ * Get evals as a record using the new adapter API.
+ * Replaces deprecated getEvalsAsRecord.
+ */
+export const getEvalsAsRecordViaAdapter = async (
+  dbLocation: string
+): Promise<Record<string, EvalWithInlineResults[]>> => {
+  const adapter = createSqliteAdapter(dbLocation);
+
+  const evals = await adapter.evals.getMany();
+  const evalIds = evals.map((e) => e.id);
+
+  const results =
+    evalIds.length > 0 ? await adapter.results.getMany({ evalIds }) : [];
+  const resultIds = results.map((r) => r.id);
+
+  const scores =
+    resultIds.length > 0 ? await adapter.scores.getMany({ resultIds }) : [];
+  const traces =
+    resultIds.length > 0 ? await adapter.traces.getMany({ resultIds }) : [];
+
+  const recordOfEvals: Record<string, EvalWithInlineResults[]> = {};
+
+  for (const evaluation of evals) {
+    const key = evaluation.name;
+    if (!recordOfEvals[key]) {
+      recordOfEvals[key] = [];
+    }
+
+    const evalResults = results.filter((r) => r.eval_id === evaluation.id);
+    const resultsWithScoresAndTraces = evalResults.map((r) => {
+      const resultScores = scores.filter((s) => s.result_id === r.id);
+      const resultTraces = traces.filter((t) => t.result_id === r.id);
+
+      return { ...r, scores: resultScores, traces: resultTraces };
+    });
+
+    recordOfEvals[key].push({
+      ...evaluation,
+      results: resultsWithScoresAndTraces,
+    });
+  }
+
+  await adapter.close();
+
+  return recordOfEvals;
 };

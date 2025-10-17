@@ -1,4 +1,4 @@
-import { createDatabase, getEvalsAsRecord, type Db } from "evalite/db";
+import { getEvalsAsRecordViaAdapter } from "./test-utils.js";
 import { runVitest } from "evalite/runner";
 import { expect, it, vitest } from "vitest";
 import { captureStdout, loadFixture } from "./test-utils.js";
@@ -56,9 +56,7 @@ it("Should save the result AND eval as failed in the database", async () => {
     mode: "run-once-and-exit",
   });
 
-  const db = createDatabase(fixture.dbLocation);
-
-  const evals = await getEvalsAsRecord(db);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.dbLocation);
 
   expect(evals.Failing?.[0]).toMatchObject({
     name: "Failing",

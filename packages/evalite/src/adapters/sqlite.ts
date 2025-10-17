@@ -1,20 +1,16 @@
 import type * as BetterSqlite3 from "better-sqlite3";
-import type { EvalWithInlineResults } from "../db.js";
 import {
   createDatabase as createSqliteDatabase,
   createEvalIfNotExists as dbCreateEvalIfNotExists,
   createRun as dbCreateRun,
   getAverageScoresFromResults as dbGetAverageScoresFromResults,
-  getEvalsAsRecord as dbGetEvalsAsRecord,
   getEvalsAverageScores as dbGetEvalsAverageScores,
-  getResults as dbGetResults,
-  getScores as dbGetScores,
-  getTraces as dbGetTraces,
   insertResult as dbInsertResult,
   insertScore as dbInsertScore,
   insertTrace as dbInsertTrace,
   updateEvalStatusAndDuration as dbUpdateEvalStatusAndDuration,
   updateResult as dbUpdateResult,
+  jsonParseFieldsArray,
 } from "../db.js";
 import type { Evalite } from "../types.js";
 import type { EvaliteAdapter } from "./types.js";
@@ -171,10 +167,6 @@ export class SqliteAdapter implements EvaliteAdapter {
     ): Promise<Array<{ eval_id: number; average: number }>> => {
       return dbGetEvalsAverageScores(this.db, opts.ids);
     },
-
-    getAsRecord: async (): Promise<Record<string, EvalWithInlineResults[]>> => {
-      return dbGetEvalsAsRecord(this.db);
-    },
   };
 
   results = {
@@ -209,8 +201,6 @@ export class SqliteAdapter implements EvaliteAdapter {
     ): Promise<Evalite.Adapter.Entities.Result[]> => {
       let query = `SELECT * FROM results WHERE 1=1`;
       const params: {
-        ids?: number[];
-        evalIds?: number[];
         order?: number;
         statuses?: Evalite.ResultStatus[];
       } = {};
@@ -238,12 +228,12 @@ export class SqliteAdapter implements EvaliteAdapter {
         .prepare<typeof params, Evalite.Adapter.Entities.Result>(query)
         .all(params);
 
-      if (results.length === 0) return [];
-
-      return dbGetResults(
-        this.db,
-        results.map((r) => r.id)
-      );
+      return jsonParseFieldsArray(results, [
+        "input",
+        "output",
+        "expected",
+        "rendered_columns",
+      ]);
     },
 
     getAverageScores: async (
@@ -284,12 +274,7 @@ export class SqliteAdapter implements EvaliteAdapter {
         .prepare<{}, Evalite.Adapter.Entities.Score>(query)
         .all({});
 
-      if (scores.length === 0) return [];
-
-      return dbGetScores(
-        this.db,
-        scores.map((s) => s.id)
-      );
+      return jsonParseFieldsArray(scores, ["metadata"]);
     },
   };
 
@@ -330,12 +315,7 @@ export class SqliteAdapter implements EvaliteAdapter {
         .prepare<{}, Evalite.Adapter.Entities.Trace>(query)
         .all({});
 
-      if (traces.length === 0) return [];
-
-      return dbGetTraces(
-        this.db,
-        traces.map((t) => t.id)
-      );
+      return jsonParseFieldsArray(traces, ["input", "output"]);
     },
   };
 

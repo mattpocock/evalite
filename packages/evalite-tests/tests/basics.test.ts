@@ -1,7 +1,10 @@
 import { assert, expect, it } from "vitest";
 import { runEvalite } from "evalite/runner";
-import { captureStdout, loadFixture } from "./test-utils.js";
-import { createDatabase, getEvals, getEvalsAsRecord } from "evalite/db";
+import {
+  captureStdout,
+  loadFixture,
+  getEvalsAsRecordViaAdapter,
+} from "./test-utils.js";
 
 it("Should report the basics correctly", async () => {
   using fixture = loadFixture("basics");
@@ -34,9 +37,7 @@ it("Should save the basic information in a db", async () => {
     mode: "run-once-and-exit",
   });
 
-  const db = createDatabase(fixture.dbLocation);
-
-  const evals = await getEvalsAsRecord(db);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.dbLocation);
 
   expect(evals).toMatchObject({
     Basics: [
@@ -69,9 +70,7 @@ it("Should capture the duration as being more than 0", async () => {
     mode: "run-once-and-exit",
   });
 
-  const db = createDatabase(fixture.dbLocation);
-
-  const evals = await getEvalsAsRecord(db);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.dbLocation);
 
   assert(typeof evals.Basics?.[0]?.duration === "number", "Duration exists");
   expect(evals.Basics?.[0]?.duration).toBeGreaterThan(0);
@@ -108,9 +107,7 @@ it("Should capture the filepath of the eval", async () => {
     mode: "run-once-and-exit",
   });
 
-  const db = createDatabase(fixture.dbLocation);
-
-  const evals = await getEvalsAsRecord(db);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.dbLocation);
 
   expect(evals.Basics?.[0]?.filepath).toContain("basics.eval.ts");
 });
