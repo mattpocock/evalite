@@ -189,6 +189,12 @@ function registerEvalite<TInput, TOutput, TExpected>(
       const data = { ...filteredDataset[index]!, index };
 
       it.concurrent(fullEvalName, async ({ task, annotate }) => {
+        if (!annotate || typeof annotate !== "function") {
+          throw new Error(
+            "Evalite requires Vitest 3.2.4 or later for the annotations API. Please upgrade: `npm install vitest@latest`"
+          );
+        }
+
         const cwd = inject("cwd");
 
         const rootDir = path.join(cwd, FILES_LOCATION);
