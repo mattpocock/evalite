@@ -1,6 +1,6 @@
 import { getEvalsAsRecordViaAdapter } from "./test-utils.js";
 import { runVitest } from "evalite/runner";
-import { createSqliteAdapter } from "evalite/db";
+import { createSqliteAdapter } from "evalite/sqlite-adapter";
 import { assert, expect, it, vitest } from "vitest";
 import { captureStdout, loadFixture } from "./test-utils.js";
 

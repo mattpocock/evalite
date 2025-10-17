@@ -38,12 +38,12 @@
     "./utils": "./dist/utils.js",
     "./server": "./dist/server.js",
     "./types": "./dist/types.js",
-    "./db": "./dist/db.js",
     "./reporter": "./dist/reporter.js",
     "./traces": "./dist/traces.js",
     "./ai-sdk": "./dist/ai-sdk.js",
     "./runner": "./dist/run-vitest.js",
-    "./export-static": "./dist/export-static.js"
+    "./export-static": "./dist/export-static.js",
+    "./sqlite-adapter": "./dist/adapters/sqlite.js"
   },
   "dependencies": {
     "@ai-sdk/provider": "^2.0.0",

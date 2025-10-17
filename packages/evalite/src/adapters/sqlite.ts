@@ -10,7 +10,7 @@ import {
   updateEvalStatusAndDuration as dbUpdateEvalStatusAndDuration,
   updateResult as dbUpdateResult,
   jsonParseFieldsArray,
-} from "../db.js";
+} from "./db.js";
 import type { Evalite } from "../types.js";
 import type { EvaliteAdapter } from "./types.js";
 

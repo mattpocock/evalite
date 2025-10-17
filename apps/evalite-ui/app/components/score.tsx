@@ -1,3 +1,4 @@
+import type { Evalite } from "evalite";
 import {
   ChevronDownCircleIcon,
   ChevronRightCircleIcon,
@@ -88,7 +89,7 @@ export const Score = (props: {
 };
 
 export const getScoreState = (opts: {
-  status: Db.EvalStatus;
+  status: Evalite.Adapter.Entities.EvalStatus;
   score: number;
   prevScore: number | null | undefined;
 }) => {

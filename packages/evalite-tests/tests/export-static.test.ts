@@ -1,6 +1,6 @@
 import { runVitest } from "evalite/runner";
 import { exportStaticUI } from "evalite/export-static";
-import { createSqliteAdapter } from "evalite/db";
+import { createSqliteAdapter } from "evalite/sqlite-adapter";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, it } from "vitest";

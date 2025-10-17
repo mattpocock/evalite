@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { runEvalite } from "evalite/runner";
-import { createSqliteAdapter } from "evalite/db";
+import { createSqliteAdapter } from "evalite/sqlite-adapter";
 import {
   captureStdout,
   loadFixture,

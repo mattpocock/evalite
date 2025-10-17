@@ -1,13 +1,8 @@
 import type * as BetterSqlite3 from "better-sqlite3";
 import Database from "better-sqlite3";
-import type { Evalite } from "./types.js";
-import type { TaskState } from "vitest";
-import { max } from "./utils.js";
+import type { Evalite } from "../types.js";
 
 export type SQLiteDatabase = BetterSqlite3.Database;
-
-export { createSqliteAdapter } from "./adapters/sqlite.js";
-export type { EvaliteAdapter } from "./adapters/types.js";
 
 export const createDatabase = (url: string): BetterSqlite3.Database => {
   const db: BetterSqlite3.Database = new Database(url);
@@ -104,69 +99,6 @@ export const createDatabase = (url: string): BetterSqlite3.Database => {
   } catch (e) {}
 
   return db;
-};
-
-export interface ResultWithInlineScoresAndTraces
-  extends Evalite.Adapter.Entities.Result {
-  scores: Evalite.Adapter.Entities.Score[];
-  traces: Evalite.Adapter.Entities.Trace[];
-}
-
-export interface EvalWithInlineResults extends Evalite.Adapter.Entities.Eval {
-  results: ResultWithInlineScoresAndTraces[];
-}
-
-/**
- * @deprecated
- *
- * Used in existing tests, but in future code should be replaced
- * by more specific queries.
- */
-export const getEvalsAsRecord = async (
-  db: SQLiteDatabase
-): Promise<Record<string, EvalWithInlineResults[]>> => {
-  const evals = db
-    .prepare<unknown[], Evalite.Adapter.Entities.Eval>(`SELECT * FROM evals`)
-    .all();
-
-  const allResults = getResults(
-    db,
-    evals.map((e) => e.id)
-  );
-
-  const allScores = getScores(
-    db,
-    allResults.map((r) => r.id)
-  );
-
-  const allTraces = getTraces(
-    db,
-    allResults.map((r) => r.id)
-  );
-
-  const recordOfEvals: Record<string, EvalWithInlineResults[]> = {};
-
-  for (const evaluation of evals) {
-    const key = evaluation.name;
-    if (!recordOfEvals[key]) {
-      recordOfEvals[key] = [];
-    }
-
-    const results = allResults.filter((r) => r.eval_id === evaluation.id);
-    const resultsWithScores = results.map((r) => {
-      const scores = allScores.filter((s) => s.result_id === r.id);
-      const traces = allTraces.filter((t) => t.result_id === r.id);
-
-      return { ...r, scores, traces };
-    });
-
-    recordOfEvals[key].push({
-      ...evaluation,
-      results: resultsWithScores,
-    });
-  }
-
-  return recordOfEvals;
 };
 
 export const getEvals = (

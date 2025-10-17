@@ -1,8 +1,9 @@
 import { getEvalsAsRecordViaAdapter } from "./test-utils.js";
-import { createSqliteAdapter } from "evalite/db";
+import { createSqliteAdapter } from "evalite/sqlite-adapter";
 import { runVitest } from "evalite/runner";
 import { expect, it, vitest } from "vitest";
 import { captureStdout, loadFixture } from "./test-utils.js";
+import type { Evalite } from "evalite";
 
 it("Should set exitCode to 1 if there is a failing test", async () => {
   using fixture = loadFixture("failing-test");
@@ -62,7 +63,7 @@ it("Should save the result AND eval as failed in the database", async () => {
 
   expect(evals.Failing?.[0]).toMatchObject({
     name: "Failing",
-    status: "fail" satisfies Db.EvalStatus,
+    status: "fail" satisfies Evalite.Adapter.Entities.EvalStatus,
     results: [
       {
         status: "fail",

@@ -1,5 +1,5 @@
 import { getEvalsAsRecordViaAdapter } from "./test-utils.js";
-import { createSqliteAdapter } from "evalite/db";
+import { createSqliteAdapter } from "evalite/sqlite-adapter";
 import { EvaliteFile } from "evalite";
 import { runVitest } from "evalite/runner";
 import { readdir, readFile } from "node:fs/promises";

@@ -6,7 +6,7 @@ import {
 } from "@stricli/auto-complete";
 import { createRequire } from "node:module";
 import { exportStaticUI } from "./export-static.js";
-import { createSqliteAdapter } from "./db.js";
+import { createSqliteAdapter } from "./adapters/sqlite.js";
 import path from "node:path";
 import { DB_LOCATION } from "./backend-only-constants.js";
 

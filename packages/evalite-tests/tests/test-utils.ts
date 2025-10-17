@@ -4,7 +4,8 @@ import { cpSync, rmSync } from "fs";
 import path from "path";
 import { Writable } from "stream";
 import stripAnsi from "strip-ansi";
-import { createSqliteAdapter, type EvalWithInlineResults } from "evalite/db";
+import type { Evalite } from "evalite";
+import { createSqliteAdapter } from "evalite/sqlite-adapter";
 
 const FIXTURES_DIR = path.join(import.meta.dirname, "./fixtures");
 const PLAYGROUND_DIR = path.join(import.meta.dirname, "./playground");
@@ -51,6 +52,16 @@ export const captureStdout = () => {
     getOutput: () => stripAnsi(output),
   };
 };
+
+export interface EvalWithInlineResults extends Evalite.Adapter.Entities.Eval {
+  results: ResultWithInlineScoresAndTraces[];
+}
+
+export interface ResultWithInlineScoresAndTraces
+  extends Evalite.Adapter.Entities.Result {
+  scores: Evalite.Adapter.Entities.Score[];
+  traces: Evalite.Adapter.Entities.Trace[];
+}
 
 /**
  * Get evals as a record using the new adapter API.
