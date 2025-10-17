@@ -82,23 +82,9 @@ export class InMemoryAdapter implements EvaliteAdapter {
   };
 
   evals = {
-    createOrGet: async (
-      opts: Evalite.Adapter.Evals.CreateOrGetOpts
+    create: async (
+      opts: Evalite.Adapter.Evals.CreateOpts
     ): Promise<Evalite.Adapter.Entities.Eval> => {
-      // Check if eval exists with same runId, name, and filepath
-      const existing = Array.from(this.evalsStore.values()).find(
-        (e) =>
-          e.run_id === opts.runId &&
-          e.name === opts.name &&
-          e.filepath === opts.filepath &&
-          e.variant_name === opts.variantName &&
-          e.variant_group === opts.variantGroup
-      );
-
-      if (existing) {
-        return existing;
-      }
-
       const evalEntity: Evalite.Adapter.Entities.Eval = {
         id: this.nextEvalId++,
         run_id: opts.runId,

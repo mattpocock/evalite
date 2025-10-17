@@ -114,13 +114,21 @@ export class EvaliteRunner {
                     runType: this.state.runType,
                   });
 
-              const evaluation = await this.opts.adapter.evals.createOrGet({
-                filepath: event.initialResult.filepath,
+              // Check if eval already exists for this run
+              const existingEvals = await this.opts.adapter.evals.getMany({
+                runIds: [run.id],
                 name: event.initialResult.evalName,
-                runId: run.id,
-                variantName: event.initialResult.variantName,
-                variantGroup: event.initialResult.variantGroup,
               });
+
+              const evaluation =
+                existingEvals[0] ??
+                (await this.opts.adapter.evals.create({
+                  filepath: event.initialResult.filepath,
+                  name: event.initialResult.evalName,
+                  runId: run.id,
+                  variantName: event.initialResult.variantName,
+                  variantGroup: event.initialResult.variantGroup,
+                }));
 
               const result = await this.opts.adapter.results.create({
                 evalId: evaluation.id,
@@ -162,13 +170,21 @@ export class EvaliteRunner {
                     runType: this.state.runType,
                   });
 
-              const evaluation = await this.opts.adapter.evals.createOrGet({
-                filepath: event.result.filepath,
+              // Check if eval already exists for this run
+              const existingEvals = await this.opts.adapter.evals.getMany({
+                runIds: [run.id],
                 name: event.result.evalName,
-                runId: run.id,
-                variantName: event.result.variantName,
-                variantGroup: event.result.variantGroup,
               });
+
+              const evaluation =
+                existingEvals[0] ??
+                (await this.opts.adapter.evals.create({
+                  filepath: event.result.filepath,
+                  name: event.result.evalName,
+                  runId: run.id,
+                  variantName: event.result.variantName,
+                  variantGroup: event.result.variantGroup,
+                }));
 
               const existingResults = await this.opts.adapter.results.getMany({
                 evalIds: [evaluation.id],

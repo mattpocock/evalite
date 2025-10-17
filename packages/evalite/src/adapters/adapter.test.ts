@@ -84,11 +84,11 @@ describe("EvaliteAdapter", () => {
   });
 
   describe("evals", () => {
-    testAllAdapters("createOrGet creates new eval", async (getAdapter) => {
+    testAllAdapters("create creates new eval", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
 
-      const eval1 = await adapter.evals.createOrGet({
+      const eval1 = await adapter.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
@@ -102,32 +102,32 @@ describe("EvaliteAdapter", () => {
       expect(eval1.created_at).toBeDefined();
     });
 
-    testAllAdapters("createOrGet gets existing eval", async (getAdapter) => {
+    testAllAdapters("create always creates new eval", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
 
-      const eval1 = await adapter.evals.createOrGet({
+      const eval1 = await adapter.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
       });
 
-      const eval2 = await adapter.evals.createOrGet({
+      const eval2 = await adapter.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
       });
 
-      expect(eval2.id).toBe(eval1.id);
+      expect(eval2.id).not.toBe(eval1.id);
     });
 
     testAllAdapters(
-      "createOrGet handles variantName and variantGroup",
+      "create handles variantName and variantGroup",
       async (getAdapter) => {
         await using adapter = await getAdapter();
         const run = await adapter.runs.create({ runType: "full" });
 
-        const eval1 = await adapter.evals.createOrGet({
+        const eval1 = await adapter.evals.create({
           runId: run.id,
           name: "test-eval",
           filepath: "/test/path.eval.ts",
@@ -143,7 +143,7 @@ describe("EvaliteAdapter", () => {
     testAllAdapters("update changes eval status", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.createOrGet({
+      const eval1 = await adapter.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
@@ -160,12 +160,12 @@ describe("EvaliteAdapter", () => {
     testAllAdapters("getMany returns all evals", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.createOrGet({
+      const eval1 = await adapter.evals.create({
         runId: run.id,
         name: "eval-1",
         filepath: "/test/path1.eval.ts",
       });
-      const eval2 = await adapter.evals.createOrGet({
+      const eval2 = await adapter.evals.create({
         runId: run.id,
         name: "eval-2",
         filepath: "/test/path2.eval.ts",
@@ -181,12 +181,12 @@ describe("EvaliteAdapter", () => {
     testAllAdapters("getMany filters by ids", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.createOrGet({
+      const eval1 = await adapter.evals.create({
         runId: run.id,
         name: "eval-1",
         filepath: "/test/path1.eval.ts",
       });
-      const eval2 = await adapter.evals.createOrGet({
+      const eval2 = await adapter.evals.create({
         runId: run.id,
         name: "eval-2",
         filepath: "/test/path2.eval.ts",
@@ -202,12 +202,12 @@ describe("EvaliteAdapter", () => {
       await using adapter = await getAdapter();
       const run1 = await adapter.runs.create({ runType: "full" });
       const run2 = await adapter.runs.create({ runType: "full" });
-      await adapter.evals.createOrGet({
+      await adapter.evals.create({
         runId: run1.id,
         name: "eval-1",
         filepath: "/test/path.eval.ts",
       });
-      const eval2 = await adapter.evals.createOrGet({
+      const eval2 = await adapter.evals.create({
         runId: run2.id,
         name: "eval-2",
         filepath: "/test/path.eval.ts",
@@ -222,12 +222,12 @@ describe("EvaliteAdapter", () => {
     testAllAdapters("getMany filters by name", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
-      await adapter.evals.createOrGet({
+      await adapter.evals.create({
         runId: run.id,
         name: "eval-1",
         filepath: "/test/path.eval.ts",
       });
-      const eval2 = await adapter.evals.createOrGet({
+      const eval2 = await adapter.evals.create({
         runId: run.id,
         name: "eval-2",
         filepath: "/test/path.eval.ts",
@@ -242,12 +242,12 @@ describe("EvaliteAdapter", () => {
     testAllAdapters("getMany filters by statuses", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.createOrGet({
+      const eval1 = await adapter.evals.create({
         runId: run.id,
         name: "eval-1",
         filepath: "/test/path.eval.ts",
       });
-      const eval2 = await adapter.evals.createOrGet({
+      const eval2 = await adapter.evals.create({
         runId: run.id,
         name: "eval-2",
         filepath: "/test/path.eval.ts",
@@ -276,17 +276,17 @@ describe("EvaliteAdapter", () => {
     testAllAdapters("getMany respects limit", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
-      await adapter.evals.createOrGet({
+      await adapter.evals.create({
         runId: run.id,
         name: "eval-1",
         filepath: "/test/path.eval.ts",
       });
-      await adapter.evals.createOrGet({
+      await adapter.evals.create({
         runId: run.id,
         name: "eval-2",
         filepath: "/test/path.eval.ts",
       });
-      await adapter.evals.createOrGet({
+      await adapter.evals.create({
         runId: run.id,
         name: "eval-3",
         filepath: "/test/path.eval.ts",
@@ -302,7 +302,7 @@ describe("EvaliteAdapter", () => {
     testAllAdapters("create creates new result", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.createOrGet({
+      const eval1 = await adapter.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
@@ -336,7 +336,7 @@ describe("EvaliteAdapter", () => {
     testAllAdapters("update updates result", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.createOrGet({
+      const eval1 = await adapter.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
@@ -376,7 +376,7 @@ describe("EvaliteAdapter", () => {
     testAllAdapters("getMany returns all results", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.createOrGet({
+      const eval1 = await adapter.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
@@ -414,7 +414,7 @@ describe("EvaliteAdapter", () => {
     testAllAdapters("getMany filters by ids", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.createOrGet({
+      const eval1 = await adapter.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
@@ -451,12 +451,12 @@ describe("EvaliteAdapter", () => {
     testAllAdapters("getMany filters by evalIds", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.createOrGet({
+      const eval1 = await adapter.evals.create({
         runId: run.id,
         name: "eval-1",
         filepath: "/test/path.eval.ts",
       });
-      const eval2 = await adapter.evals.createOrGet({
+      const eval2 = await adapter.evals.create({
         runId: run.id,
         name: "eval-2",
         filepath: "/test/path.eval.ts",
@@ -493,7 +493,7 @@ describe("EvaliteAdapter", () => {
     testAllAdapters("getMany filters by order", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.createOrGet({
+      const eval1 = await adapter.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
@@ -530,7 +530,7 @@ describe("EvaliteAdapter", () => {
     testAllAdapters("getMany filters by statuses", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.createOrGet({
+      const eval1 = await adapter.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
@@ -569,7 +569,7 @@ describe("EvaliteAdapter", () => {
     testAllAdapters("create creates new score", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.createOrGet({
+      const eval1 = await adapter.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
@@ -607,7 +607,7 @@ describe("EvaliteAdapter", () => {
       async (getAdapter) => {
         await using adapter = await getAdapter();
         const run = await adapter.runs.create({ runType: "full" });
-        const eval1 = await adapter.evals.createOrGet({
+        const eval1 = await adapter.evals.create({
           runId: run.id,
           name: "test-eval",
           filepath: "/test/path.eval.ts",
@@ -638,7 +638,7 @@ describe("EvaliteAdapter", () => {
     testAllAdapters("getMany returns all scores", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.createOrGet({
+      const eval1 = await adapter.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
@@ -678,7 +678,7 @@ describe("EvaliteAdapter", () => {
     testAllAdapters("getMany filters by ids", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.createOrGet({
+      const eval1 = await adapter.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
@@ -717,7 +717,7 @@ describe("EvaliteAdapter", () => {
     testAllAdapters("getMany filters by resultIds", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.createOrGet({
+      const eval1 = await adapter.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
@@ -768,7 +768,7 @@ describe("EvaliteAdapter", () => {
     testAllAdapters("create creates new trace", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.createOrGet({
+      const eval1 = await adapter.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
@@ -813,7 +813,7 @@ describe("EvaliteAdapter", () => {
       async (getAdapter) => {
         await using adapter = await getAdapter();
         const run = await adapter.runs.create({ runType: "full" });
-        const eval1 = await adapter.evals.createOrGet({
+        const eval1 = await adapter.evals.create({
           runId: run.id,
           name: "test-eval",
           filepath: "/test/path.eval.ts",
@@ -848,7 +848,7 @@ describe("EvaliteAdapter", () => {
     testAllAdapters("getMany returns all traces", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.createOrGet({
+      const eval1 = await adapter.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
@@ -892,7 +892,7 @@ describe("EvaliteAdapter", () => {
     testAllAdapters("getMany filters by ids", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.createOrGet({
+      const eval1 = await adapter.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
@@ -935,7 +935,7 @@ describe("EvaliteAdapter", () => {
     testAllAdapters("getMany filters by resultIds", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.createOrGet({
+      const eval1 = await adapter.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",

@@ -29,10 +29,10 @@ export interface EvaliteAdapter {
    */
   evals: {
     /**
-     * Create or get an existing eval and return the complete eval entity.
+     * Create a new eval and return the complete eval entity.
      */
-    createOrGet(
-      opts: Evalite.Adapter.Evals.CreateOrGetOpts
+    create(
+      opts: Evalite.Adapter.Evals.CreateOpts
     ): Promise<Evalite.Adapter.Entities.Eval>;
 
     /**

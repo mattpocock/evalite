@@ -289,7 +289,7 @@ export declare namespace Evalite {
 
     // ========== EVALS ==========
     export namespace Evals {
-      export interface CreateOrGetOpts {
+      export interface CreateOpts {
         runId: number;
         name: string;
         filepath: string;

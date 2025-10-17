@@ -112,7 +112,7 @@ export class SqliteAdapter implements EvaliteAdapter {
     this.db = db;
   }
 
-  private createEvalIfNotExists({
+  private createEval({
     runId,
     name,
     filepath,
@@ -125,29 +125,20 @@ export class SqliteAdapter implements EvaliteAdapter {
     variantName?: string;
     variantGroup?: string;
   }): Evalite.Adapter.Entities.Eval {
-    let evaluationId: number | bigint | undefined = this.db
-      .prepare<
-        { name: string; runId: number | bigint },
-        { id: number }
-      >(`SELECT id FROM evals WHERE name = @name AND run_id = @runId`)
-      .get({ name, runId })?.id;
-
-    if (!evaluationId) {
-      evaluationId = this.db
-        .prepare(
-          `INSERT INTO evals (run_id, name, filepath, duration, status, variant_name, variant_group)
-           VALUES (@runId, @name, @filepath, @duration, @status, @variantName, @variantGroup)`
-        )
-        .run({
-          runId,
-          name,
-          filepath,
-          duration: 0,
-          status: "running",
-          variantName: variantName ?? null,
-          variantGroup: variantGroup ?? null,
-        }).lastInsertRowid;
-    }
+    const evaluationId = this.db
+      .prepare(
+        `INSERT INTO evals (run_id, name, filepath, duration, status, variant_name, variant_group)
+         VALUES (@runId, @name, @filepath, @duration, @status, @variantName, @variantGroup)`
+      )
+      .run({
+        runId,
+        name,
+        filepath,
+        duration: 0,
+        status: "running",
+        variantName: variantName ?? null,
+        variantGroup: variantGroup ?? null,
+      }).lastInsertRowid;
 
     return this.db
       .prepare<
@@ -446,10 +437,10 @@ export class SqliteAdapter implements EvaliteAdapter {
   };
 
   evals = {
-    createOrGet: async (
-      opts: Evalite.Adapter.Evals.CreateOrGetOpts
+    create: async (
+      opts: Evalite.Adapter.Evals.CreateOpts
     ): Promise<Evalite.Adapter.Entities.Eval> => {
-      return this.createEvalIfNotExists({
+      return this.createEval({
         ...opts,
       });
     },
