@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 import type { EvaliteAdapter } from "./adapters/types.js";
 import type { Evalite } from "./types.js";
 import { average, EvaliteFile } from "./utils.js";
+import { computeAverageScores } from "./adapters/utils.js";
 
 /**
  * Sanitizes an eval name for use in filenames
@@ -156,9 +157,7 @@ export const exportStaticUI = async (
   const allTraces = await adapter.traces.getMany({
     resultIds: allResults.map((r) => r.id),
   });
-  const averageScores = await adapter.results.getAverageScores({
-    ids: allResults.map((r) => r.id),
-  });
+  const averageScores = computeAverageScores(allScores);
 
   // Create file path mapper: original path -> unique filename
   const filePathMapper = new Map<string, string>();

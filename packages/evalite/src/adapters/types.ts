@@ -74,13 +74,6 @@ export interface EvaliteAdapter {
     getMany(
       opts?: Evalite.Adapter.Results.GetManyOpts
     ): Promise<Evalite.Adapter.Entities.Result[]>;
-
-    /**
-     * Get average scores for the specified results.
-     */
-    getAverageScores(
-      opts: Evalite.Adapter.Results.GetAverageScoresOpts
-    ): Promise<Array<{ result_id: number; average: number }>>;
   };
 
   /**

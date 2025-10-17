@@ -9,6 +9,7 @@ import type { Evalite } from "./types.js";
 import { createServer } from "./server.js";
 import { DEFAULT_SERVER_PORT } from "./constants.js";
 import { DB_LOCATION, FILES_LOCATION } from "./backend-only-constants.js";
+import { computeAverageScores } from "./adapters/utils.js";
 
 declare module "vitest" {
   export interface ProvidedContext {
@@ -50,9 +51,7 @@ const exportResultsToJSON = async (opts: {
     resultIds: evalResults.map((r) => r.id),
   });
 
-  const resultsAverageScores = await opts.adapter.results.getAverageScores({
-    ids: evalResults.map((r) => r.id),
-  });
+  const resultsAverageScores = computeAverageScores(allScores);
 
   // Group results by eval and transform to camelCase
   const outputData: Evalite.Exported.Output = {

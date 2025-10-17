@@ -563,52 +563,6 @@ describe("EvaliteAdapter", () => {
       expect(results).toHaveLength(1);
       expect(results[0]!.id).toBe(result1.id);
     });
-
-    testAllAdapters(
-      "getAverageScores calculates correctly",
-      async (getAdapter) => {
-        await using adapter = await getAdapter();
-        const run = await adapter.runs.create({ runType: "full" });
-        const eval1 = await adapter.evals.createOrGet({
-          runId: run.id,
-          name: "test-eval",
-          filepath: "/test/path.eval.ts",
-        });
-
-        const result1 = await adapter.results.create({
-          evalId: eval1.id,
-          order: 0,
-          input: {},
-          expected: {},
-          output: {},
-          duration: 100,
-          status: "success",
-          renderedColumns: [],
-        });
-
-        await adapter.scores.create({
-          resultId: result1.id,
-          name: "score-1",
-          score: 0.5,
-          metadata: null,
-        });
-
-        await adapter.scores.create({
-          resultId: result1.id,
-          name: "score-2",
-          score: 0.9,
-          metadata: null,
-        });
-
-        const averages = await adapter.results.getAverageScores({
-          ids: [result1.id],
-        });
-
-        expect(averages).toHaveLength(1);
-        expect(averages[0]!.result_id).toBe(result1.id);
-        expect(averages[0]!.average).toBe(0.7);
-      }
-    );
   });
 
   describe("scores", () => {

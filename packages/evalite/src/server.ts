@@ -6,6 +6,7 @@ import { fileURLToPath } from "url";
 import type { EvaliteAdapter } from "./adapters/types.js";
 import type { Evalite } from "./types.js";
 import { average } from "./utils.js";
+import { computeAverageScores } from "./adapters/utils.js";
 
 export type Server = ReturnType<typeof createServer>;
 
@@ -413,13 +414,11 @@ export const createServer = (opts: { adapter: EvaliteAdapter }) => {
         (r) => r.eval_id === prevEvaluation?.id
       );
 
-      const averageScores = await opts.adapter.results.getAverageScores({
-        ids: results.map((r) => r.id),
-      });
-
       const scores = await opts.adapter.scores.getMany({
         resultIds: results.map((r) => r.id),
       });
+
+      const averageScores = computeAverageScores(scores);
 
       const traces = await opts.adapter.traces.getMany({
         resultIds: results.map((r) => r.id),

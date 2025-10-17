@@ -112,22 +112,6 @@ export class SqliteAdapter implements EvaliteAdapter {
     this.db = db;
   }
 
-  private getAverageScoresFromResults(resultIds: number[]): {
-    result_id: number;
-    average: number;
-  }[] {
-    return this.db
-      .prepare<unknown[], { result_id: number; average: number }>(
-        `
-    SELECT result_id, AVG(score) as average
-    FROM scores
-    WHERE result_id IN (${resultIds.join(",")})
-    GROUP BY result_id
-  `
-      )
-      .all();
-  }
-
   private createEvalIfNotExists({
     runId,
     name,
@@ -600,12 +584,6 @@ export class SqliteAdapter implements EvaliteAdapter {
         "expected",
         "rendered_columns",
       ]);
-    },
-
-    getAverageScores: async (
-      opts: Evalite.Adapter.Results.GetAverageScoresOpts
-    ): Promise<Array<{ result_id: number; average: number }>> => {
-      return this.getAverageScoresFromResults(opts.ids);
     },
   };
 

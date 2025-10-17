@@ -283,28 +283,6 @@ export class InMemoryAdapter implements EvaliteAdapter {
         rendered_columns: JSON.parse(r.rendered_columns as string),
       }));
     },
-
-    getAverageScores: async (
-      opts: Evalite.Adapter.Results.GetAverageScoresOpts
-    ): Promise<Array<{ result_id: number; average: number }>> => {
-      const scores = Array.from(this.scoresStore.values()).filter((s) =>
-        opts.ids.includes(s.result_id)
-      );
-
-      const grouped = new Map<number, number[]>();
-      for (const score of scores) {
-        if (!grouped.has(score.result_id)) {
-          grouped.set(score.result_id, []);
-        }
-        grouped.get(score.result_id)!.push(score.score);
-      }
-
-      return Array.from(grouped.entries()).map(([result_id, scoreVals]) => ({
-        result_id,
-        average:
-          scoreVals.reduce((sum, val) => sum + val, 0) / scoreVals.length,
-      }));
-    },
   };
 
   scores = {

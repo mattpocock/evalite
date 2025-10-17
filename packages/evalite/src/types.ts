@@ -314,10 +314,6 @@ export declare namespace Evalite {
         orderBy?: "created_at" | "name" | "id";
         orderDirection?: "asc" | "desc";
       }
-
-      export interface GetAverageScoresOpts {
-        ids: number[];
-      }
     }
 
     // ========== RESULTS ==========
@@ -348,10 +344,6 @@ export declare namespace Evalite {
         evalIds?: number[];
         order?: number;
         statuses?: ResultStatus[];
-      }
-
-      export interface GetAverageScoresOpts {
-        ids: number[];
       }
     }
 

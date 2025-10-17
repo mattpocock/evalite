@@ -1,3 +1,5 @@
+import type { Evalite } from "../types.js";
+
 type Prettify<T> = {
   [K in keyof T]: T[K];
 } & {};
@@ -29,4 +31,20 @@ export const jsonParseFieldsArray = <T extends object, K extends keyof T>(
   fields: K[]
 ): JsonParseFields<T, K>[] => {
   return obj.map((o) => jsonParseFields(o, fields));
+};
+
+export const computeAverageScores = (
+  scores: Evalite.Adapter.Entities.Score[]
+): Array<{ result_id: number; average: number }> => {
+  const grouped = new Map<number, number[]>();
+  for (const score of scores) {
+    if (!grouped.has(score.result_id)) {
+      grouped.set(score.result_id, []);
+    }
+    grouped.get(score.result_id)!.push(score.score);
+  }
+  return Array.from(grouped.entries()).map(([result_id, scoreVals]) => ({
+    result_id,
+    average: scoreVals.reduce((sum, val) => sum + val, 0) / scoreVals.length,
+  }));
 };
