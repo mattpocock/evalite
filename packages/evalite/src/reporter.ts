@@ -98,6 +98,9 @@ export default class EvaliteReporter extends BasicReporter implements Reporter {
       type: "RUN_ENDED",
     });
 
+    // Wait for all queued events to complete
+    await this.runner.waitForCompletion();
+
     // Call reportTestSummary manually since BasicReporter's onFinished doesn't
     this.reportTestSummary(files);
   };

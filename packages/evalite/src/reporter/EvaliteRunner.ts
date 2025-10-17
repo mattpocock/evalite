@@ -14,6 +14,7 @@ export class EvaliteRunner {
   private state: Evalite.ServerState = { type: "idle" };
   private didLastRunFailThreshold: "yes" | "no" | "unknown" = "unknown";
   private collectedResults: Map<string, Evalite.Result> = new Map();
+  private eventQueue: Promise<void> = Promise.resolve();
 
   constructor(opts: EvaliteRunnerOptions) {
     this.opts = opts;
@@ -78,9 +79,22 @@ export class EvaliteRunner {
   }
 
   /**
+   * Wait for all queued events to complete processing
+   */
+  async waitForCompletion(): Promise<void> {
+    await this.eventQueue;
+  }
+
+  /**
    * Handles the state management for the reporter
    */
-  async sendEvent(event: ReporterEvent): Promise<void> {
+  sendEvent(event: ReporterEvent): void {
+    this.eventQueue = this.eventQueue.then(async () => {
+      await this.processEvent(event);
+    });
+  }
+
+  private async processEvent(event: ReporterEvent): Promise<void> {
     switch (this.state.type) {
       case "running":
         switch (event.type) {
