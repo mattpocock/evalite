@@ -31,7 +31,7 @@ const ADAPTERS_TO_TEST: AdapterTestFactory[] = [
  *   expect(run.runType).toBe("full");
  * });
  */
-export function testAdapter(
+export function testAllAdapters(
   name: string,
   testFn: (getAdapter: () => Promise<EvaliteAdapter>) => Promise<void>
 ): void {

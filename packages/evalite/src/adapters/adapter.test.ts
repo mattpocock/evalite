@@ -1,9 +1,9 @@
 import { describe, expect } from "vitest";
-import { testAdapter } from "./test-utils.js";
+import { testAllAdapters } from "./test-utils.js";
 
 describe("EvaliteAdapter", () => {
   describe("runs", () => {
-    testAdapter("creates run with full runType", async (getAdapter) => {
+    testAllAdapters("creates run with full runType", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
 
@@ -12,7 +12,7 @@ describe("EvaliteAdapter", () => {
       expect(run.created_at).toBeDefined();
     });
 
-    testAdapter("getMany returns all runs", async (getAdapter) => {
+    testAllAdapters("getMany returns all runs", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run1 = await adapter.runs.create({ runType: "full" });
       const run2 = await adapter.runs.create({ runType: "partial" });
@@ -24,7 +24,7 @@ describe("EvaliteAdapter", () => {
       expect(runs.map((r) => r.id)).toContain(run2.id);
     });
 
-    testAdapter("getMany filters by ids", async (getAdapter) => {
+    testAllAdapters("getMany filters by ids", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run1 = await adapter.runs.create({ runType: "full" });
       const run2 = await adapter.runs.create({ runType: "partial" });
@@ -35,7 +35,7 @@ describe("EvaliteAdapter", () => {
       expect(runs[0]!.id).toBe(run1.id);
     });
 
-    testAdapter("getMany filters by runType", async (getAdapter) => {
+    testAllAdapters("getMany filters by runType", async (getAdapter) => {
       await using adapter = await getAdapter();
       await adapter.runs.create({ runType: "full" });
       await adapter.runs.create({ runType: "partial" });
@@ -47,7 +47,7 @@ describe("EvaliteAdapter", () => {
       expect(runs.every((r) => r.runType === "full")).toBe(true);
     });
 
-    testAdapter("getMany respects limit", async (getAdapter) => {
+    testAllAdapters("getMany respects limit", async (getAdapter) => {
       await using adapter = await getAdapter();
       await adapter.runs.create({ runType: "full" });
       await adapter.runs.create({ runType: "full" });
@@ -58,7 +58,7 @@ describe("EvaliteAdapter", () => {
       expect(runs).toHaveLength(2);
     });
 
-    testAdapter(
+    testAllAdapters(
       "getMany respects orderBy and orderDirection",
       async (getAdapter) => {
         await using adapter = await getAdapter();
@@ -84,7 +84,7 @@ describe("EvaliteAdapter", () => {
   });
 
   describe("evals", () => {
-    testAdapter("createOrGet creates new eval", async (getAdapter) => {
+    testAllAdapters("createOrGet creates new eval", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
 
@@ -102,7 +102,7 @@ describe("EvaliteAdapter", () => {
       expect(eval1.created_at).toBeDefined();
     });
 
-    testAdapter("createOrGet gets existing eval", async (getAdapter) => {
+    testAllAdapters("createOrGet gets existing eval", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
 
@@ -121,7 +121,7 @@ describe("EvaliteAdapter", () => {
       expect(eval2.id).toBe(eval1.id);
     });
 
-    testAdapter(
+    testAllAdapters(
       "createOrGet handles variantName and variantGroup",
       async (getAdapter) => {
         await using adapter = await getAdapter();
@@ -140,7 +140,7 @@ describe("EvaliteAdapter", () => {
       }
     );
 
-    testAdapter("update changes eval status", async (getAdapter) => {
+    testAllAdapters("update changes eval status", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
       const eval1 = await adapter.evals.createOrGet({
@@ -157,7 +157,7 @@ describe("EvaliteAdapter", () => {
       expect(updated.status).toBe("success");
     });
 
-    testAdapter("getMany returns all evals", async (getAdapter) => {
+    testAllAdapters("getMany returns all evals", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
       const eval1 = await adapter.evals.createOrGet({
@@ -178,7 +178,7 @@ describe("EvaliteAdapter", () => {
       expect(evals.map((e) => e.id)).toContain(eval2.id);
     });
 
-    testAdapter("getMany filters by ids", async (getAdapter) => {
+    testAllAdapters("getMany filters by ids", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
       const eval1 = await adapter.evals.createOrGet({
@@ -198,7 +198,7 @@ describe("EvaliteAdapter", () => {
       expect(evals[0]!.id).toBe(eval1.id);
     });
 
-    testAdapter("getMany filters by runIds", async (getAdapter) => {
+    testAllAdapters("getMany filters by runIds", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run1 = await adapter.runs.create({ runType: "full" });
       const run2 = await adapter.runs.create({ runType: "full" });
@@ -219,7 +219,7 @@ describe("EvaliteAdapter", () => {
       expect(evals[0]!.id).toBe(eval2.id);
     });
 
-    testAdapter("getMany filters by name", async (getAdapter) => {
+    testAllAdapters("getMany filters by name", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
       await adapter.evals.createOrGet({
@@ -239,7 +239,7 @@ describe("EvaliteAdapter", () => {
       expect(evals[0]!.id).toBe(eval2.id);
     });
 
-    testAdapter("getMany filters by statuses", async (getAdapter) => {
+    testAllAdapters("getMany filters by statuses", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
       const eval1 = await adapter.evals.createOrGet({
@@ -273,7 +273,7 @@ describe("EvaliteAdapter", () => {
       expect(evals[0]!.id).toBe(eval1.id);
     });
 
-    testAdapter("getMany respects limit", async (getAdapter) => {
+    testAllAdapters("getMany respects limit", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
       await adapter.evals.createOrGet({
@@ -299,7 +299,7 @@ describe("EvaliteAdapter", () => {
   });
 
   describe("results", () => {
-    testAdapter("create creates new result", async (getAdapter) => {
+    testAllAdapters("create creates new result", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
       const eval1 = await adapter.evals.createOrGet({
@@ -333,7 +333,7 @@ describe("EvaliteAdapter", () => {
       expect(result.created_at).toBeDefined();
     });
 
-    testAdapter("update updates result", async (getAdapter) => {
+    testAllAdapters("update updates result", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
       const eval1 = await adapter.evals.createOrGet({
@@ -373,7 +373,7 @@ describe("EvaliteAdapter", () => {
       ]);
     });
 
-    testAdapter("getMany returns all results", async (getAdapter) => {
+    testAllAdapters("getMany returns all results", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
       const eval1 = await adapter.evals.createOrGet({
@@ -411,7 +411,7 @@ describe("EvaliteAdapter", () => {
       expect(results.map((r) => r.id)).toContain(result2.id);
     });
 
-    testAdapter("getMany filters by ids", async (getAdapter) => {
+    testAllAdapters("getMany filters by ids", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
       const eval1 = await adapter.evals.createOrGet({
@@ -448,7 +448,7 @@ describe("EvaliteAdapter", () => {
       expect(results[0]!.id).toBe(result1.id);
     });
 
-    testAdapter("getMany filters by evalIds", async (getAdapter) => {
+    testAllAdapters("getMany filters by evalIds", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
       const eval1 = await adapter.evals.createOrGet({
@@ -490,7 +490,7 @@ describe("EvaliteAdapter", () => {
       expect(results[0]!.id).toBe(result2.id);
     });
 
-    testAdapter("getMany filters by order", async (getAdapter) => {
+    testAllAdapters("getMany filters by order", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
       const eval1 = await adapter.evals.createOrGet({
@@ -527,7 +527,7 @@ describe("EvaliteAdapter", () => {
       expect(results[0]!.id).toBe(result2.id);
     });
 
-    testAdapter("getMany filters by statuses", async (getAdapter) => {
+    testAllAdapters("getMany filters by statuses", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
       const eval1 = await adapter.evals.createOrGet({
@@ -564,52 +564,55 @@ describe("EvaliteAdapter", () => {
       expect(results[0]!.id).toBe(result1.id);
     });
 
-    testAdapter("getAverageScores calculates correctly", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.createOrGet({
-        runId: run.id,
-        name: "test-eval",
-        filepath: "/test/path.eval.ts",
-      });
+    testAllAdapters(
+      "getAverageScores calculates correctly",
+      async (getAdapter) => {
+        await using adapter = await getAdapter();
+        const run = await adapter.runs.create({ runType: "full" });
+        const eval1 = await adapter.evals.createOrGet({
+          runId: run.id,
+          name: "test-eval",
+          filepath: "/test/path.eval.ts",
+        });
 
-      const result1 = await adapter.results.create({
-        evalId: eval1.id,
-        order: 0,
-        input: {},
-        expected: {},
-        output: {},
-        duration: 100,
-        status: "success",
-        renderedColumns: [],
-      });
+        const result1 = await adapter.results.create({
+          evalId: eval1.id,
+          order: 0,
+          input: {},
+          expected: {},
+          output: {},
+          duration: 100,
+          status: "success",
+          renderedColumns: [],
+        });
 
-      await adapter.scores.create({
-        resultId: result1.id,
-        name: "score-1",
-        score: 0.5,
-        metadata: null,
-      });
+        await adapter.scores.create({
+          resultId: result1.id,
+          name: "score-1",
+          score: 0.5,
+          metadata: null,
+        });
 
-      await adapter.scores.create({
-        resultId: result1.id,
-        name: "score-2",
-        score: 0.9,
-        metadata: null,
-      });
+        await adapter.scores.create({
+          resultId: result1.id,
+          name: "score-2",
+          score: 0.9,
+          metadata: null,
+        });
 
-      const averages = await adapter.results.getAverageScores({
-        ids: [result1.id],
-      });
+        const averages = await adapter.results.getAverageScores({
+          ids: [result1.id],
+        });
 
-      expect(averages).toHaveLength(1);
-      expect(averages[0]!.result_id).toBe(result1.id);
-      expect(averages[0]!.average).toBe(0.7);
-    });
+        expect(averages).toHaveLength(1);
+        expect(averages[0]!.result_id).toBe(result1.id);
+        expect(averages[0]!.average).toBe(0.7);
+      }
+    );
   });
 
   describe("scores", () => {
-    testAdapter("create creates new score", async (getAdapter) => {
+    testAllAdapters("create creates new score", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
       const eval1 = await adapter.evals.createOrGet({
@@ -645,37 +648,40 @@ describe("EvaliteAdapter", () => {
       expect(score.created_at).toBeDefined();
     });
 
-    testAdapter("create handles optional description", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.createOrGet({
-        runId: run.id,
-        name: "test-eval",
-        filepath: "/test/path.eval.ts",
-      });
-      const result = await adapter.results.create({
-        evalId: eval1.id,
-        order: 0,
-        input: {},
-        expected: {},
-        output: {},
-        duration: 100,
-        status: "success",
-        renderedColumns: [],
-      });
+    testAllAdapters(
+      "create handles optional description",
+      async (getAdapter) => {
+        await using adapter = await getAdapter();
+        const run = await adapter.runs.create({ runType: "full" });
+        const eval1 = await adapter.evals.createOrGet({
+          runId: run.id,
+          name: "test-eval",
+          filepath: "/test/path.eval.ts",
+        });
+        const result = await adapter.results.create({
+          evalId: eval1.id,
+          order: 0,
+          input: {},
+          expected: {},
+          output: {},
+          duration: 100,
+          status: "success",
+          renderedColumns: [],
+        });
 
-      const score = await adapter.scores.create({
-        resultId: result.id,
-        name: "accuracy",
-        score: 0.95,
-        metadata: null,
-      });
+        const score = await adapter.scores.create({
+          resultId: result.id,
+          name: "accuracy",
+          score: 0.95,
+          metadata: null,
+        });
 
-      // SQLite returns null for undefined optional fields
-      expect(score.description == null).toBe(true);
-    });
+        // SQLite returns null for undefined optional fields
+        expect(score.description == null).toBe(true);
+      }
+    );
 
-    testAdapter("getMany returns all scores", async (getAdapter) => {
+    testAllAdapters("getMany returns all scores", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
       const eval1 = await adapter.evals.createOrGet({
@@ -715,7 +721,7 @@ describe("EvaliteAdapter", () => {
       expect(scores.map((s) => s.id)).toContain(score2.id);
     });
 
-    testAdapter("getMany filters by ids", async (getAdapter) => {
+    testAllAdapters("getMany filters by ids", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
       const eval1 = await adapter.evals.createOrGet({
@@ -754,7 +760,7 @@ describe("EvaliteAdapter", () => {
       expect(scores[0]!.id).toBe(score1.id);
     });
 
-    testAdapter("getMany filters by resultIds", async (getAdapter) => {
+    testAllAdapters("getMany filters by resultIds", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
       const eval1 = await adapter.evals.createOrGet({
@@ -805,7 +811,7 @@ describe("EvaliteAdapter", () => {
   });
 
   describe("traces", () => {
-    testAdapter("create creates new trace", async (getAdapter) => {
+    testAllAdapters("create creates new trace", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
       const eval1 = await adapter.evals.createOrGet({
@@ -848,41 +854,44 @@ describe("EvaliteAdapter", () => {
       expect(trace.col_order).toBe(0);
     });
 
-    testAdapter("create handles optional token fields", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.createOrGet({
-        runId: run.id,
-        name: "test-eval",
-        filepath: "/test/path.eval.ts",
-      });
-      const result = await adapter.results.create({
-        evalId: eval1.id,
-        order: 0,
-        input: {},
-        expected: {},
-        output: {},
-        duration: 100,
-        status: "success",
-        renderedColumns: [],
-      });
+    testAllAdapters(
+      "create handles optional token fields",
+      async (getAdapter) => {
+        await using adapter = await getAdapter();
+        const run = await adapter.runs.create({ runType: "full" });
+        const eval1 = await adapter.evals.createOrGet({
+          runId: run.id,
+          name: "test-eval",
+          filepath: "/test/path.eval.ts",
+        });
+        const result = await adapter.results.create({
+          evalId: eval1.id,
+          order: 0,
+          input: {},
+          expected: {},
+          output: {},
+          duration: 100,
+          status: "success",
+          renderedColumns: [],
+        });
 
-      const trace = await adapter.traces.create({
-        resultId: result.id,
-        input: "test input",
-        output: "test output",
-        start: 1000,
-        end: 2000,
-        order: 0,
-      });
+        const trace = await adapter.traces.create({
+          resultId: result.id,
+          input: "test input",
+          output: "test output",
+          start: 1000,
+          end: 2000,
+          order: 0,
+        });
 
-      // SQLite returns null for undefined optional fields
-      expect(trace.input_tokens == null).toBe(true);
-      expect(trace.output_tokens == null).toBe(true);
-      expect(trace.total_tokens == null).toBe(true);
-    });
+        // SQLite returns null for undefined optional fields
+        expect(trace.input_tokens == null).toBe(true);
+        expect(trace.output_tokens == null).toBe(true);
+        expect(trace.total_tokens == null).toBe(true);
+      }
+    );
 
-    testAdapter("getMany returns all traces", async (getAdapter) => {
+    testAllAdapters("getMany returns all traces", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
       const eval1 = await adapter.evals.createOrGet({
@@ -926,7 +935,7 @@ describe("EvaliteAdapter", () => {
       expect(traces.map((t) => t.id)).toContain(trace2.id);
     });
 
-    testAdapter("getMany filters by ids", async (getAdapter) => {
+    testAllAdapters("getMany filters by ids", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
       const eval1 = await adapter.evals.createOrGet({
@@ -969,7 +978,7 @@ describe("EvaliteAdapter", () => {
       expect(traces[0]!.id).toBe(trace1.id);
     });
 
-    testAdapter("getMany filters by resultIds", async (getAdapter) => {
+    testAllAdapters("getMany filters by resultIds", async (getAdapter) => {
       await using adapter = await getAdapter();
       const run = await adapter.runs.create({ runType: "full" });
       const eval1 = await adapter.evals.createOrGet({
@@ -1024,12 +1033,12 @@ describe("EvaliteAdapter", () => {
   });
 
   describe("lifecycle", () => {
-    testAdapter("close method works", async (getAdapter) => {
+    testAllAdapters("close method works", async (getAdapter) => {
       const adapter = await getAdapter();
       await expect(adapter.close()).resolves.not.toThrow();
     });
 
-    testAdapter("Symbol.asyncDispose works", async (getAdapter) => {
+    testAllAdapters("Symbol.asyncDispose works", async (getAdapter) => {
       const adapter = await getAdapter();
       await expect(adapter[Symbol.asyncDispose]()).resolves.not.toThrow();
     });
