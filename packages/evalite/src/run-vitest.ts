@@ -21,32 +21,42 @@ const exportResultsToJSON = async (opts: {
   outputPath: string;
   cwd: string;
 }) => {
-  const latestFullRun = opts.adapter.getMostRecentRun("full");
+  const latestFullRunResults = opts.adapter.runs.getMany({
+    runType: "full",
+    orderBy: "created_at",
+    orderDirection: "desc",
+    limit: 1,
+  });
 
+  const latestFullRun = latestFullRunResults[0];
   if (!latestFullRun) {
-    console.warn("No completed run found to export");
-    return;
+    throw new Error("No completed run found to export");
   }
 
-  const allEvals = opts.adapter.getEvals(
-    [latestFullRun.id],
-    ["fail", "success"]
-  );
-  const evalResults = opts.adapter.getResults(
-    allEvals.map((e: any) => e.id).filter((i: any) => typeof i === "number")
-  );
+  const allEvals = opts.adapter.evals.getMany({
+    runIds: [latestFullRun.id],
+    statuses: ["fail", "success"],
+  });
 
-  const allScores = opts.adapter.getScores(evalResults.map((r: any) => r.id));
+  const evalResults = opts.adapter.results.getMany({
+    evalIds: allEvals.map((e) => e.id),
+  });
 
-  const allTraces = opts.adapter.getTraces(evalResults.map((r: any) => r.id));
+  const allScores = opts.adapter.scores.getMany({
+    resultIds: evalResults.map((r) => r.id),
+  });
 
-  const evalsAverageScores = opts.adapter.getEvalsAverageScores(
-    allEvals.map((e: any) => e.id)
-  );
+  const allTraces = opts.adapter.traces.getMany({
+    resultIds: evalResults.map((r) => r.id),
+  });
 
-  const resultsAverageScores = opts.adapter.getAverageScoresFromResults(
-    evalResults.map((r: any) => r.id)
-  );
+  const evalsAverageScores = opts.adapter.evals.getAverageScores({
+    ids: allEvals.map((e) => e.id),
+  });
+
+  const resultsAverageScores = opts.adapter.results.getAverageScores({
+    ids: evalResults.map((r) => r.id),
+  });
 
   // Group results by eval and transform to camelCase
   const outputData: Evalite.Exported.Output = {

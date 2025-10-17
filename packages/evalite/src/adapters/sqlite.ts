@@ -1,21 +1,12 @@
 import type * as BetterSqlite3 from "better-sqlite3";
-import Database from "better-sqlite3";
-import type { Db } from "../db.js";
-import type { Evalite } from "../types.js";
+import type { Db, EvalWithInlineResults } from "../db.js";
 import {
   createDatabase as createSqliteDatabase,
   createEvalIfNotExists as dbCreateEvalIfNotExists,
   createRun as dbCreateRun,
-  findResultByEvalIdAndOrder as dbFindResultByEvalIdAndOrder,
-  getAllResultsForEval as dbGetAllResultsForEval,
   getAverageScoresFromResults as dbGetAverageScoresFromResults,
-  getEvalByName as dbGetEvalByName,
-  getEvals as dbGetEvals,
   getEvalsAsRecord as dbGetEvalsAsRecord,
   getEvalsAverageScores as dbGetEvalsAverageScores,
-  getHistoricalEvalsWithScoresByName as dbGetHistoricalEvalsWithScoresByName,
-  getMostRecentRun as dbGetMostRecentRun,
-  getPreviousCompletedEval as dbGetPreviousCompletedEval,
   getResults as dbGetResults,
   getScores as dbGetScores,
   getTraces as dbGetTraces,
@@ -25,6 +16,7 @@ import {
   updateEvalStatusAndDuration as dbUpdateEvalStatusAndDuration,
   updateResult as dbUpdateResult,
 } from "../db.js";
+import type { Evalite } from "../types.js";
 import type { EvaliteAdapter } from "./types.js";
 
 export class SqliteAdapter implements EvaliteAdapter {
@@ -42,189 +34,278 @@ export class SqliteAdapter implements EvaliteAdapter {
     return new SqliteAdapter(db);
   }
 
-  createRun(runType: Evalite.RunType): number | bigint {
-    return dbCreateRun({ db: this.db, runType });
-  }
+  runs = {
+    create: (opts: Evalite.Adapter.Runs.CreateOpts): Db.Run => {
+      return dbCreateRun({ db: this.db, runType: opts.runType });
+    },
 
-  createEvalIfNotExists(opts: {
-    runId: number | bigint;
-    name: string;
-    filepath: string;
-    variantName?: string;
-    variantGroup?: string;
-  }): number | bigint {
-    return dbCreateEvalIfNotExists({
-      db: this.db,
-      ...opts,
-    });
-  }
+    getMany: (opts?: Evalite.Adapter.Runs.GetManyOpts): Db.Run[] => {
+      let query = `SELECT * FROM runs WHERE 1=1`;
+      const params: {
+        ids?: number[];
+        runType?: Evalite.RunType;
+        createdAt?: string;
+        createdAfter?: string;
+        createdBefore?: string;
+      } = {};
 
-  insertResult(opts: {
-    evalId: number | bigint;
-    order: number;
-    input: unknown;
-    expected: unknown;
-    output: unknown;
-    duration: number;
-    status: string;
-    renderedColumns: unknown;
-  }): number | bigint {
-    return dbInsertResult({
-      db: this.db,
-      evalId: opts.evalId,
-      order: opts.order,
-      input: opts.input,
-      expected: opts.expected,
-      output: opts.output,
-      duration: opts.duration,
-      status: opts.status,
-      renderedColumns: opts.renderedColumns,
-    });
-  }
+      if (opts?.ids && opts.ids.length > 0) {
+        query += ` AND id IN (${opts.ids.join(",")})`;
+      }
 
-  updateResult(opts: {
-    resultId: number | bigint;
-    output: unknown;
-    duration: number;
-    input: unknown;
-    expected: unknown;
-    status: string;
-    renderedColumns: unknown;
-  }): void {
-    dbUpdateResult({
-      db: this.db,
-      ...opts,
-    });
-  }
+      if (opts?.runType) {
+        query += ` AND runType = @runType`;
+        params.runType = opts.runType;
+      }
 
-  insertScore(opts: {
-    resultId: number | bigint;
-    name: string;
-    score: number;
-    description?: string;
-    metadata: unknown;
-  }): void {
-    dbInsertScore({
-      db: this.db,
-      resultId: opts.resultId,
-      name: opts.name,
-      score: opts.score,
-      description: opts.description,
-      metadata: opts.metadata,
-    });
-  }
+      if (opts?.createdAt) {
+        query += ` AND created_at = @createdAt`;
+        params.createdAt = opts.createdAt;
+      }
 
-  insertTrace(opts: {
-    resultId: number | bigint;
-    input: unknown;
-    output: unknown;
-    start: number;
-    end: number;
-    inputTokens?: number;
-    outputTokens?: number;
-    totalTokens?: number;
-    order: number;
-  }): void {
-    dbInsertTrace({
-      db: this.db,
-      resultId: opts.resultId,
-      input: opts.input,
-      output: opts.output,
-      start: opts.start,
-      end: opts.end,
-      inputTokens: opts.inputTokens,
-      outputTokens: opts.outputTokens,
-      totalTokens: opts.totalTokens,
-      order: opts.order,
-    });
-  }
+      if (opts?.createdAfter) {
+        query += ` AND created_at > @createdAfter`;
+        params.createdAfter = opts.createdAfter;
+      }
 
-  updateEvalStatusAndDuration(opts: {
-    evalId: number | bigint;
-    status: Db.EvalStatus;
-  }): void {
-    dbUpdateEvalStatusAndDuration({
-      db: this.db,
-      ...opts,
-    });
-  }
+      if (opts?.createdBefore) {
+        query += ` AND created_at < @createdBefore`;
+        params.createdBefore = opts.createdBefore;
+      }
 
-  getEvals(runIds: number[], allowedStatuses: Db.EvalStatus[]): Db.Eval[] {
-    return dbGetEvals(this.db, runIds, allowedStatuses);
-  }
+      query += ` ORDER BY ${opts?.orderBy ?? "created_at"} ${opts?.orderDirection ?? "DESC"}`;
 
-  getResults(evalIds: number[]): Db.Result[] {
-    return dbGetResults(this.db, evalIds);
-  }
+      if (opts?.limit) {
+        query += ` LIMIT ${opts.limit}`;
+      }
 
-  getScores(resultIds: number[]): Db.Score[] {
-    return dbGetScores(this.db, resultIds);
-  }
+      return this.db.prepare<typeof params, Db.Run>(query).all(params);
+    },
+  };
 
-  getTraces(resultIds: number[]): Db.Trace[] {
-    return dbGetTraces(this.db, resultIds);
-  }
+  evals = {
+    createOrGet: (opts: Evalite.Adapter.Evals.CreateOrGetOpts): Db.Eval => {
+      return dbCreateEvalIfNotExists({
+        db: this.db,
+        ...opts,
+      });
+    },
 
-  getMostRecentRun(runType: Evalite.RunType): Db.Run | undefined {
-    return dbGetMostRecentRun(this.db, runType);
-  }
+    update: (opts: Evalite.Adapter.Evals.UpdateOpts): Db.Eval => {
+      return dbUpdateEvalStatusAndDuration({
+        db: this.db,
+        evalId: opts.id,
+        status: opts.status,
+      });
+    },
 
-  getPreviousCompletedEval(
-    name: string,
-    startTime: string
-  ): Db.Eval | undefined {
-    return dbGetPreviousCompletedEval(this.db, name, startTime);
-  }
+    getMany: (opts?: Evalite.Adapter.Evals.GetManyOpts): Db.Eval[] => {
+      let query = `SELECT * FROM evals WHERE 1=1`;
+      const params: {
+        ids?: number[];
+        runIds?: number[];
+        name?: string;
+        statuses?: Db.EvalStatus[];
+        createdAt?: string;
+        createdAfter?: string;
+        createdBefore?: string;
+      } = {};
 
-  getAverageScoresFromResults(
-    resultIds: number[]
-  ): { result_id: number; average: number }[] {
-    return dbGetAverageScoresFromResults(this.db, resultIds);
-  }
+      if (opts?.ids && opts.ids.length > 0) {
+        query += ` AND id IN (${opts.ids.join(",")})`;
+      }
 
-  getEvalsAverageScores(
-    evalIds: number[]
-  ): { eval_id: number; average: number }[] {
-    return dbGetEvalsAverageScores(this.db, evalIds);
-  }
+      if (opts?.runIds && opts.runIds.length > 0) {
+        query += ` AND run_id IN (${opts.runIds.join(",")})`;
+      }
 
-  getEvalByName(opts: {
-    name: string;
-    timestamp?: string;
-    statuses?: Db.EvalStatus[];
-  }): Db.Eval | undefined {
-    return dbGetEvalByName(this.db, opts);
-  }
+      if (opts?.name) {
+        query += ` AND name = @name`;
+        params.name = opts.name;
+      }
 
-  getHistoricalEvalsWithScoresByName(
-    name: string
-  ): (Db.Eval & { average_score: number })[] {
-    return dbGetHistoricalEvalsWithScoresByName(this.db, name);
-  }
+      if (opts?.statuses && opts.statuses.length > 0) {
+        query += ` AND status IN (${opts.statuses.map((s) => `'${s}'`).join(",")})`;
+      }
 
-  findResultByEvalIdAndOrder(opts: {
-    evalId: number | bigint;
-    order: number;
-  }): number | undefined {
-    return dbFindResultByEvalIdAndOrder({
-      db: this.db,
-      ...opts,
-    });
-  }
+      if (opts?.createdAt) {
+        query += ` AND created_at = @createdAt`;
+        params.createdAt = opts.createdAt;
+      }
 
-  getAllResultsForEval(evalId: number | bigint): Array<{
-    id: number;
-    status: Evalite.ResultStatus;
-  }> {
-    return dbGetAllResultsForEval({
-      db: this.db,
-      evalId,
-    });
-  }
+      if (opts?.createdAfter) {
+        query += ` AND created_at > @createdAfter`;
+        params.createdAfter = opts.createdAfter;
+      }
 
-  async getEvalsAsRecord(): Promise<Record<string, any[]>> {
-    return dbGetEvalsAsRecord(this.db);
-  }
+      if (opts?.createdBefore) {
+        query += ` AND created_at < @createdBefore`;
+        params.createdBefore = opts.createdBefore;
+      }
+
+      query += ` ORDER BY ${opts?.orderBy ?? "created_at"} ${opts?.orderDirection ?? "DESC"}`;
+
+      if (opts?.limit) {
+        query += ` LIMIT ${opts.limit}`;
+      }
+
+      return this.db.prepare<typeof params, Db.Eval>(query).all(params);
+    },
+
+    getAverageScores: (
+      opts: Evalite.Adapter.Evals.GetAverageScoresOpts
+    ): Array<{ eval_id: number; average: number }> => {
+      return dbGetEvalsAverageScores(this.db, opts.ids);
+    },
+
+    getAsRecord: async (): Promise<Record<string, EvalWithInlineResults[]>> => {
+      return dbGetEvalsAsRecord(this.db);
+    },
+  };
+
+  results = {
+    create: (opts: Evalite.Adapter.Results.CreateOpts): Db.Result => {
+      return dbInsertResult({
+        db: this.db,
+        evalId: opts.evalId,
+        order: opts.order,
+        input: opts.input,
+        expected: opts.expected,
+        output: opts.output,
+        duration: opts.duration,
+        status: opts.status,
+        renderedColumns: opts.renderedColumns,
+      });
+    },
+
+    update: (opts: Evalite.Adapter.Results.UpdateOpts): Db.Result => {
+      return dbUpdateResult({
+        db: this.db,
+        resultId: opts.id,
+        ...opts,
+      });
+    },
+
+    getMany: (opts?: Evalite.Adapter.Results.GetManyOpts): Db.Result[] => {
+      let query = `SELECT * FROM results WHERE 1=1`;
+      const params: {
+        ids?: number[];
+        evalIds?: number[];
+        order?: number;
+        statuses?: Evalite.ResultStatus[];
+      } = {};
+
+      if (opts?.ids && opts.ids.length > 0) {
+        query += ` AND id IN (${opts.ids.join(",")})`;
+      }
+
+      if (opts?.evalIds && opts.evalIds.length > 0) {
+        query += ` AND eval_id IN (${opts.evalIds.join(",")})`;
+      }
+
+      if (opts?.order !== undefined) {
+        query += ` AND col_order = @order`;
+        params.order = opts.order;
+      }
+
+      if (opts?.statuses && opts.statuses.length > 0) {
+        query += ` AND status IN (${opts.statuses.map((s) => `'${s}'`).join(",")})`;
+      }
+
+      query += ` ORDER BY col_order ASC`;
+
+      const results = this.db
+        .prepare<typeof params, Db.Result>(query)
+        .all(params);
+
+      if (results.length === 0) return [];
+
+      return dbGetResults(
+        this.db,
+        results.map((r) => r.id)
+      );
+    },
+
+    getAverageScores: (
+      opts: Evalite.Adapter.Results.GetAverageScoresOpts
+    ): Array<{ result_id: number; average: number }> => {
+      return dbGetAverageScoresFromResults(this.db, opts.ids);
+    },
+  };
+
+  scores = {
+    create: (opts: Evalite.Adapter.Scores.CreateOpts): Db.Score => {
+      return dbInsertScore({
+        db: this.db,
+        resultId: opts.resultId,
+        name: opts.name,
+        score: opts.score,
+        description: opts.description ?? undefined,
+        metadata: opts.metadata,
+      });
+    },
+
+    getMany: (opts?: Evalite.Adapter.Scores.GetManyOpts): Db.Score[] => {
+      let query = `SELECT * FROM scores WHERE 1=1`;
+
+      if (opts?.ids && opts.ids.length > 0) {
+        query += ` AND id IN (${opts.ids.join(",")})`;
+      }
+
+      if (opts?.resultIds && opts.resultIds.length > 0) {
+        query += ` AND result_id IN (${opts.resultIds.join(",")})`;
+      }
+
+      const scores = this.db.prepare<{}, Db.Score>(query).all({});
+
+      if (scores.length === 0) return [];
+
+      return dbGetScores(
+        this.db,
+        scores.map((s) => s.id)
+      );
+    },
+  };
+
+  traces = {
+    create: (opts: Evalite.Adapter.Traces.CreateOpts): Db.Trace => {
+      return dbInsertTrace({
+        db: this.db,
+        resultId: opts.resultId,
+        input: opts.input,
+        output: opts.output,
+        start: opts.start,
+        end: opts.end,
+        inputTokens: opts.inputTokens ?? undefined,
+        outputTokens: opts.outputTokens ?? undefined,
+        totalTokens: opts.totalTokens ?? undefined,
+        order: opts.order,
+      });
+    },
+
+    getMany: (opts?: Evalite.Adapter.Traces.GetManyOpts): Db.Trace[] => {
+      let query = `SELECT * FROM traces WHERE 1=1`;
+
+      if (opts?.ids && opts.ids.length > 0) {
+        query += ` AND id IN (${opts.ids.join(",")})`;
+      }
+
+      if (opts?.resultIds && opts.resultIds.length > 0) {
+        query += ` AND result_id IN (${opts.resultIds.join(",")})`;
+      }
+
+      query += ` ORDER BY col_order ASC`;
+
+      const traces = this.db.prepare<{}, Db.Trace>(query).all({});
+
+      if (traces.length === 0) return [];
+
+      return dbGetTraces(
+        this.db,
+        traces.map((t) => t.id)
+      );
+    },
+  };
 
   async close(): Promise<void> {
     this.db.close();

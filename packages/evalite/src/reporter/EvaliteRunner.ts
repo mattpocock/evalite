@@ -1,4 +1,5 @@
 import type { EvaliteAdapter } from "../adapters/types.js";
+import type { Db } from "../db.js";
 import type { Evalite } from "../types.js";
 import type { ReporterEvent } from "./events.js";
 
@@ -89,20 +90,25 @@ export class EvaliteRunner {
             break;
           case "RESULT_STARTED":
             {
-              const runId =
-                this.state.runId ??
-                this.opts.adapter.createRun(this.state.runType);
+              const run: Db.Run = this.state.runId
+                ? this.opts.adapter.runs.getMany({
+                    ids: [this.state.runId as number],
+                    limit: 1,
+                  })[0]!
+                : this.opts.adapter.runs.create({
+                    runType: this.state.runType,
+                  });
 
-              const evalId = this.opts.adapter.createEvalIfNotExists({
+              const evaluation = this.opts.adapter.evals.createOrGet({
                 filepath: event.initialResult.filepath,
                 name: event.initialResult.evalName,
-                runId,
+                runId: run.id,
                 variantName: event.initialResult.variantName,
                 variantGroup: event.initialResult.variantGroup,
               });
 
-              const resultId = this.opts.adapter.insertResult({
-                evalId,
+              const result = this.opts.adapter.results.create({
+                evalId: evaluation.id,
                 order: event.initialResult.order,
                 input: "",
                 expected: "",
@@ -118,8 +124,8 @@ export class EvaliteRunner {
                   ...this.state.evalNamesRunning,
                   event.initialResult.evalName,
                 ],
-                resultIdsRunning: [...this.state.resultIdsRunning, resultId],
-                runId,
+                resultIdsRunning: [...this.state.resultIdsRunning, result.id],
+                runId: run.id,
               });
             }
 
@@ -130,27 +136,33 @@ export class EvaliteRunner {
               const resultKey = `${event.result.filepath}:${event.result.evalName}:${event.result.order}`;
               this.collectedResults.set(resultKey, event.result);
 
-              const runId =
-                this.state.runId ??
-                this.opts.adapter.createRun(this.state.runType);
+              const run = this.state.runId
+                ? this.opts.adapter.runs.getMany({
+                    ids: [this.state.runId as number],
+                    limit: 1,
+                  })[0]!
+                : this.opts.adapter.runs.create({
+                    runType: this.state.runType,
+                  });
 
-              const evalId = this.opts.adapter.createEvalIfNotExists({
+              const evaluation = this.opts.adapter.evals.createOrGet({
                 filepath: event.result.filepath,
                 name: event.result.evalName,
-                runId,
+                runId: run.id,
                 variantName: event.result.variantName,
                 variantGroup: event.result.variantGroup,
               });
 
-              let existingResultId: number | bigint | undefined =
-                this.opts.adapter.findResultByEvalIdAndOrder({
-                  evalId,
-                  order: event.result.order,
-                });
+              const existingResults = this.opts.adapter.results.getMany({
+                evalIds: [evaluation.id],
+                order: event.result.order,
+              });
 
-              if (existingResultId) {
-                this.opts.adapter.updateResult({
-                  resultId: existingResultId,
+              let resultId: number;
+              const existingResult = existingResults[0];
+              if (existingResult) {
+                const updated = this.opts.adapter.results.update({
+                  id: existingResult.id,
                   output: event.result.output,
                   duration: event.result.duration,
                   status: event.result.status,
@@ -158,9 +170,10 @@ export class EvaliteRunner {
                   input: event.result.input,
                   expected: event.result.expected,
                 });
+                resultId = updated.id;
               } else {
-                existingResultId = this.opts.adapter.insertResult({
-                  evalId,
+                const created = this.opts.adapter.results.create({
+                  evalId: evaluation.id,
                   order: event.result.order,
                   input: event.result.input,
                   expected: event.result.expected,
@@ -169,11 +182,12 @@ export class EvaliteRunner {
                   status: event.result.status,
                   renderedColumns: event.result.renderedColumns,
                 });
+                resultId = created.id;
               }
 
               for (const score of event.result.scores) {
-                this.opts.adapter.insertScore({
-                  resultId: existingResultId,
+                this.opts.adapter.scores.create({
+                  resultId: resultId,
                   description: score.description,
                   name: score.name,
                   score: score.score ?? 0,
@@ -184,8 +198,8 @@ export class EvaliteRunner {
               let traceOrder = 0;
               for (const trace of event.result.traces) {
                 traceOrder++;
-                this.opts.adapter.insertTrace({
-                  resultId: existingResultId,
+                this.opts.adapter.traces.create({
+                  resultId: resultId,
                   input: trace.input,
                   output: trace.output,
                   start: trace.start,
@@ -197,10 +211,12 @@ export class EvaliteRunner {
                 });
               }
 
-              const allResults = this.opts.adapter.getAllResultsForEval(evalId);
+              const allResults = this.opts.adapter.results.getMany({
+                evalIds: [evaluation.id],
+              });
 
               const resultIdsRunning = this.state.resultIdsRunning.filter(
-                (id) => id !== existingResultId
+                (id) => id !== resultId
               );
 
               /**
@@ -213,8 +229,8 @@ export class EvaliteRunner {
 
               // Update the eval status and duration
               if (isEvalComplete) {
-                this.opts.adapter.updateEvalStatusAndDuration({
-                  evalId,
+                this.opts.adapter.evals.update({
+                  id: evaluation.id,
                   status: allResults.some((r) => r.status === "fail")
                     ? "fail"
                     : "success",
@@ -229,7 +245,7 @@ export class EvaliteRunner {
                     )
                   : this.state.evalNamesRunning,
                 resultIdsRunning,
-                runId,
+                runId: run.id,
               });
             }
 

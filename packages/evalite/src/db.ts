@@ -166,7 +166,7 @@ export interface ResultWithInlineScoresAndTraces extends Db.Result {
   traces: Db.Trace[];
 }
 
-interface EvalWithInlineResults extends Db.Eval {
+export interface EvalWithInlineResults extends Db.Eval {
   results: ResultWithInlineScoresAndTraces[];
 }
 
@@ -437,7 +437,7 @@ export const createEvalIfNotExists = ({
   filepath: string;
   variantName?: string;
   variantGroup?: string;
-}): number | bigint => {
+}): Db.Eval => {
   let evaluationId: number | bigint | undefined = db
     .prepare<
       { name: string; runId: number | bigint },
@@ -462,7 +462,12 @@ export const createEvalIfNotExists = ({
       }).lastInsertRowid;
   }
 
-  return evaluationId;
+  return db
+    .prepare<
+      { id: number | bigint },
+      Db.Eval
+    >(`SELECT * FROM evals WHERE id = @id`)
+    .get({ id: evaluationId })!;
 };
 
 export const createRun = ({
@@ -471,10 +476,17 @@ export const createRun = ({
 }: {
   db: SQLiteDatabase;
   runType: Evalite.RunType;
-}): number | bigint => {
-  return db
+}): Db.Run => {
+  const id = db
     .prepare(`INSERT INTO runs (runType) VALUES (@runType)`)
     .run({ runType }).lastInsertRowid;
+
+  return db
+    .prepare<
+      { id: number | bigint },
+      Db.Run
+    >(`SELECT * FROM runs WHERE id = @id`)
+    .get({ id })!;
 };
 
 export const insertResult = ({
@@ -497,8 +509,8 @@ export const insertResult = ({
   duration: number;
   status: string;
   renderedColumns: unknown;
-}): number | bigint => {
-  return db
+}): Db.Result => {
+  const id = db
     .prepare(
       `INSERT INTO results (eval_id, col_order, input, expected, output, duration, status, rendered_columns)
        VALUES (@eval_id, @col_order, @input, @expected, @output, @duration, @status, @rendered_columns)`
@@ -513,6 +525,16 @@ export const insertResult = ({
       status,
       rendered_columns: JSON.stringify(renderedColumns),
     }).lastInsertRowid;
+
+  return jsonParseFields(
+    db
+      .prepare<
+        { id: number | bigint },
+        Db.Result
+      >(`SELECT * FROM results WHERE id = @id`)
+      .get({ id })!,
+    ["input", "output", "expected", "rendered_columns"]
+  );
 };
 
 export const updateResult = ({
@@ -533,7 +555,7 @@ export const updateResult = ({
   expected: unknown;
   status: string;
   renderedColumns: unknown;
-}) => {
+}): Db.Result => {
   db.prepare(
     `UPDATE results
      SET
@@ -553,6 +575,16 @@ export const updateResult = ({
     input: JSON.stringify(input),
     expected: JSON.stringify(expected),
   });
+
+  return jsonParseFields(
+    db
+      .prepare<
+        { id: number | bigint },
+        Db.Result
+      >(`SELECT * FROM results WHERE id = @id`)
+      .get({ id: resultId })!,
+    ["input", "output", "expected", "rendered_columns"]
+  );
 };
 
 export const insertScore = ({
@@ -569,17 +601,29 @@ export const insertScore = ({
   name: string;
   score: number;
   metadata: unknown;
-}) => {
-  db.prepare(
-    `INSERT INTO scores (result_id, name, score, metadata, description)
+}): Db.Score => {
+  const id = db
+    .prepare(
+      `INSERT INTO scores (result_id, name, score, metadata, description)
      VALUES (@result_id, @name, @score, @metadata, @description)`
-  ).run({
-    result_id: resultId,
-    description,
-    name,
-    score,
-    metadata: JSON.stringify(metadata),
-  });
+    )
+    .run({
+      result_id: resultId,
+      description,
+      name,
+      score,
+      metadata: JSON.stringify(metadata),
+    }).lastInsertRowid;
+
+  return jsonParseFields(
+    db
+      .prepare<
+        { id: number | bigint },
+        Db.Score
+      >(`SELECT * FROM scores WHERE id = @id`)
+      .get({ id })!,
+    ["metadata"]
+  );
 };
 
 export const insertTrace = ({
@@ -604,21 +648,33 @@ export const insertTrace = ({
   outputTokens: number | undefined;
   totalTokens: number | undefined;
   order: number;
-}) => {
-  db.prepare(
-    `INSERT INTO traces (result_id, input, output, start_time, end_time, input_tokens, output_tokens, total_tokens, col_order)
+}): Db.Trace => {
+  const id = db
+    .prepare(
+      `INSERT INTO traces (result_id, input, output, start_time, end_time, input_tokens, output_tokens, total_tokens, col_order)
      VALUES (@result_id, @input, @output, @start_time, @end_time, @input_tokens, @output_tokens, @total_tokens, @col_order)`
-  ).run({
-    result_id: resultId,
-    input: JSON.stringify(input),
-    output: JSON.stringify(output),
-    start_time: Math.round(start),
-    end_time: Math.round(end),
-    input_tokens: inputTokens,
-    output_tokens: outputTokens,
-    total_tokens: totalTokens,
-    col_order: order,
-  });
+    )
+    .run({
+      result_id: resultId,
+      input: JSON.stringify(input),
+      output: JSON.stringify(output),
+      start_time: Math.round(start),
+      end_time: Math.round(end),
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
+      total_tokens: totalTokens,
+      col_order: order,
+    }).lastInsertRowid;
+
+  return jsonParseFields(
+    db
+      .prepare<
+        { id: number | bigint },
+        Db.Trace
+      >(`SELECT * FROM traces WHERE id = @id`)
+      .get({ id })!,
+    ["input", "output"]
+  );
 };
 
 export const updateEvalStatusAndDuration = ({
@@ -629,7 +685,7 @@ export const updateEvalStatusAndDuration = ({
   db: SQLiteDatabase;
   evalId: number | bigint;
   status: Db.EvalStatus;
-}) => {
+}): Db.Eval => {
   db.prepare(
     `UPDATE evals
      SET status = @status,
@@ -639,6 +695,13 @@ export const updateEvalStatusAndDuration = ({
     id: evalId,
     status,
   });
+
+  return db
+    .prepare<
+      { id: number | bigint },
+      Db.Eval
+    >(`SELECT * FROM evals WHERE id = @id`)
+    .get({ id: evalId })!;
 };
 
 export const findResultByEvalIdAndOrder = ({

@@ -83,7 +83,14 @@ export const createServer = (opts: { adapter: EvaliteAdapter }) => {
   server.get<{
     Reply: Evalite.SDK.GetMenuItemsResult;
   }>("/api/menu-items", async (req, reply) => {
-    const latestFullRun = opts.adapter.getMostRecentRun("full");
+    const latestFullRunResults = opts.adapter.runs.getMany({
+      runType: "full",
+      orderBy: "created_at",
+      orderDirection: "desc",
+      limit: 1,
+    });
+
+    const latestFullRun = latestFullRunResults[0];
 
     if (!latestFullRun) {
       return reply.code(200).send({
@@ -94,7 +101,14 @@ export const createServer = (opts: { adapter: EvaliteAdapter }) => {
       });
     }
 
-    let latestPartialRun = opts.adapter.getMostRecentRun("partial");
+    const latestPartialRunResults = opts.adapter.runs.getMany({
+      runType: "partial",
+      orderBy: "created_at",
+      orderDirection: "desc",
+      limit: 1,
+    });
+
+    let latestPartialRun = latestPartialRunResults[0];
 
     /**
      * Ignore latestPartialRun if the latestFullRun is more
@@ -108,30 +122,46 @@ export const createServer = (opts: { adapter: EvaliteAdapter }) => {
       latestPartialRun = undefined;
     }
 
-    const allEvals = opts.adapter
-      .getEvals(
-        [latestFullRun.id, latestPartialRun?.id].filter(
-          (id) => typeof id === "number"
-        ),
-        ["fail", "success", "running"]
-      )
-      .map((e) => ({
-        ...e,
-        prevEval: opts.adapter.getPreviousCompletedEval(e.name, e.created_at),
-      }));
+    const runIds = [latestFullRun.id, latestPartialRun?.id].filter(
+      (id): id is number => typeof id === "number"
+    );
 
-    const evalsAverageScores = opts.adapter.getEvalsAverageScores(
-      allEvals.flatMap((e) => {
+    const allEvals = opts.adapter.evals
+      .getMany({
+        runIds,
+        statuses: ["fail", "success", "running"],
+      })
+      .map((e) => {
+        const prevEvalResults = opts.adapter.evals.getMany({
+          name: e.name,
+          createdBefore: e.created_at,
+          statuses: ["fail", "success"],
+          orderBy: "created_at",
+          orderDirection: "desc",
+          limit: 1,
+        });
+        return {
+          ...e,
+          prevEval: prevEvalResults[0],
+        };
+      });
+
+    const evalsAverageScores = opts.adapter.evals.getAverageScores({
+      ids: allEvals.flatMap((e) => {
         if (e.prevEval) {
           return [e.id, e.prevEval.id];
         }
         return [e.id];
-      })
-    );
+      }),
+    });
 
-    const allResults = opts.adapter.getResults(allEvals.map((e) => e.id));
+    const allResults = opts.adapter.results.getMany({
+      evalIds: allEvals.map((e) => e.id),
+    });
 
-    const allScores = opts.adapter.getScores(allResults.map((r) => r.id));
+    const allScores = opts.adapter.scores.getMany({
+      resultIds: allResults.map((r) => r.id),
+    });
 
     const createEvalMenuItem = (
       e: (typeof allEvals)[number]
@@ -215,27 +245,59 @@ export const createServer = (opts: { adapter: EvaliteAdapter }) => {
     handler: async (req, res) => {
       const name = req.query.name;
 
-      const evaluation = opts.adapter.getEvalByName({
+      const evaluationResults = opts.adapter.evals.getMany({
         name,
-        timestamp: req.query.timestamp,
+        createdAt: req.query.timestamp,
+        orderBy: "created_at",
+        orderDirection: "desc",
+        limit: 1,
       });
+
+      const evaluation = evaluationResults[0];
 
       if (!evaluation) {
         return res.code(404).send();
       }
 
-      const prevEvaluation = opts.adapter.getPreviousCompletedEval(
+      const prevEvaluationResults = opts.adapter.evals.getMany({
         name,
-        evaluation.created_at
+        createdBefore: evaluation.created_at,
+        statuses: ["fail", "success"],
+        orderBy: "created_at",
+        orderDirection: "desc",
+        limit: 1,
+      });
+
+      const prevEvaluation = prevEvaluationResults[0];
+
+      const evalIds = [evaluation.id, prevEvaluation?.id].filter(
+        (i): i is number => typeof i === "number"
       );
 
-      const results = opts.adapter.getResults(
-        [evaluation.id, prevEvaluation?.id].filter((i) => typeof i === "number")
-      );
+      const results = opts.adapter.results.getMany({
+        evalIds,
+      });
 
-      const scores = opts.adapter.getScores(results.map((r) => r.id));
+      const scores = opts.adapter.scores.getMany({
+        resultIds: results.map((r) => r.id),
+      });
 
-      const history = opts.adapter.getHistoricalEvalsWithScoresByName(name);
+      const historyEvals = opts.adapter.evals.getMany({
+        name,
+        statuses: ["fail", "success"],
+        orderBy: "created_at",
+        orderDirection: "asc",
+      });
+
+      const historyScores = opts.adapter.evals.getAverageScores({
+        ids: historyEvals.map((e) => e.id),
+      });
+
+      const history = historyEvals.map((e) => ({
+        average_score:
+          historyScores.find((s) => s.eval_id === e.id)?.average ?? 0,
+        created_at: e.created_at,
+      }));
 
       return res.code(200).send({
         history: history.map((h) => ({
@@ -288,24 +350,39 @@ export const createServer = (opts: { adapter: EvaliteAdapter }) => {
       },
     },
     handler: async (req, res) => {
-      const evaluation = opts.adapter.getEvalByName({
+      const evaluationResults = opts.adapter.evals.getMany({
         name: req.query.name,
-        timestamp: req.query.timestamp,
+        createdAt: req.query.timestamp,
         statuses: ["fail", "success"],
+        orderBy: "created_at",
+        orderDirection: "desc",
+        limit: 1,
       });
+
+      const evaluation = evaluationResults[0];
 
       if (!evaluation) {
         return res.code(404).send();
       }
 
-      const prevEvaluation = opts.adapter.getPreviousCompletedEval(
-        req.query.name,
-        evaluation.created_at
+      const prevEvaluationResults = opts.adapter.evals.getMany({
+        name: req.query.name,
+        createdBefore: evaluation.created_at,
+        statuses: ["fail", "success"],
+        orderBy: "created_at",
+        orderDirection: "desc",
+        limit: 1,
+      });
+
+      const prevEvaluation = prevEvaluationResults[0];
+
+      const evalIds = [evaluation.id, prevEvaluation?.id].filter(
+        (i): i is number => typeof i === "number"
       );
 
-      const results = opts.adapter.getResults(
-        [evaluation.id, prevEvaluation?.id].filter((i) => typeof i === "number")
-      );
+      const results = opts.adapter.results.getMany({
+        evalIds,
+      });
 
       const thisEvaluationResults = results.filter(
         (r) => r.eval_id === evaluation.id
@@ -317,17 +394,21 @@ export const createServer = (opts: { adapter: EvaliteAdapter }) => {
         return res.code(404).send();
       }
 
-      const prevEvaluationResults = results.filter(
+      const prevResultsForEval = results.filter(
         (r) => r.eval_id === prevEvaluation?.id
       );
 
-      const averageScores = opts.adapter.getAverageScoresFromResults(
-        results.map((r) => r.id)
-      );
+      const averageScores = opts.adapter.results.getAverageScores({
+        ids: results.map((r) => r.id),
+      });
 
-      const scores = opts.adapter.getScores(results.map((r) => r.id));
+      const scores = opts.adapter.scores.getMany({
+        resultIds: results.map((r) => r.id),
+      });
 
-      const traces = opts.adapter.getTraces(results.map((r) => r.id));
+      const traces = opts.adapter.traces.getMany({
+        resultIds: results.map((r) => r.id),
+      });
 
       const result: Evalite.SDK.GetResultResult["result"] = {
         ...thisResult,
@@ -338,7 +419,7 @@ export const createServer = (opts: { adapter: EvaliteAdapter }) => {
         traces: traces.filter((t) => t.result_id === thisResult.id),
       };
 
-      const prevResultInDb = prevEvaluationResults[Number(req.query.index)];
+      const prevResultInDb = prevResultsForEval[Number(req.query.index)];
 
       const prevResult: Evalite.SDK.GetResultResult["prevResult"] =
         prevResultInDb

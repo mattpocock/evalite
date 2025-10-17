@@ -193,6 +193,134 @@ export declare namespace Evalite {
   }
 
   /**
+   * Types for the Adapter API.
+   * These types define the interface for pluggable storage backends.
+   */
+  export namespace Adapter {
+    // ========== RUNS ==========
+    export namespace Runs {
+      export interface CreateOpts {
+        runType: RunType;
+      }
+
+      export interface GetManyOpts {
+        ids?: number[];
+        runType?: RunType;
+        createdAfter?: string;
+        createdBefore?: string;
+        createdAt?: string;
+        limit?: number;
+        orderBy?: "created_at" | "id";
+        orderDirection?: "asc" | "desc";
+      }
+    }
+
+    // ========== EVALS ==========
+    export namespace Evals {
+      export interface CreateOrGetOpts {
+        runId: number;
+        name: string;
+        filepath: string;
+        variantName?: string;
+        variantGroup?: string;
+      }
+
+      export interface UpdateOpts {
+        id: number;
+        status: Db.EvalStatus;
+      }
+
+      export interface GetManyOpts {
+        ids?: number[];
+        runIds?: number[];
+        name?: string;
+        statuses?: Db.EvalStatus[];
+        createdAt?: string;
+        createdAfter?: string;
+        createdBefore?: string;
+        limit?: number;
+        orderBy?: "created_at" | "name" | "id";
+        orderDirection?: "asc" | "desc";
+      }
+
+      export interface GetAverageScoresOpts {
+        ids: number[];
+      }
+    }
+
+    // ========== RESULTS ==========
+    export namespace Results {
+      export interface CreateOpts {
+        evalId: number;
+        order: number;
+        input: unknown;
+        expected: unknown;
+        output: unknown;
+        duration: number;
+        status: string;
+        renderedColumns: unknown;
+      }
+
+      export interface UpdateOpts {
+        id: number;
+        output: unknown;
+        duration: number;
+        input: unknown;
+        expected: unknown;
+        status: string;
+        renderedColumns: unknown;
+      }
+
+      export interface GetManyOpts {
+        ids?: number[];
+        evalIds?: number[];
+        order?: number;
+        statuses?: ResultStatus[];
+      }
+
+      export interface GetAverageScoresOpts {
+        ids: number[];
+      }
+    }
+
+    // ========== SCORES ==========
+    export namespace Scores {
+      export interface CreateOpts {
+        resultId: number;
+        name: string;
+        score: number;
+        description?: string;
+        metadata: unknown;
+      }
+
+      export interface GetManyOpts {
+        ids?: number[];
+        resultIds?: number[];
+      }
+    }
+
+    // ========== TRACES ==========
+    export namespace Traces {
+      export interface CreateOpts {
+        resultId: number;
+        input: unknown;
+        output: unknown;
+        start: number;
+        end: number;
+        inputTokens?: number;
+        outputTokens?: number;
+        totalTokens?: number;
+        order: number;
+      }
+
+      export interface GetManyOpts {
+        ids?: number[];
+        resultIds?: number[];
+      }
+    }
+  }
+
+  /**
    * Types for the exported evaluation output format.
    * These types represent the structure of JSON files created by the --outputPath flag.
    */
