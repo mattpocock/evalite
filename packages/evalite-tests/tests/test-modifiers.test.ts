@@ -1,20 +1,15 @@
-import { runEvalite } from "evalite/runner";
-import { captureStdout, loadFixture } from "./test-utils.js";
+import { loadFixture } from "./test-utils.js";
 import { expect, it } from "vitest";
 
 it("should call opts.data() 3 times when running 3 regular tests", async () => {
   // Load the regular fixture where 3 evalite tests log when opts.data is called.
-  const fixture = loadFixture("test-modifiers-regular");
-  const captured = captureStdout();
+  await using fixture = await loadFixture("test-modifiers-regular");
 
-  await runEvalite({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  const output = captured.getOutput();
+  const output = fixture.getOutput();
   const count1 = (
     output.match(/opts\.data\(\) called in Regular Test 1/g) || []
   ).length;
@@ -31,17 +26,13 @@ it("should call opts.data() 3 times when running 3 regular tests", async () => {
 
 it("should not call opts.data() for a skipped test", async () => {
   // Load the fixture where one test is skipped.
-  const fixture = loadFixture("test-modifiers-skipped");
-  const captured = captureStdout();
+  await using fixture = await loadFixture("test-modifiers-skipped");
 
-  await runEvalite({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  const output = captured.getOutput();
+  const output = fixture.getOutput();
   // The regular test should log, but the skipped test should not.
   expect(output).toContain("opts.data() called in Regular Test");
   expect(output).not.toContain("opts.data() called in Skipped Test");

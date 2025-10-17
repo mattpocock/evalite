@@ -1,27 +1,14 @@
-import { getEvalsAsRecordViaAdapter } from "./test-utils.js";
-import { runEvalite } from "evalite/runner";
-import { createSqliteAdapter } from "evalite/sqlite-adapter";
-import { assert, expect, it, vitest } from "vitest";
-import { captureStdout, loadFixture } from "./test-utils.js";
+import { assert, expect, it } from "vitest";
+import { getEvalsAsRecordViaAdapter, loadFixture } from "./test-utils.js";
 
 it("Should report traces from generateText using traceAISDKModel", async () => {
-  using fixture = loadFixture("ai-sdk-traces");
+  using fixture = await loadFixture("ai-sdk-traces");
 
-  const captured = captureStdout();
-  const exit = vitest.fn();
-  globalThis.process.exit = exit as any;
-
-  await using adapter = await createSqliteAdapter(fixture.dbLocation);
-  await runEvalite({
-    cwd: fixture.dir,
+  await fixture.run({
     mode: "run-once-and-exit",
-    path: undefined,
-    scoreThreshold: 50,
-    testOutputWritable: captured.writable,
-    adapter,
   });
 
-  const evals = await getEvalsAsRecordViaAdapter(adapter);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
 
   expect(evals["AI SDK Traces"]![0]?.results[0]?.traces).toHaveLength(1);
 
@@ -36,25 +23,16 @@ it("Should report traces from generateText using traceAISDKModel", async () => {
       },
     ],
   });
-
-  expect(exit).toHaveBeenCalledWith(1);
 });
 
 it("Should report traces from streamText using traceAISDKModel", async () => {
-  using fixture = loadFixture("ai-sdk-traces-stream");
+  using fixture = await loadFixture("ai-sdk-traces-stream");
 
-  const captured = captureStdout();
-  await using adapter = await createSqliteAdapter(fixture.dbLocation);
-
-  await runEvalite({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
-    adapter,
   });
 
-  const evals = await getEvalsAsRecordViaAdapter(adapter);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
 
   const traces = evals["AI SDK Traces"]![0]?.results[0]?.traces;
 

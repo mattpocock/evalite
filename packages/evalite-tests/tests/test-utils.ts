@@ -6,11 +6,13 @@ import { Writable } from "stream";
 import stripAnsi from "strip-ansi";
 import type { Evalite } from "evalite";
 import type { EvaliteAdapter } from "evalite/types";
+import { runEvalite } from "evalite/runner";
+import { createInMemoryAdapter } from "evalite/in-memory-adapter";
 
 const FIXTURES_DIR = path.join(import.meta.dirname, "./fixtures");
 const PLAYGROUND_DIR = path.join(import.meta.dirname, "./playground");
 
-export const loadFixture = (
+export const loadFixture = async (
   name: "basics" | "failing-test" | (string & {})
 ) => {
   const fixturePath = path.join(FIXTURES_DIR, name);
@@ -24,15 +26,37 @@ export const loadFixture = (
     recursive: true,
   });
 
+  await using adapter = await createInMemoryAdapter();
+
+  const captured = captureStdout();
+
   return {
     dir: dirPath,
+    adapter,
+    getOutput: () => captured.getOutput(),
     [Symbol.dispose]: () => {
       rmSync(dirPath, {
         recursive: true,
         force: true,
       });
     },
-    dbLocation: path.join(dirPath, DB_LOCATION),
+    run: async (opts: {
+      path?: string | undefined;
+      mode:
+        | "watch-for-file-changes"
+        | "run-once-and-exit"
+        | "run-once-and-serve";
+      scoreThreshold?: number;
+      outputPath?: string;
+      hideTable?: boolean;
+    }) => {
+      await runEvalite({
+        ...opts,
+        cwd: dirPath,
+        adapter,
+        testOutputWritable: captured.writable,
+      });
+    },
   };
 };
 

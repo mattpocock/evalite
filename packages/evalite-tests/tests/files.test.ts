@@ -1,22 +1,14 @@
-import { getEvalsAsRecordViaAdapter } from "./test-utils.js";
-import { createSqliteAdapter } from "evalite/sqlite-adapter";
 import { EvaliteFile } from "evalite";
-import { runEvalite } from "evalite/runner";
+import { FILES_LOCATION } from "evalite/backend-only-constants";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, it } from "vitest";
-import { captureStdout, loadFixture } from "./test-utils.js";
-import { FILES_LOCATION } from "evalite/backend-only-constants";
+import { getEvalsAsRecordViaAdapter, loadFixture } from "./test-utils.js";
 
 it("Should save files returned from task() in node_modules", async () => {
-  using fixture = loadFixture("files");
+  await using fixture = await loadFixture("files");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
@@ -32,8 +24,7 @@ it("Should save files returned from task() in node_modules", async () => {
 
   expect(file).toBeTruthy();
 
-  await using adapter = await createSqliteAdapter(fixture.dbLocation);
-  const evals = await getEvalsAsRecordViaAdapter(adapter);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
 
   expect(evals).toMatchObject({
     Files: [
@@ -49,14 +40,9 @@ it("Should save files returned from task() in node_modules", async () => {
 });
 
 it("Should save files reported in traces", async () => {
-  using fixture = loadFixture("files");
+  await using fixture = await loadFixture("files");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
@@ -68,8 +54,7 @@ it("Should save files reported in traces", async () => {
 
   const filePath = path.join(dir, files[0]!);
 
-  await using adapter = await createSqliteAdapter(fixture.dbLocation);
-  const evals = await getEvalsAsRecordViaAdapter(adapter);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
 
   expect(evals).toMatchObject({
     FilesWithTraces: [
@@ -89,30 +74,21 @@ it("Should save files reported in traces", async () => {
 });
 
 it("Should show the url in the CLI table", async () => {
-  using fixture = loadFixture("files");
+  await using fixture = await loadFixture("files");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
+  await fixture.run({
     mode: "run-once-and-exit",
-    testOutputWritable: captured.writable,
     path: "files-1.eval.ts",
   });
 
-  expect(captured.getOutput()).toContain(`.png`);
-  expect(captured.getOutput()).not.toContain(`__EvaliteFile`);
+  expect(fixture.getOutput()).toContain(`.png`);
+  expect(fixture.getOutput()).not.toContain(`__EvaliteFile`);
 });
 
 it("Should let users add files to data().input and data().expected", async () => {
-  using fixture = loadFixture("files");
+  await using fixture = await loadFixture("files");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
@@ -128,8 +104,7 @@ it("Should let users add files to data().input and data().expected", async () =>
 
   expect(file).toBeTruthy();
 
-  await using adapter = await createSqliteAdapter(fixture.dbLocation);
-  const evals = await getEvalsAsRecordViaAdapter(adapter);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
 
   expect(evals.FilesInInput![0]).toMatchObject({
     results: [
@@ -142,14 +117,9 @@ it("Should let users add files to data().input and data().expected", async () =>
 });
 
 it("Should let users add files to columns", async () => {
-  using fixture = loadFixture("files");
+  await using fixture = await loadFixture("files");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
@@ -165,8 +135,7 @@ it("Should let users add files to columns", async () => {
 
   expect(file).toBeTruthy();
 
-  await using adapter = await createSqliteAdapter(fixture.dbLocation);
-  const evals = await getEvalsAsRecordViaAdapter(adapter);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
 
   expect(evals.FilesWithColumns![0]).toMatchObject({
     results: [
@@ -183,14 +152,9 @@ it("Should let users add files to columns", async () => {
 });
 
 it("Should let users add files to experimental_customColumns", async () => {
-  using fixture = loadFixture("experimental_columns");
+  await using fixture = await loadFixture("experimental_columns");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
@@ -206,8 +170,7 @@ it("Should let users add files to experimental_customColumns", async () => {
 
   expect(file).toBeTruthy();
 
-  await using adapter = await createSqliteAdapter(fixture.dbLocation);
-  const evals = await getEvalsAsRecordViaAdapter(adapter);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
 
   expect(evals.experimental_customColumns![0]).toMatchObject({
     results: [

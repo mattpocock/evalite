@@ -1,45 +1,29 @@
-import { assert, expect, it } from "vitest";
-import { createSqliteAdapter } from "evalite/sqlite-adapter";
-import { runEvalite } from "evalite/runner";
-import {
-  captureStdout,
-  loadFixture,
-  getEvalsAsRecordViaAdapter,
-} from "./test-utils.js";
+import { expect, it } from "vitest";
+import { getEvalsAsRecordViaAdapter, loadFixture } from "./test-utils.js";
 
 it("Should allow you to pass a specific filename to run", async () => {
-  using fixture = loadFixture("paths");
+  await using fixture = await loadFixture("paths");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
-    path: "should-run.eval.ts",
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
+    path: "should-run.eval.ts",
   });
 
-  await using adapter = await createSqliteAdapter(fixture.dbLocation);
-  const evals = await getEvalsAsRecordViaAdapter(adapter);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
 
   expect(evals["Should Run"]).toHaveLength(1);
   expect(evals["Should Not Run"]).not.toBeDefined();
 });
 
 it("Should allow you to pass a filename filter", async () => {
-  using fixture = loadFixture("paths");
+  await using fixture = await loadFixture("paths");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
-    path: "should-run",
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
+    path: "should-run",
   });
 
-  await using adapter = await createSqliteAdapter(fixture.dbLocation);
-  const evals = await getEvalsAsRecordViaAdapter(adapter);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
 
   expect(evals["Should Run"]).toHaveLength(1);
   expect(evals["Should Not Run"]).not.toBeDefined();

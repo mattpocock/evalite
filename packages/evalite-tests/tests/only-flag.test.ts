@@ -8,19 +8,13 @@ import {
 } from "./test-utils.js";
 
 it("Should run only the marked entry when only: true is present", async () => {
-  using fixture = loadFixture("only-flag-single");
+  await using fixture = await loadFixture("only-flag-single");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  await using adapter = await createSqliteAdapter(fixture.dbLocation);
-  const evals = await getEvalsAsRecordViaAdapter(adapter);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
 
   // Should only have 1 result (the one with only: true)
   expect(evals["Only Flag Single"]?.[0]?.results).toHaveLength(1);
@@ -30,19 +24,13 @@ it("Should run only the marked entry when only: true is present", async () => {
 });
 
 it("Should run all entries when no only: true is present", async () => {
-  using fixture = loadFixture("only-flag-none");
+  await using fixture = await loadFixture("only-flag-none");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  await using adapter = await createSqliteAdapter(fixture.dbLocation);
-  const evals = await getEvalsAsRecordViaAdapter(adapter);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
 
   // Should have all 3 results
   expect(evals["Only Flag None"]?.[0]?.results).toHaveLength(3);
@@ -53,19 +41,13 @@ it("Should run all entries when no only: true is present", async () => {
 });
 
 it("Should run multiple entries when multiple only: true are present", async () => {
-  using fixture = loadFixture("only-flag-multiple");
+  await using fixture = await loadFixture("only-flag-multiple");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  await using adapter = await createSqliteAdapter(fixture.dbLocation);
-  const evals = await getEvalsAsRecordViaAdapter(adapter);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
 
   // Should only have 2 results (the ones with only: true)
   expect(evals["Only Flag Multiple"]?.[0]?.results).toHaveLength(2);
@@ -76,37 +58,26 @@ it("Should run multiple entries when multiple only: true are present", async () 
 });
 
 it("Should verify stdout shows correct test count for only flag", async () => {
-  using fixture = loadFixture("only-flag-single");
+  await using fixture = await loadFixture("only-flag-single");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  const output = captured.getOutput();
+  const output = fixture.getOutput();
 
   // Should show 1 eval ran (not 3)
   expect(output).toContain("Evals  1");
 });
 
 it("Should work with variants when only: true is present", async () => {
-  using fixture = loadFixture("only-flag-variants");
+  await using fixture = await loadFixture("only-flag-variants");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  await using adapter = await createSqliteAdapter(fixture.dbLocation);
-  const evals = await getEvalsAsRecordViaAdapter(adapter);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
 
   // Should have 2 evals (one per variant), each with 1 result
   const variantAEval = evals["Only Flag Variants [variant-a]"];

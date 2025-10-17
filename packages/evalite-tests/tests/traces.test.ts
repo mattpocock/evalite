@@ -1,23 +1,15 @@
 import { expect, it } from "vitest";
-import { createSqliteAdapter } from "evalite/sqlite-adapter";
-import { runEvalite } from "evalite/runner";
-import { captureStdout, loadFixture } from "./test-utils.js";
+import { loadFixture } from "./test-utils.js";
 import { getEvalsAsRecordViaAdapter } from "./test-utils.js";
 
 it("Should report traces from reportTrace", async () => {
-  using fixture = loadFixture("traces");
+  await using fixture = await loadFixture("traces");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  await using adapter = await createSqliteAdapter(fixture.dbLocation);
-  const evals = await getEvalsAsRecordViaAdapter(adapter);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
 
   expect(evals.Traces![0]).toMatchObject({
     results: [

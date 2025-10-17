@@ -1,39 +1,26 @@
 import { expect, it } from "vitest";
-import { createSqliteAdapter } from "evalite/sqlite-adapter";
-import { runEvalite } from "evalite/runner";
-import { captureStdout, loadFixture } from "./test-utils.js";
+import { loadFixture } from "./test-utils.js";
 import { getEvalsAsRecordViaAdapter } from "./test-utils.js";
 
 it("Should work with data as an array (polymorphic)", async () => {
-  using fixture = loadFixture("polymorphic-data");
+  await using fixture = await loadFixture("polymorphic-data");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  expect(captured.getOutput()).toContain("Duration");
-  expect(captured.getOutput()).toContain("Score  100%");
+  expect(fixture.getOutput()).toContain("Duration");
+  expect(fixture.getOutput()).toContain("Score  100%");
 });
 
 it("Should save results correctly with polymorphic data", async () => {
-  using fixture = loadFixture("polymorphic-data");
+  await using fixture = await loadFixture("polymorphic-data");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  await using adapter = await createSqliteAdapter(fixture.dbLocation);
-  const evals = await getEvalsAsRecordViaAdapter(adapter);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
 
   expect(evals).toMatchObject({
     "Direct Array Data": [

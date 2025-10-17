@@ -1,21 +1,15 @@
-import { runEvalite } from "evalite/runner";
 import { expect, it } from "vitest";
-import { captureStdout, loadFixture } from "./test-utils.js";
+import { loadFixture } from "./test-utils.js";
 
 it("Should report long text correctly", async () => {
-  using fixture = loadFixture("long-text");
+  await using fixture = await loadFixture("long-text");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  expect(captured.getOutput()).toContain("Input");
-  expect(captured.getOutput()).toContain("Output");
-  expect(captured.getOutput()).toContain("Score");
-  expect(captured.getOutput()).toContain("Some extremely long text");
+  expect(fixture.getOutput()).toContain("Input");
+  expect(fixture.getOutput()).toContain("Output");
+  expect(fixture.getOutput()).toContain("Score");
+  expect(fixture.getOutput()).toContain("Some extremely long text");
 });

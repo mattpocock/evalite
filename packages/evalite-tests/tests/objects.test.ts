@@ -1,26 +1,14 @@
-import { runEvalite } from "evalite/runner";
-import { assert, expect, it } from "vitest";
-import {
-  captureStdout,
-  getEvalsAsRecordViaAdapter,
-  loadFixture,
-} from "./test-utils.js";
-import { createSqliteAdapter } from "evalite/sqlite-adapter";
+import { expect, it } from "vitest";
+import { getEvalsAsRecordViaAdapter, loadFixture } from "./test-utils.js";
 
 it("Should handle objects as inputs and outputs", async () => {
-  using fixture = loadFixture("objects");
+  await using fixture = await loadFixture("objects");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  await using adapter = await createSqliteAdapter(fixture.dbLocation);
-  const evals = await getEvalsAsRecordViaAdapter(adapter);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
 
   expect(evals).toMatchObject({
     Basics: [

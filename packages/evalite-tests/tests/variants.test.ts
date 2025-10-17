@@ -5,19 +5,13 @@ import { captureStdout, loadFixture } from "./test-utils.js";
 import { getEvalsAsRecordViaAdapter } from "./test-utils.js";
 
 it("Should create separate evals for each variant", async () => {
-  using fixture = loadFixture("variants");
+  await using fixture = await loadFixture("variants");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  await using adapter = await createSqliteAdapter(fixture.dbLocation);
-  const evals = await getEvalsAsRecordViaAdapter(adapter);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
 
   // Should have 3 separate evals, one for each variant
   expect(evals["Compare models [Variant A]"]).toBeDefined();
@@ -26,19 +20,13 @@ it("Should create separate evals for each variant", async () => {
 });
 
 it("Should store variant metadata in database", async () => {
-  using fixture = loadFixture("variants");
+  await using fixture = await loadFixture("variants");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  await using adapter = await createSqliteAdapter(fixture.dbLocation);
-  const evals = await getEvalsAsRecordViaAdapter(adapter);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
 
   expect(evals["Compare models [Variant A]"]?.[0]).toMatchObject({
     variant_name: "Variant A",
@@ -57,19 +45,13 @@ it("Should store variant metadata in database", async () => {
 });
 
 it("Should pass correct variant value to task function", async () => {
-  using fixture = loadFixture("variants");
+  await using fixture = await loadFixture("variants");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  await using adapter = await createSqliteAdapter(fixture.dbLocation);
-  const evals = await getEvalsAsRecordViaAdapter(adapter);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
 
   // Each variant should have results with different outputs based on variant value
   expect(evals["Compare models [Variant A]"]?.[0]?.results[0]?.output).toBe(

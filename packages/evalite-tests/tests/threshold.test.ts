@@ -4,54 +4,39 @@ import { captureStdout, loadFixture } from "./test-utils.js";
 import { getEvalsAsRecordViaAdapter } from "./test-utils.js";
 
 it("Should set exitCode to 1 if the score is below the threshold", async () => {
-  using fixture = loadFixture("threshold");
-
-  const captured = captureStdout();
+  await using fixture = await loadFixture("threshold");
 
   const exit = vitest.fn();
 
   globalThis.process.exit = exit as any;
 
-  await runEvalite({
-    cwd: fixture.dir,
+  await fixture.run({
     mode: "run-once-and-exit",
-    path: undefined,
     scoreThreshold: 50,
-    testOutputWritable: captured.writable,
   });
 
-  expect(captured.getOutput()).toContain("Threshold  50% (failed)");
+  expect(fixture.getOutput()).toContain("Threshold  50% (failed)");
   expect(exit).toHaveBeenCalledWith(1);
 });
 
 it("Should pass if the score is at the threshold", async () => {
-  using fixture = loadFixture("threshold");
+  await using fixture = await loadFixture("threshold");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
+  await fixture.run({
     mode: "run-once-and-exit",
-    path: undefined,
     scoreThreshold: 20,
-    testOutputWritable: captured.writable,
   });
 
-  expect(captured.getOutput()).toContain("Threshold  20% (passed)");
+  expect(fixture.getOutput()).toContain("Threshold  20% (passed)");
 });
 
 it("Should pass if the score exceeds the threshold", async () => {
-  using fixture = loadFixture("threshold");
+  await using fixture = await loadFixture("threshold");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
+  await fixture.run({
     mode: "run-once-and-exit",
-    path: undefined,
     scoreThreshold: 10,
-    testOutputWritable: captured.writable,
   });
 
-  expect(captured.getOutput()).toContain("Threshold  10% (passed)");
+  expect(fixture.getOutput()).toContain("Threshold  10% (passed)");
 });

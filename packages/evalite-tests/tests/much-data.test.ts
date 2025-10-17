@@ -1,28 +1,16 @@
-import { runEvalite } from "evalite/runner";
-import { createSqliteAdapter } from "evalite/sqlite-adapter";
 import { expect, it } from "vitest";
-import {
-  captureStdout,
-  loadFixture,
-  getEvalsAsRecordViaAdapter,
-} from "./test-utils.js";
+import { getEvalsAsRecordViaAdapter, loadFixture } from "./test-utils.js";
 
 it("Should report long datasets consistently in the same order", async () => {
-  using fixture = loadFixture("much-data");
+  await using fixture = await loadFixture("much-data");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  await using adapter = await createSqliteAdapter(fixture.dbLocation);
-  const jsonDbEvals = await getEvalsAsRecordViaAdapter(adapter);
+  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
 
-  expect(jsonDbEvals["Much Data"]![0]!.results).toMatchObject([
+  expect(evals["Much Data"]![0]!.results).toMatchObject([
     {
       input: "first",
     },
