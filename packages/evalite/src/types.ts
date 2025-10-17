@@ -329,7 +329,7 @@ export declare namespace Evalite {
         expected: unknown;
         output: unknown;
         duration: number;
-        status: string;
+        status: ResultStatus;
         renderedColumns: unknown;
       }
 
@@ -339,7 +339,7 @@ export declare namespace Evalite {
         duration: number;
         input: unknown;
         expected: unknown;
-        status: string;
+        status: ResultStatus;
         renderedColumns: unknown;
       }
 

@@ -43,7 +43,8 @@
     "./ai-sdk": "./dist/ai-sdk.js",
     "./runner": "./dist/run-vitest.js",
     "./export-static": "./dist/export-static.js",
-    "./sqlite-adapter": "./dist/adapters/sqlite.js"
+    "./sqlite-adapter": "./dist/adapters/sqlite.js",
+    "./in-memory-adapter": "./dist/adapters/in-memory.js"
   },
   "dependencies": {
     "@ai-sdk/provider": "^2.0.0",

@@ -1,6 +1,7 @@
 import { it } from "vitest";
 import type { EvaliteAdapter } from "./types.js";
 import { SqliteAdapter } from "./sqlite.js";
+import { InMemoryAdapter } from "./in-memory.js";
 
 export type AdapterTestFactory = {
   name: string;
@@ -14,6 +15,10 @@ const ADAPTERS_TO_TEST: AdapterTestFactory[] = [
   {
     name: "SqliteAdapter",
     factory: async () => SqliteAdapter.create(":memory:"),
+  },
+  {
+    name: "InMemoryAdapter",
+    factory: async () => InMemoryAdapter.create(),
   },
 ];
 
