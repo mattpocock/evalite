@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { createSqliteAdapter } from "evalite/sqlite-adapter";
-import { runVitest } from "evalite/runner";
+import { runEvalite } from "evalite/runner";
 import { captureStdout, loadFixture } from "./test-utils.js";
 import { getEvalsAsRecordViaAdapter } from "./test-utils.js";
 
@@ -9,7 +9,7 @@ it("Should work with data as an array (polymorphic)", async () => {
 
   const captured = captureStdout();
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
     path: undefined,
     testOutputWritable: captured.writable,
@@ -25,14 +25,14 @@ it("Should save results correctly with polymorphic data", async () => {
 
   const captured = captureStdout();
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
     path: undefined,
     testOutputWritable: captured.writable,
     mode: "run-once-and-exit",
   });
 
-  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  await using adapter = await createSqliteAdapter(fixture.dbLocation);
   const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   expect(evals).toMatchObject({

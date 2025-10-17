@@ -510,3 +510,5 @@ export declare namespace Evalite {
     };
   }
 }
+
+export type { EvaliteAdapter } from "./adapters/types.js";

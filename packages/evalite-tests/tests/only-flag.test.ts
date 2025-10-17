@@ -19,7 +19,7 @@ it("Should run only the marked entry when only: true is present", async () => {
     mode: "run-once-and-exit",
   });
 
-  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  await using adapter = await createSqliteAdapter(fixture.dbLocation);
   const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   // Should only have 1 result (the one with only: true)
@@ -41,7 +41,7 @@ it("Should run all entries when no only: true is present", async () => {
     mode: "run-once-and-exit",
   });
 
-  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  await using adapter = await createSqliteAdapter(fixture.dbLocation);
   const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   // Should have all 3 results
@@ -64,7 +64,7 @@ it("Should run multiple entries when multiple only: true are present", async () 
     mode: "run-once-and-exit",
   });
 
-  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  await using adapter = await createSqliteAdapter(fixture.dbLocation);
   const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   // Should only have 2 results (the ones with only: true)
@@ -105,7 +105,7 @@ it("Should work with variants when only: true is present", async () => {
     mode: "run-once-and-exit",
   });
 
-  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  await using adapter = await createSqliteAdapter(fixture.dbLocation);
   const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   // Should have 2 evals (one per variant), each with 1 result

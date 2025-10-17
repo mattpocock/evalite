@@ -1,6 +1,6 @@
 import { assert, expect, it } from "vitest";
 import { createSqliteAdapter } from "evalite/sqlite-adapter";
-import { runVitest } from "evalite/runner";
+import { runEvalite } from "evalite/runner";
 import {
   captureStdout,
   loadFixture,
@@ -12,14 +12,14 @@ it("Should allow you to pass a specific filename to run", async () => {
 
   const captured = captureStdout();
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
     path: "should-run.eval.ts",
     testOutputWritable: captured.writable,
     mode: "run-once-and-exit",
   });
 
-  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  await using adapter = await createSqliteAdapter(fixture.dbLocation);
   const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   expect(evals["Should Run"]).toHaveLength(1);
@@ -31,14 +31,14 @@ it("Should allow you to pass a filename filter", async () => {
 
   const captured = captureStdout();
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
     path: "should-run",
     testOutputWritable: captured.writable,
     mode: "run-once-and-exit",
   });
 
-  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  await using adapter = await createSqliteAdapter(fixture.dbLocation);
   const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   expect(evals["Should Run"]).toHaveLength(1);

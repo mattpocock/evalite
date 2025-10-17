@@ -13,6 +13,10 @@ import {
 } from "./db.js";
 import type { Evalite } from "../types.js";
 import type { EvaliteAdapter } from "./types.js";
+import { mkdir } from "fs/promises";
+import path from "path";
+
+export type { EvaliteAdapter };
 
 export class SqliteAdapter implements EvaliteAdapter {
   private db: BetterSqlite3.Database;
@@ -323,9 +327,12 @@ export class SqliteAdapter implements EvaliteAdapter {
 
 /**
  * Create a new SQLite adapter
- * @param location - Path to the SQLite database file
+ * @param dbLocation - Path to the SQLite database file
  * @returns A new SqliteAdapter instance
  */
-export const createSqliteAdapter = (location: string): SqliteAdapter => {
-  return SqliteAdapter.create(location);
+export const createSqliteAdapter = async (
+  dbLocation: string
+): Promise<SqliteAdapter> => {
+  await mkdir(path.dirname(dbLocation), { recursive: true });
+  return SqliteAdapter.create(dbLocation);
 };

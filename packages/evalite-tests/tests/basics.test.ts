@@ -38,7 +38,7 @@ it("Should save the basic information in a db", async () => {
     mode: "run-once-and-exit",
   });
 
-  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  await using adapter = await createSqliteAdapter(fixture.dbLocation);
   const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   expect(evals).toMatchObject({
@@ -73,7 +73,7 @@ it.skip("Should capture the duration as being more than 0", async () => {
     mode: "run-once-and-exit",
   });
 
-  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  await using adapter = await createSqliteAdapter(fixture.dbLocation);
   const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   assert(typeof evals.Basics?.[0]?.duration === "number", "Duration exists");
@@ -111,7 +111,7 @@ it("Should capture the filepath of the eval", async () => {
     mode: "run-once-and-exit",
   });
 
-  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  await using adapter = await createSqliteAdapter(fixture.dbLocation);
   const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   expect(evals.Basics?.[0]?.filepath).toContain("basics.eval.ts");

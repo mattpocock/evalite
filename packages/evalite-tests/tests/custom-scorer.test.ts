@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { createSqliteAdapter } from "evalite/sqlite-adapter";
-import { runVitest } from "evalite/runner";
+import { runEvalite } from "evalite/runner";
 import { captureStdout, loadFixture } from "./test-utils.js";
 import { createScorer } from "evalite";
 import { getEvalsAsRecordViaAdapter } from "./test-utils.js";
@@ -10,7 +10,7 @@ it("Should let users create custom scorers", async () => {
 
   const captured = captureStdout();
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
 
     path: undefined,
@@ -18,7 +18,7 @@ it("Should let users create custom scorers", async () => {
     mode: "run-once-and-exit",
   });
 
-  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  await using adapter = await createSqliteAdapter(fixture.dbLocation);
   const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   expect(evals.Index![0]?.results[0]?.scores[0]?.name).toBe("Is Same");

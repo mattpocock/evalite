@@ -202,8 +202,7 @@ export const runEvalite = async (opts: {
 
   if (!adapter) {
     const dbLocation = path.join(cwd, DB_LOCATION);
-    await mkdir(path.dirname(dbLocation), { recursive: true });
-    adapter = createSqliteAdapter(dbLocation);
+    adapter = await createSqliteAdapter(dbLocation);
   }
 
   const filters = opts.path ? [opts.path] : undefined;

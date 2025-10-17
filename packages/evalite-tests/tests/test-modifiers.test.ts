@@ -1,4 +1,4 @@
-import { runVitest } from "evalite/runner";
+import { runEvalite } from "evalite/runner";
 import { captureStdout, loadFixture } from "./test-utils.js";
 import { expect, it } from "vitest";
 
@@ -7,7 +7,7 @@ it("should call opts.data() 3 times when running 3 regular tests", async () => {
   const fixture = loadFixture("test-modifiers-regular");
   const captured = captureStdout();
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
     path: undefined,
     testOutputWritable: captured.writable,
@@ -34,7 +34,7 @@ it("should not call opts.data() for a skipped test", async () => {
   const fixture = loadFixture("test-modifiers-skipped");
   const captured = captureStdout();
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
     path: undefined,
     testOutputWritable: captured.writable,

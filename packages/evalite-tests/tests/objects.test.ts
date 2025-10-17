@@ -1,4 +1,4 @@
-import { runVitest } from "evalite/runner";
+import { runEvalite } from "evalite/runner";
 import { assert, expect, it } from "vitest";
 import {
   captureStdout,
@@ -12,14 +12,14 @@ it("Should handle objects as inputs and outputs", async () => {
 
   const captured = captureStdout();
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
     path: undefined,
     testOutputWritable: captured.writable,
     mode: "run-once-and-exit",
   });
 
-  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  await using adapter = await createSqliteAdapter(fixture.dbLocation);
   const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   expect(evals).toMatchObject({

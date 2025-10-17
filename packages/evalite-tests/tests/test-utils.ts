@@ -5,7 +5,7 @@ import path from "path";
 import { Writable } from "stream";
 import stripAnsi from "strip-ansi";
 import type { Evalite } from "evalite";
-import { createSqliteAdapter } from "evalite/sqlite-adapter";
+import type { EvaliteAdapter } from "evalite/types";
 
 const FIXTURES_DIR = path.join(import.meta.dirname, "./fixtures");
 const PLAYGROUND_DIR = path.join(import.meta.dirname, "./playground");
@@ -68,7 +68,7 @@ export interface ResultWithInlineScoresAndTraces
  * Replaces deprecated getEvalsAsRecord.
  */
 export const getEvalsAsRecordViaAdapter = async (
-  adapter: ReturnType<typeof createSqliteAdapter>
+  adapter: EvaliteAdapter
 ): Promise<Record<string, EvalWithInlineResults[]>> => {
   const evals = await adapter.evals.getMany();
   const evalIds = evals.map((e) => e.id);

@@ -41,7 +41,7 @@ it("DB should have empty scores array", async () => {
     mode: "run-once-and-exit",
   });
 
-  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  await using adapter = await createSqliteAdapter(fixture.dbLocation);
   const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   expect(evals["No Scorers"]).toBeDefined();

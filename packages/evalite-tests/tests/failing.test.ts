@@ -1,6 +1,6 @@
 import { getEvalsAsRecordViaAdapter } from "./test-utils.js";
 import { createSqliteAdapter } from "evalite/sqlite-adapter";
-import { runVitest } from "evalite/runner";
+import { runEvalite } from "evalite/runner";
 import { expect, it, vitest } from "vitest";
 import { captureStdout, loadFixture } from "./test-utils.js";
 import type { Evalite } from "evalite";
@@ -12,7 +12,7 @@ it("Should set exitCode to 1 if there is a failing test", async () => {
   const exit = vitest.fn();
   globalThis.process.exit = exit as any;
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
     path: undefined,
     testOutputWritable: captured.writable,
@@ -30,7 +30,7 @@ it("Should report a failing test", async () => {
   const exit = vitest.fn();
   globalThis.process.exit = exit as any;
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
     path: undefined,
     testOutputWritable: captured.writable,
@@ -51,14 +51,14 @@ it("Should save the result AND eval as failed in the database", async () => {
   const exit = vitest.fn();
   globalThis.process.exit = exit as any;
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
     path: undefined,
     testOutputWritable: captured.writable,
     mode: "run-once-and-exit",
   });
 
-  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  await using adapter = await createSqliteAdapter(fixture.dbLocation);
   const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   expect(evals.Failing?.[0]).toMatchObject({

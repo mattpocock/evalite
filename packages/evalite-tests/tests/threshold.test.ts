@@ -1,5 +1,5 @@
 import { assert, expect, it, vitest } from "vitest";
-import { runVitest } from "evalite/runner";
+import { runEvalite } from "evalite/runner";
 import { captureStdout, loadFixture } from "./test-utils.js";
 import { getEvalsAsRecordViaAdapter } from "./test-utils.js";
 
@@ -12,7 +12,7 @@ it("Should set exitCode to 1 if the score is below the threshold", async () => {
 
   globalThis.process.exit = exit as any;
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
     mode: "run-once-and-exit",
     path: undefined,
@@ -29,7 +29,7 @@ it("Should pass if the score is at the threshold", async () => {
 
   const captured = captureStdout();
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
     mode: "run-once-and-exit",
     path: undefined,
@@ -45,7 +45,7 @@ it("Should pass if the score exceeds the threshold", async () => {
 
   const captured = captureStdout();
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
     mode: "run-once-and-exit",
     path: undefined,

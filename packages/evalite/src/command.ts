@@ -204,7 +204,7 @@ export const program = createProgram({
   export: async (opts) => {
     const cwd = process.cwd();
     const dbPath = path.join(cwd, DB_LOCATION);
-    const adapter = createSqliteAdapter(dbPath);
+    const adapter = await createSqliteAdapter(dbPath);
 
     try {
       await exportStaticUI({

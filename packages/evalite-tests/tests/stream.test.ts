@@ -1,4 +1,4 @@
-import { runVitest } from "evalite/runner";
+import { runEvalite } from "evalite/runner";
 import { createSqliteAdapter } from "evalite/sqlite-adapter";
 import { expect, it } from "vitest";
 import { loadFixture, captureStdout } from "./test-utils";
@@ -9,14 +9,14 @@ it("Should be able to handle a stream", async () => {
 
   const captured = captureStdout();
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
     path: undefined,
     testOutputWritable: captured.writable,
     mode: "run-once-and-exit",
   });
 
-  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  await using adapter = await createSqliteAdapter(fixture.dbLocation);
   const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   expect(evals.Stream?.[0]?.results[0]?.output).toBe("abcdef");

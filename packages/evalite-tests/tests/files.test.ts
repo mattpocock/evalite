@@ -1,7 +1,7 @@
 import { getEvalsAsRecordViaAdapter } from "./test-utils.js";
 import { createSqliteAdapter } from "evalite/sqlite-adapter";
 import { EvaliteFile } from "evalite";
-import { runVitest } from "evalite/runner";
+import { runEvalite } from "evalite/runner";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, it } from "vitest";
@@ -13,7 +13,7 @@ it("Should save files returned from task() in node_modules", async () => {
 
   const captured = captureStdout();
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
     path: undefined,
     testOutputWritable: captured.writable,
@@ -32,7 +32,7 @@ it("Should save files returned from task() in node_modules", async () => {
 
   expect(file).toBeTruthy();
 
-  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  await using adapter = await createSqliteAdapter(fixture.dbLocation);
   const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   expect(evals).toMatchObject({
@@ -53,7 +53,7 @@ it("Should save files reported in traces", async () => {
 
   const captured = captureStdout();
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
     path: undefined,
     testOutputWritable: captured.writable,
@@ -68,7 +68,7 @@ it("Should save files reported in traces", async () => {
 
   const filePath = path.join(dir, files[0]!);
 
-  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  await using adapter = await createSqliteAdapter(fixture.dbLocation);
   const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   expect(evals).toMatchObject({
@@ -93,7 +93,7 @@ it("Should show the url in the CLI table", async () => {
 
   const captured = captureStdout();
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
     mode: "run-once-and-exit",
     testOutputWritable: captured.writable,
@@ -109,7 +109,7 @@ it("Should let users add files to data().input and data().expected", async () =>
 
   const captured = captureStdout();
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
     path: undefined,
     testOutputWritable: captured.writable,
@@ -128,7 +128,7 @@ it("Should let users add files to data().input and data().expected", async () =>
 
   expect(file).toBeTruthy();
 
-  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  await using adapter = await createSqliteAdapter(fixture.dbLocation);
   const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   expect(evals.FilesInInput![0]).toMatchObject({
@@ -146,7 +146,7 @@ it("Should let users add files to columns", async () => {
 
   const captured = captureStdout();
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
     path: undefined,
     testOutputWritable: captured.writable,
@@ -165,7 +165,7 @@ it("Should let users add files to columns", async () => {
 
   expect(file).toBeTruthy();
 
-  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  await using adapter = await createSqliteAdapter(fixture.dbLocation);
   const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   expect(evals.FilesWithColumns![0]).toMatchObject({
@@ -187,7 +187,7 @@ it("Should let users add files to experimental_customColumns", async () => {
 
   const captured = captureStdout();
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
     path: undefined,
     testOutputWritable: captured.writable,
@@ -206,7 +206,7 @@ it("Should let users add files to experimental_customColumns", async () => {
 
   expect(file).toBeTruthy();
 
-  await using adapter = createSqliteAdapter(fixture.dbLocation);
+  await using adapter = await createSqliteAdapter(fixture.dbLocation);
   const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   expect(evals.experimental_customColumns![0]).toMatchObject({

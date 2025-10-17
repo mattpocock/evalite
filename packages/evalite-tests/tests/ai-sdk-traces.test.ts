@@ -1,5 +1,5 @@
 import { getEvalsAsRecordViaAdapter } from "./test-utils.js";
-import { runVitest } from "evalite/runner";
+import { runEvalite } from "evalite/runner";
 import { createSqliteAdapter } from "evalite/sqlite-adapter";
 import { assert, expect, it, vitest } from "vitest";
 import { captureStdout, loadFixture } from "./test-utils.js";
@@ -11,15 +11,16 @@ it("Should report traces from generateText using traceAISDKModel", async () => {
   const exit = vitest.fn();
   globalThis.process.exit = exit as any;
 
-  await runVitest({
+  await using adapter = await createSqliteAdapter(fixture.dbLocation);
+  await runEvalite({
     cwd: fixture.dir,
     mode: "run-once-and-exit",
     path: undefined,
     scoreThreshold: 50,
     testOutputWritable: captured.writable,
+    adapter,
   });
 
-  await using adapter = createSqliteAdapter(fixture.dbLocation);
   const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   expect(evals["AI SDK Traces"]![0]?.results[0]?.traces).toHaveLength(1);
@@ -43,15 +44,16 @@ it("Should report traces from streamText using traceAISDKModel", async () => {
   using fixture = loadFixture("ai-sdk-traces-stream");
 
   const captured = captureStdout();
+  await using adapter = await createSqliteAdapter(fixture.dbLocation);
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
     path: undefined,
     testOutputWritable: captured.writable,
     mode: "run-once-and-exit",
+    adapter,
   });
 
-  await using adapter = createSqliteAdapter(fixture.dbLocation);
   const evals = await getEvalsAsRecordViaAdapter(adapter);
 
   const traces = evals["AI SDK Traces"]![0]?.results[0]?.traces;

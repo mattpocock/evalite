@@ -1,6 +1,8 @@
 import type { Evalite } from "../types.js";
 import type { EvaliteAdapter } from "./types.js";
 
+export type { EvaliteAdapter };
+
 export class InMemoryAdapter implements EvaliteAdapter {
   private runsStore = new Map<number, Evalite.Adapter.Entities.Run>();
   private evalsStore = new Map<number, Evalite.Adapter.Entities.Eval>();

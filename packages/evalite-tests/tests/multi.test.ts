@@ -1,4 +1,4 @@
-import { runVitest } from "evalite/runner";
+import { runEvalite } from "evalite/runner";
 import { expect, it } from "vitest";
 import { captureStdout, loadFixture } from "./test-utils.js";
 
@@ -7,7 +7,7 @@ it("Should report multiple evals correctly", async () => {
 
   const captured = captureStdout();
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
     path: undefined,
     testOutputWritable: captured.writable,
@@ -28,7 +28,7 @@ it("Should not show a table when running multiple evals", async () => {
 
   const captured = captureStdout();
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
     path: undefined,
     testOutputWritable: captured.writable,

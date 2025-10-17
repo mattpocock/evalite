@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { runVitest } from "evalite/runner";
+import { runEvalite } from "evalite/runner";
 import { captureStdout, loadFixture } from "./test-utils.js";
 import { existsSync } from "fs";
 import { readFile } from "fs/promises";
@@ -11,7 +11,7 @@ it("Should export results to JSON when outputPath is specified", async () => {
   const captured = captureStdout();
   const outputPath = path.join(fixture.dir, "results.json");
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
     testOutputWritable: captured.writable,
     mode: "run-once-and-exit",
@@ -74,7 +74,7 @@ it("Should support relative output paths", async () => {
   const captured = captureStdout();
   const relativeOutputPath = "output/test-results.json";
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
     testOutputWritable: captured.writable,
     mode: "run-once-and-exit",
@@ -107,7 +107,7 @@ it("Should create nested directories if they don't exist", async () => {
     "results.json"
   );
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
     testOutputWritable: captured.writable,
     mode: "run-once-and-exit",
@@ -131,7 +131,7 @@ it("Should include result scores in the output", async () => {
   const captured = captureStdout();
   const outputPath = path.join(fixture.dir, "results.json");
 
-  await runVitest({
+  await runEvalite({
     cwd: fixture.dir,
     testOutputWritable: captured.writable,
     mode: "run-once-and-exit",
