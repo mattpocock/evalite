@@ -6,7 +6,33 @@ import { Steps } from "@astrojs/starlight/components";
 
 Since **Evalite is based on Vitest**, you can configure eval behavior using Vitest's configuration options. Each data point in your eval becomes a separate Vitest test case, which means all Vitest configuration options work with Evalite.
 
-## Basic Configuration
+## Evalite Configuration
+
+You can configure Evalite-specific options using `evalite.config.ts`:
+
+```ts
+// evalite.config.ts
+import { defineConfig } from "evalite/config";
+
+export default defineConfig({
+  testTimeout: 60000, // 60 seconds
+  scoreThreshold: 80, // Fail if average score < 80
+  hideTable: false,
+  server: {
+    port: 3006,
+  },
+});
+```
+
+### Available Options
+
+- **`testTimeout`**: Maximum time (in milliseconds) a test can run before timing out. Default is 30000ms (30 seconds).
+- **`scoreThreshold`**: Minimum average score (0-100). Process exits with code 1 if average score falls below this threshold.
+- **`hideTable`**: Hide the results table in terminal output. Default is false.
+- **`server.port`**: Port for the Evalite UI server. Default is 3006.
+- **`adapter`**: Factory function to create a custom storage adapter.
+
+## Vitest Configuration
 
 <Steps>
 
@@ -58,14 +84,30 @@ This is useful for optimizing performance and managing API rate limits.
 
 ### `testTimeout`
 
-Set the maximum time (in milliseconds) a test can run before timing out. Default is 5000ms.
+Set the maximum time (in milliseconds) a test can run before timing out. Default is 30000ms in Evalite.
+
+You can configure this in `evalite.config.ts`:
 
 ```ts
+// evalite.config.ts
+import { defineConfig } from "evalite/config";
+
+export default defineConfig({
+  testTimeout: 60000, // 60 seconds
+});
+```
+
+Or in `vitest.config.ts`:
+
+```ts
+// vitest.config.ts
 export default defineConfig({
   test: {
-    testTimeout: 30000, // 30 seconds
+    testTimeout: 60000, // 60 seconds
   },
 });
 ```
+
+Note: `vitest.config.ts` will override `evalite.config.ts` if both are present.
 
 For more Vitest configuration options, see the [Vitest documentation](https://vitest.dev/config/).

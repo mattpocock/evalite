@@ -50,6 +50,18 @@ export interface EvaliteConfig {
    * @default false
    */
   hideTable?: boolean;
+
+  /**
+   * Maximum time (in milliseconds) a test can run before timing out
+   * @default 30000
+   * @example
+   * ```ts
+   * export default defineConfig({
+   *   testTimeout: 60000 // 60 seconds
+   * })
+   * ```
+   */
+  testTimeout?: number;
 }
 
 /**

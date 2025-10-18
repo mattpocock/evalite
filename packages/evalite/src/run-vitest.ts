@@ -218,6 +218,7 @@ export const runEvalite = async (opts: {
   const scoreThreshold = opts.scoreThreshold ?? config?.scoreThreshold;
   const hideTable = opts.hideTable ?? config?.hideTable;
   const serverPort = config?.server?.port ?? DEFAULT_SERVER_PORT;
+  const testTimeout = config?.testTimeout;
 
   const filters = opts.path ? [opts.path] : undefined;
   process.env.EVALITE_REPORT_TRACES = "true";
@@ -272,7 +273,7 @@ export const runEvalite = async (opts: {
           // Everything inside this config CAN be overridden
           config(config) {
             config.test ??= {};
-            config.test.testTimeout ??= 30_000;
+            config.test.testTimeout ??= testTimeout ?? 30_000;
 
             config.test.sequence ??= {};
             config.test.sequence.concurrent ??= true;
