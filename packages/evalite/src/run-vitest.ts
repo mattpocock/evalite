@@ -11,6 +11,7 @@ import EvaliteReporter from "./reporter.js";
 import { createServer } from "./server.js";
 import type { Evalite } from "./types.js";
 import { createSqliteAdapter } from "./adapters/sqlite.js";
+import { loadEvaliteConfig } from "./config.js";
 
 declare module "vitest" {
   export interface ProvidedContext {
@@ -198,12 +199,25 @@ export const runEvalite = async (opts: {
   const filesLocation = path.join(cwd, FILES_LOCATION);
   await mkdir(filesLocation, { recursive: true });
 
+  // Load config file if present
+  const config = await loadEvaliteConfig(cwd);
+
+  // Merge options: opts (highest priority) > config > defaults
   let adapter = opts.adapter;
+
+  if (!adapter && config?.adapter) {
+    // Call config adapter factory (may be async)
+    adapter = await config.adapter();
+  }
 
   if (!adapter) {
     const dbLocation = path.join(cwd, DB_LOCATION);
     adapter = await createSqliteAdapter(dbLocation);
   }
+
+  const scoreThreshold = opts.scoreThreshold ?? config?.scoreThreshold;
+  const hideTable = opts.hideTable ?? config?.hideTable;
+  const serverPort = config?.server?.port ?? DEFAULT_SERVER_PORT;
 
   const filters = opts.path ? [opts.path] : undefined;
   process.env.EVALITE_REPORT_TRACES = "true";
@@ -217,7 +231,7 @@ export const runEvalite = async (opts: {
     server = createServer({
       adapter: adapter,
     });
-    server.start(DEFAULT_SERVER_PORT);
+    server.start(serverPort);
   }
 
   let exitCode: number | undefined = undefined;
@@ -235,17 +249,17 @@ export const runEvalite = async (opts: {
           logNewState: (newState) => {
             server?.updateState(newState);
           },
-          port: DEFAULT_SERVER_PORT,
+          port: serverPort,
           isWatching:
             opts.mode === "watch-for-file-changes" ||
             opts.mode === "run-once-and-serve",
           adapter: adapter,
-          scoreThreshold: opts.scoreThreshold,
+          scoreThreshold: scoreThreshold,
           modifyExitCode: (code) => {
             exitCode = code;
           },
           mode: opts.mode,
-          hideTable: opts.hideTable,
+          hideTable: hideTable,
         }),
       ],
       mode: "test",

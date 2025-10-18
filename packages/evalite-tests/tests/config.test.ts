@@ -12,3 +12,17 @@ it("Should ignore includes in a vite.config.ts", async () => {
 
   expect(evals.Basics).toHaveLength(1);
 });
+
+it("Should load evalite.config.ts and use custom adapter", async () => {
+  await using fixture = await loadFixture("evalite-config");
+
+  await fixture.run({
+    mode: "run-once-and-exit",
+  });
+
+  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
+
+  // Verify the eval ran successfully
+  expect(evals.Basics).toHaveLength(1);
+  expect(evals.Basics![0]!.results).toHaveLength(1);
+});

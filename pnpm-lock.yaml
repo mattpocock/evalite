@@ -232,6 +232,9 @@ importers:
       file-type:
         specifier: ^19.6.0
         version: 19.6.0
+      jiti:
+        specifier: ^2.6.1
+        version: 2.6.1
       table:
         specifier: ^6.9.0
         version: 6.9.0
