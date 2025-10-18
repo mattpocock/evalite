@@ -219,6 +219,7 @@ export const runEvalite = async (opts: {
   const hideTable = opts.hideTable ?? config?.hideTable;
   const serverPort = config?.server?.port ?? DEFAULT_SERVER_PORT;
   const testTimeout = config?.testTimeout;
+  const maxConcurrency = config?.maxConcurrency;
 
   const filters = opts.path ? [opts.path] : undefined;
   process.env.EVALITE_REPORT_TRACES = "true";
@@ -274,6 +275,7 @@ export const runEvalite = async (opts: {
           config(config) {
             config.test ??= {};
             config.test.testTimeout ??= testTimeout ?? 30_000;
+            config.test.maxConcurrency ??= maxConcurrency;
 
             config.test.sequence ??= {};
             config.test.sequence.concurrent ??= true;

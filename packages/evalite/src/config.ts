@@ -62,6 +62,18 @@ export interface EvaliteConfig {
    * ```
    */
   testTimeout?: number;
+
+  /**
+   * Maximum number of test cases to run in parallel
+   * @default 5
+   * @example
+   * ```ts
+   * export default defineConfig({
+   *   maxConcurrency: 100 // Run up to 100 tests in parallel
+   * })
+   * ```
+   */
+  maxConcurrency?: number;
 }
 
 /**

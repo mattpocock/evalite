@@ -2,4 +2,4 @@
 "evalite": patch
 ---
 
-Added `testTimeout` option to `evalite.config.ts` for configuring test timeout
+Added `testTimeout` and `maxConcurrency` options to `evalite.config.ts`

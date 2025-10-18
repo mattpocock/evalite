@@ -6,4 +6,5 @@ export default defineConfig({
     port: 3007,
   },
   testTimeout: 60000,
+  maxConcurrency: 10,
 });

@@ -16,6 +16,7 @@ import { defineConfig } from "evalite/config";
 
 export default defineConfig({
   testTimeout: 60000, // 60 seconds
+  maxConcurrency: 100, // Run up to 100 tests in parallel
   scoreThreshold: 80, // Fail if average score < 80
   hideTable: false,
   server: {
@@ -27,6 +28,7 @@ export default defineConfig({
 ### Available Options
 
 - **`testTimeout`**: Maximum time (in milliseconds) a test can run before timing out. Default is 30000ms (30 seconds).
+- **`maxConcurrency`**: Maximum number of test cases to run in parallel. Default is 5.
 - **`scoreThreshold`**: Minimum average score (0-100). Process exits with code 1 if average score falls below this threshold.
 - **`hideTable`**: Hide the results table in terminal output. Default is false.
 - **`server.port`**: Port for the Evalite UI server. Default is 3006.
@@ -68,11 +70,23 @@ export default defineConfig({
 
 ### `maxConcurrency`
 
-Control how many test cases run in parallel. By default, Vitest has a [concurrency limit of 5](https://vitest.dev/config/#maxconcurrency).
+Control how many test cases run in parallel. Default is 5.
 
-For large datasets, increase this to run more tests in parallel:
+You can configure this in `evalite.config.ts`:
 
 ```ts
+// evalite.config.ts
+import { defineConfig } from "evalite/config";
+
+export default defineConfig({
+  maxConcurrency: 100, // Run up to 100 tests in parallel
+});
+```
+
+Or in `vitest.config.ts`:
+
+```ts
+// vitest.config.ts
 export default defineConfig({
   test: {
     maxConcurrency: 100, // Run up to 100 tests in parallel
@@ -81,6 +95,8 @@ export default defineConfig({
 ```
 
 This is useful for optimizing performance and managing API rate limits.
+
+Note: `vitest.config.ts` will override `evalite.config.ts` if both are present.
 
 ### `testTimeout`
 
