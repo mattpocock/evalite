@@ -23,23 +23,5 @@ jobs:
       - run: pnpm install --no-frozen-lockfile
       - run: pnpm build
 
-      - name: Get affected packages paths
-        id: changed_packages
-        if: github.ref != 'refs/heads/main'
-        env:
-          TURBO_SCM_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
-        run: |
-          packages=$(pnpx turbo ls --affected --output=json \
-            | jq -r '.packages.items[].path' \
-            | paste -sd ',' - \
-            | sed 's/^/"/;s/$/"/;s/,/" "/g')
-          if [ -z "$packages" ]; then
-            echo "No packages changed"
-            echo "packages=" >> $GITHUB_OUTPUT
-          else
-            echo "Detected packages: $packages"
-            echo "packages=$packages" >> $GITHUB_OUTPUT
-          fi
       - name: Publish preview releases
-        if: github.ref != 'refs/heads/main' && steps.changed_packages.outputs.packages != ''
-        run: pnpx pkg-pr-new publish ${{ steps.changed_packages.outputs.packages }}
+        run: pnpx pkg-pr-new publish packages/evalite
