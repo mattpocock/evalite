@@ -3,7 +3,6 @@ import { fastifyWebsocket } from "@fastify/websocket";
 import fastify from "fastify";
 import path from "path";
 import { fileURLToPath } from "url";
-import type { EvaliteStorage } from "./storage/types.js";
 import type { Evalite } from "./types.js";
 import { average } from "./utils.js";
 import { computeAverageScores } from "./storage/utils.js";
@@ -51,7 +50,7 @@ export const handleWebsockets = (server: fastify.FastifyInstance) => {
   };
 };
 
-export const createServer = (opts: { storage: EvaliteStorage }) => {
+export const createServer = (opts: { storage: Evalite.Storage }) => {
   const UI_ROOT = path.join(
     path.dirname(fileURLToPath(import.meta.url)),
     "./ui"

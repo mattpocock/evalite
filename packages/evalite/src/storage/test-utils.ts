@@ -1,11 +1,11 @@
 import { it } from "vitest";
-import type { EvaliteStorage } from "./types.js";
+import type { Evalite } from "../types.js";
 import { SqliteStorage } from "./sqlite.js";
 import { InMemoryStorage } from "./in-memory.js";
 
 export type StorageTestFactory = {
   name: string;
-  factory: () => Promise<EvaliteStorage>;
+  factory: () => Promise<Evalite.Storage>;
 };
 
 /**
@@ -38,7 +38,7 @@ const ADAPTERS_TO_TEST: StorageTestFactory[] = [
  */
 export function testAllStorage(
   name: string,
-  testFn: (getStorage: () => Promise<EvaliteStorage>) => Promise<void>
+  testFn: (getStorage: () => Promise<Evalite.Storage>) => Promise<void>
 ): void {
   it.each(ADAPTERS_TO_TEST)(`$name - ${name}`, async ({ factory }) => {
     await testFn(factory);

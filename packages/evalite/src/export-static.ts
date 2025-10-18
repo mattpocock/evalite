@@ -1,7 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
-import type { EvaliteStorage } from "./storage/types.js";
 import type { Evalite } from "./types.js";
 import { average, EvaliteFile } from "./utils.js";
 import { computeAverageScores } from "./storage/utils.js";
@@ -17,7 +16,7 @@ const sanitizeFilename = (name: string): string => {
  * Get the previous completed eval by name and created_at time
  */
 const getPreviousCompletedEval = async (
-  storage: EvaliteStorage,
+  storage: Evalite.Storage,
   name: string,
   createdAt: string
 ): Promise<Evalite.Storage.Entities.Eval | undefined> => {
@@ -36,7 +35,7 @@ const getPreviousCompletedEval = async (
  * Get historical evals with average scores by name
  */
 const getHistoricalEvalsWithScoresByName = async (
-  storage: EvaliteStorage,
+  storage: Evalite.Storage,
   name: string
 ): Promise<(Evalite.Storage.Entities.Eval & { average_score: number })[]> => {
   const evals = await storage.evals.getMany({
@@ -105,7 +104,7 @@ const transformEvaliteFilePaths = (
  */
 export interface ExportStaticOptions {
   /** Storage instance for accessing evaluation data */
-  storage: EvaliteStorage;
+  storage: Evalite.Storage;
   /** Output directory path for the export */
   outputPath: string;
   /** Optional specific run ID to export (defaults to latest full run) */

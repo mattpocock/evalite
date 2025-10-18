@@ -3,7 +3,6 @@ import path from "path";
 import { Writable } from "stream";
 import { createVitest, registerConsoleShortcuts } from "vitest/node";
 import { createInMemoryStorage } from "./storage/in-memory.js";
-import type { EvaliteStorage } from "./storage/types.js";
 import { computeAverageScores } from "./storage/utils.js";
 import { DB_LOCATION, FILES_LOCATION } from "./backend-only-constants.js";
 import { DEFAULT_SERVER_PORT } from "./constants.js";
@@ -20,7 +19,7 @@ declare module "vitest" {
 }
 
 const exportResultsToJSON = async (opts: {
-  storage: EvaliteStorage;
+  storage: Evalite.Storage;
   outputPath: string;
   cwd: string;
 }) => {
@@ -193,7 +192,7 @@ export const runEvalite = async (opts: {
   scoreThreshold?: number;
   outputPath?: string;
   hideTable?: boolean;
-  storage?: EvaliteStorage;
+  storage?: Evalite.Storage;
 }) => {
   const cwd = opts.cwd ?? process.cwd();
   const filesLocation = path.join(cwd, FILES_LOCATION);

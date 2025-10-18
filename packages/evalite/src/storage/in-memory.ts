@@ -1,9 +1,6 @@
 import type { Evalite } from "../types.js";
-import type { EvaliteStorage } from "./types.js";
 
-export type { EvaliteStorage };
-
-export class InMemoryStorage implements EvaliteStorage {
+export class InMemoryStorage implements Evalite.Storage {
   private runsStore = new Map<number, Evalite.Storage.Entities.Run>();
   private evalsStore = new Map<number, Evalite.Storage.Entities.Eval>();
   private resultsStore = new Map<number, Evalite.Storage.Entities.Result>();

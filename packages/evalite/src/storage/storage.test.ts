@@ -1,7 +1,7 @@
 import { describe, expect } from "vitest";
 import { testAllStorage } from "./test-utils.js";
 
-describe("EvaliteStorage", () => {
+describe("Evalite.Storage", () => {
   describe("runs", () => {
     testAllStorage("creates run with full runType", async (getStorage) => {
       await using storage = await getStorage();

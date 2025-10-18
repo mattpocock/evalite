@@ -1,9 +1,8 @@
-import type { EvaliteStorage } from "../storage/types.js";
 import type { Evalite } from "../types.js";
 import type { ReporterEvent } from "./events.js";
 
 export interface EvaliteRunnerOptions {
-  storage: EvaliteStorage;
+  storage: Evalite.Storage;
   logNewState: (event: Evalite.ServerState) => void;
   modifyExitCode: (exitCode: number) => void;
   scoreThreshold: number | undefined;

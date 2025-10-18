@@ -9,7 +9,6 @@ import type {
   Vitest,
 } from "vitest/node.js";
 import { BasicReporter } from "vitest/reporters";
-import type { EvaliteStorage } from "./storage/types.js";
 import { EvaliteRunner } from "./reporter/EvaliteRunner.js";
 import {
   renderDetailedTable,
@@ -30,7 +29,7 @@ export interface EvaliteReporterOptions {
   isWatching: boolean;
   port: number;
   logNewState: (event: Evalite.ServerState) => void;
-  storage: EvaliteStorage;
+  storage: Evalite.Storage;
   scoreThreshold: number | undefined;
   modifyExitCode: (exitCode: number) => void;
   mode: "watch-for-file-changes" | "run-once-and-exit" | "run-once-and-serve";

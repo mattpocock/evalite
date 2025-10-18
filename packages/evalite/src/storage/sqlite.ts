@@ -1,12 +1,9 @@
 import type * as BetterSqlite3 from "better-sqlite3";
 import { jsonParseFields, jsonParseFieldsArray } from "./utils.js";
 import type { Evalite } from "../types.js";
-import type { EvaliteStorage } from "./types.js";
 import { mkdir } from "fs/promises";
 import path from "path";
 import Database from "better-sqlite3";
-
-export type { EvaliteStorage };
 
 const createDatabase = (url: string): BetterSqlite3.Database => {
   const db: BetterSqlite3.Database = new Database(url);
@@ -105,7 +102,7 @@ const createDatabase = (url: string): BetterSqlite3.Database => {
   return db;
 };
 
-export class SqliteStorage implements EvaliteStorage {
+export class SqliteStorage implements Evalite.Storage {
   private db: BetterSqlite3.Database;
 
   private constructor(db: BetterSqlite3.Database) {

@@ -1,80 +1,6 @@
 import { createJiti } from "jiti";
 import path from "path";
-import type { EvaliteStorage } from "./storage/types.js";
-
-/**
- * Configuration options for Evalite
- */
-export interface EvaliteConfig {
-  /**
-   * Factory function to create a custom storage backend.
-   * Can be async if the storage requires async initialization.
-   *
-   * @example
-   * ```ts
-   * import { createSqliteStorage } from "evalite/sqlite-storage"
-   *
-   * export default defineConfig({
-   *   storage: () => createSqliteStorage("./custom.db")
-   * })
-   * ```
-   */
-  storage?: () => EvaliteStorage | Promise<EvaliteStorage>;
-
-  /**
-   * Server configuration options
-   */
-  server?: {
-    /**
-     * Port for the Evalite UI server
-     * @default 3006
-     */
-    port?: number;
-  };
-
-  /**
-   * Minimum average score threshold (0-100).
-   * If the average score falls below this threshold, the process will exit with code 1.
-   *
-   * @example
-   * ```ts
-   * export default defineConfig({
-   *   scoreThreshold: 80 // Fail if average score < 80
-   * })
-   * ```
-   */
-  scoreThreshold?: number;
-
-  /**
-   * Hide the results table in terminal output
-   * @default false
-   */
-  hideTable?: boolean;
-
-  /**
-   * Maximum time (in milliseconds) a test can run before timing out
-   * @default 30000
-   * @example
-   * ```ts
-   * export default defineConfig({
-   *   testTimeout: 60000 // 60 seconds
-   * })
-   * ```
-   */
-  testTimeout?: number;
-
-  /**
-   * Maximum number of test cases to run in parallel
-   * @default 5
-   * @example
-   * ```ts
-   * export default defineConfig({
-   *   maxConcurrency: 100 // Run up to 100 tests in parallel
-   * })
-   * ```
-   */
-  maxConcurrency?: number;
-}
+import type { Evalite } from "./types.js";
 
 /**
  * Type-safe helper for defining Evalite configuration.
@@ -94,7 +20,7 @@ export interface EvaliteConfig {
  * })
  * ```
  */
-export function defineConfig(config: EvaliteConfig): EvaliteConfig {
+export function defineConfig(config: Evalite.Config): Evalite.Config {
   return config;
 }
 
@@ -114,7 +40,7 @@ const CONFIG_FILE_NAMES = [
  */
 export async function loadEvaliteConfig(
   cwd: string
-): Promise<EvaliteConfig | undefined> {
+): Promise<Evalite.Config | undefined> {
   const jiti = createJiti(import.meta.url, {
     interopDefault: true,
     requireCache: false,
@@ -128,7 +54,7 @@ export async function loadEvaliteConfig(
       const config = loaded.default || loaded.evalite || loaded;
 
       if (config && typeof config === "object") {
-        return config as EvaliteConfig;
+        return config as Evalite.Config;
       }
     } catch (error: any) {
       // File not found is expected, ignore it

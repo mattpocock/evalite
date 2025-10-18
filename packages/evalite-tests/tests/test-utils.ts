@@ -5,7 +5,6 @@ import path from "path";
 import { Writable } from "stream";
 import stripAnsi from "strip-ansi";
 import type { Evalite } from "evalite";
-import type { EvaliteStorage } from "evalite/types";
 import { runEvalite } from "evalite/runner";
 import { createInMemoryStorage } from "evalite/in-memory-storage";
 
@@ -92,7 +91,7 @@ export interface ResultWithInlineScoresAndTraces
  * Replaces deprecated getEvalsAsRecord.
  */
 export const getEvalsAsRecordViaStorage = async (
-  storage: EvaliteStorage
+  storage: Evalite.Storage
 ): Promise<Record<string, EvalWithInlineResults[]>> => {
   const evals = await storage.evals.getMany();
   const evalIds = evals.map((e) => e.id);
