@@ -1,5 +1,5 @@
 ---
-"evalite": patch
+"evalite": minor
 ---
 
-Added `testTimeout` and `maxConcurrency` options to `evalite.config.ts`
+Added `evalite.config.ts` file to configure Evalite. Added `testTimeout` and `maxConcurrency` options.
