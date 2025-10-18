@@ -71,6 +71,18 @@ export declare namespace Evalite {
      * ```
      */
     maxConcurrency?: number;
+
+    /**
+     * Number of times to run each test case for non-deterministic evaluations
+     * @default 1
+     * @example
+     * ```ts
+     * export default defineConfig({
+     *   trialCount: 3 // Run each test case 3 times
+     * })
+     * ```
+     */
+    trialCount?: number;
   }
 
   export type RunType = "full" | "partial";
@@ -99,6 +111,7 @@ export declare namespace Evalite {
     status: ResultStatus;
     variantName: string | undefined;
     variantGroup: string | undefined;
+    trialIndex: number | undefined;
   }
 
   export type ResultStatus = "success" | "fail" | "running";
@@ -115,6 +128,7 @@ export declare namespace Evalite {
     status: ResultStatus;
     variantName: string | undefined;
     variantGroup: string | undefined;
+    trialIndex: number | undefined;
     /**
      * Technically, input and expected are known at the start
      * of the evaluation. But because they may be files, they
@@ -184,6 +198,19 @@ export declare namespace Evalite {
     columns?: (
       opts: ScoreInput<TInput, TOutput, TExpected>
     ) => MaybePromise<RenderedColumn[]>;
+    /**
+     * Number of times to run each test case for non-deterministic evaluations
+     * @default 1
+     * @example
+     * ```ts
+     * evalite("My Eval", {
+     *   data: [...],
+     *   task: ...,
+     *   trialCount: 5 // Run each data point 5 times
+     * })
+     * ```
+     */
+    trialCount?: number;
   };
 
   export type ScorerOpts<TInput, TOutput, TExpected> = {
@@ -442,6 +469,7 @@ export declare namespace Evalite {
         col_order: number;
         status: ResultStatus;
         rendered_columns?: unknown;
+        trial_index?: number | null;
       };
 
       export type Score = {
@@ -526,6 +554,7 @@ export declare namespace Evalite {
         duration: number;
         status: ResultStatus;
         renderedColumns: unknown;
+        trialIndex?: number;
       }
 
       export interface UpdateOpts {
@@ -536,6 +565,7 @@ export declare namespace Evalite {
         expected: unknown;
         status: ResultStatus;
         renderedColumns: unknown;
+        trialIndex?: number;
       }
 
       export interface GetManyOpts {

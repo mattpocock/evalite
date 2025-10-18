@@ -183,11 +183,36 @@ function registerEvalite<TInput, TOutput, TExpected>(
       ? dataset.filter((d) => d.only === true)
       : dataset;
 
+    // Get trialCount from opts or config (opts wins)
+    const configTrialCount = inject("trialCount");
+    const trialCount = opts.trialCount ?? configTrialCount ?? 1;
+
+    // Expand dataset with trials
+    const expandedDataset: Array<{
+      input: TInput;
+      expected?: TExpected;
+      dataIndex: number;
+      trialIndex?: number;
+      index: number;
+    }> = [];
+
+    for (let dataIndex = 0; dataIndex < filteredDataset.length; dataIndex++) {
+      const dataPoint = filteredDataset[dataIndex]!;
+
+      for (let trialIndex = 0; trialIndex < trialCount; trialIndex++) {
+        expandedDataset.push({
+          input: dataPoint.input,
+          expected: dataPoint.expected,
+          dataIndex,
+          trialIndex: trialCount > 1 ? trialIndex : undefined,
+          index: expandedDataset.length,
+        });
+      }
+    }
+
     // Create individual tests manually to avoid serialization
     // This allows non-serializable data (like Zod schemas) in closures
-    for (let index = 0; index < filteredDataset.length; index++) {
-      const data = { ...filteredDataset[index]!, index };
-
+    for (const data of expandedDataset) {
       it.concurrent(fullEvalName, async ({ task, annotate }) => {
         if (!annotate || typeof annotate !== "function") {
           throw new Error(
@@ -210,6 +235,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
               variantName: vitestOpts.variantName,
               variantGroup: vitestOpts.variantGroup,
               status: "running",
+              trialIndex: data.trialIndex,
             },
           })
         );
@@ -282,6 +308,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
                 renderedColumns,
                 variantName: vitestOpts.variantName,
                 variantGroup: vitestOpts.variantGroup,
+                trialIndex: data.trialIndex,
               },
             })
           );
@@ -316,6 +343,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
                 renderedColumns: [],
                 variantName: vitestOpts.variantName,
                 variantGroup: vitestOpts.variantGroup,
+                trialIndex: data.trialIndex,
               },
             })
           );

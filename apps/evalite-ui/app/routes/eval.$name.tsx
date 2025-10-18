@@ -14,6 +14,7 @@ import { Separator } from "~/components/ui/separator";
 import {
   Table,
   TableBody,
+  TableCell,
   TableHead,
   TableHeader,
   TableRow,
@@ -27,6 +28,8 @@ import {
 } from "~/data/queries";
 import { useSuspenseQueries } from "@tanstack/react-query";
 import { average } from "evalite/utils";
+import { useMemo } from "react";
+import type { Evalite } from "evalite";
 
 const searchSchema = z.object({
   timestamp: z.string().optional(),
@@ -49,6 +52,158 @@ export const Route = createFileRoute("/eval/$name")({
   },
   component: EvalComponent,
 });
+
+type ResultTableRowProps = {
+  result: Evalite.Storage.Entities.Result & {
+    scores: Evalite.Storage.Entities.Score[];
+  };
+  resultIndex: number;
+  name: string;
+  timestamp: string | undefined;
+  showExpectedColumn: boolean;
+  isRunningEval: boolean;
+  hasScores: boolean;
+  prevEvaluation: Evalite.SDK.GetEvalByNameResult["prevEvaluation"];
+  trialConfig?: {
+    isFirstTrial: boolean;
+    rowSpan: number;
+    isOddGroup: boolean;
+  };
+};
+
+const makeWrapper =
+  (opts: {
+    resultIndex: number;
+    timestamp: string | undefined;
+    name: string;
+  }) =>
+  (props: { children: React.ReactNode }) => (
+    <Link
+      preload="intent"
+      to={"/eval/$name/result/$resultIndex"}
+      params={{
+        name: opts.name,
+        resultIndex: opts.resultIndex.toString(),
+      }}
+      search={{
+        timestamp: opts.timestamp,
+      }}
+      resetScroll={false}
+      className="block h-full p-4"
+      activeProps={{
+        className: "active",
+      }}
+    >
+      {props.children}
+    </Link>
+  );
+
+function ResultTableRow({
+  result,
+  resultIndex,
+  name,
+  timestamp,
+  showExpectedColumn,
+  isRunningEval,
+  hasScores,
+  prevEvaluation,
+  trialConfig,
+}: ResultTableRowProps) {
+  const Wrapper = useMemo(
+    () => makeWrapper({ resultIndex, timestamp, name }),
+    [resultIndex, timestamp, name]
+  );
+  return (
+    <TableRow className={cn("has-[.active]:bg-foreground/20!")}>
+      {isArrayOfRenderedColumns(result.rendered_columns) ? (
+        <>
+          {result.rendered_columns.map((column) => (
+            <TableCell>
+              <DisplayInput
+                className={cn(
+                  isRunningEval && "opacity-25",
+                  "transition-opacity"
+                )}
+                input={column.value}
+                shouldTruncateText
+                Wrapper={Wrapper}
+              />
+            </TableCell>
+          ))}
+        </>
+      ) : (
+        <>
+          {(!trialConfig || trialConfig.isFirstTrial) && (
+            <TableCell
+              rowSpan={trialConfig?.rowSpan}
+              className={cn(
+                trialConfig &&
+                  (trialConfig.isOddGroup
+                    ? "border-l-4 border-l-foreground/50"
+                    : "border-l-4 border-l-foreground/20")
+              )}
+            >
+              <DisplayInput
+                className={cn(
+                  isRunningEval && "opacity-25",
+                  "transition-opacity"
+                )}
+                input={result.input}
+                shouldTruncateText
+                Wrapper={Wrapper}
+              />
+            </TableCell>
+          )}
+          <TableCell>
+            <DisplayInput
+              className={cn(
+                isRunningEval && "opacity-25",
+                "transition-opacity"
+              )}
+              input={result.output}
+              shouldTruncateText
+              Wrapper={Wrapper}
+            />
+          </TableCell>
+          {showExpectedColumn && (!trialConfig || trialConfig.isFirstTrial) && (
+            <TableCell rowSpan={trialConfig?.rowSpan}>
+              <DisplayInput
+                className={cn(
+                  isRunningEval && "opacity-25",
+                  "transition-opacity"
+                )}
+                input={result.expected}
+                shouldTruncateText
+                Wrapper={Wrapper}
+              />
+            </TableCell>
+          )}
+        </>
+      )}
+
+      {result.scores.map((scorer, index) => {
+        const scoreInPreviousEvaluation = prevEvaluation?.results
+          .find((r) => r.input === result.input)
+          ?.scores.find((s) => s.name === scorer.name);
+        return (
+          <TableCell key={scorer.id} className={cn(index === 0 && "border-l")}>
+            <Wrapper>
+              <Score
+                hasScores={hasScores}
+                score={scorer.score}
+                state={getScoreState({
+                  score: scorer.score,
+                  prevScore: scoreInPreviousEvaluation?.score,
+                  status: result.status,
+                })}
+              />
+            </Wrapper>
+          </TableCell>
+        );
+      })}
+    </TableRow>
+  );
+}
 
 function EvalComponent() {
   const { name } = Route.useParams();
@@ -88,7 +243,7 @@ function EvalComponent() {
    * undefined - which will hide the table.
    */
   let evaluationWithoutLayoutShift:
-    | typeof possiblyRunningEvaluation
+    | Evalite.SDK.GetEvalByNameResult["evaluation"]
     | undefined;
 
   const mostRecentDate = history[history.length - 1]?.date;
@@ -115,6 +270,44 @@ function EvalComponent() {
     evaluationWithoutLayoutShift?.results.every(
       (result) => result.expected !== null
     ) ?? false;
+
+  const hasTrials =
+    evaluationWithoutLayoutShift?.results.some(
+      (result) => typeof result.trial_index === "number"
+    ) ?? false;
+
+  // Group results by input/expected for trial grouping
+  type ResultGroup = {
+    input: unknown;
+    expected: unknown;
+    results: Evalite.SDK.GetEvalByNameResult["evaluation"]["results"];
+    groupIndex: number;
+  };
+
+  const resultGroups: ResultGroup[] = [];
+  if (evaluationWithoutLayoutShift && hasTrials) {
+    const groupMap = new Map<string, ResultGroup>();
+
+    evaluationWithoutLayoutShift.results.forEach((result) => {
+      const key = JSON.stringify({
+        input: result.input,
+        expected: result.expected,
+      });
+
+      if (!groupMap.has(key)) {
+        const group: ResultGroup = {
+          input: result.input,
+          expected: result.expected,
+          results: [],
+          groupIndex: groupMap.size,
+        };
+        groupMap.set(key, group);
+        resultGroups.push(group);
+      }
+
+      groupMap.get(key)!.results.push(result);
+    });
+  }
 
   const evalScore = average(possiblyRunningEvaluation.results || [], (r) =>
     average(r.scores, (s) => s.score)
@@ -316,118 +509,48 @@ function EvalComponent() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {evaluationWithoutLayoutShift.results.map((result, index) => {
-                  const Wrapper = (props: { children: React.ReactNode }) => (
-                    <Link
-                      preload="intent"
-                      to={"/eval/$name/result/$resultIndex"}
-                      params={{
-                        name,
-                        resultIndex: index.toString(),
-                      }}
-                      search={{
-                        timestamp: timestamp ?? undefined,
-                      }}
-                      resetScroll={false}
-                      className="block h-full p-4"
-                      activeProps={{
-                        className: "active",
-                      }}
-                    >
-                      {props.children}
-                    </Link>
-                  );
-                  return (
-                    <TableRow
-                      key={JSON.stringify(result.input)}
-                      className={cn("has-[.active]:bg-foreground/20!")}
-                    >
-                      {isArrayOfRenderedColumns(result.rendered_columns) ? (
-                        <>
-                          {result.rendered_columns.map((column) => (
-                            <td className="align-top max-w-[300px] break-words">
-                              <DisplayInput
-                                className={cn(
-                                  isRunningEval && "opacity-25",
-                                  "transition-opacity"
-                                )}
-                                input={column.value}
-                                shouldTruncateText
-                                Wrapper={Wrapper}
-                              />
-                            </td>
-                          ))}
-                        </>
-                      ) : (
-                        <>
-                          <td className="align-top max-w-[300px] break-words">
-                            <DisplayInput
-                              className={cn(
-                                isRunningEval && "opacity-25",
-                                "transition-opacity"
-                              )}
-                              input={result.input}
-                              shouldTruncateText
-                              Wrapper={Wrapper}
-                            />
-                          </td>
-                          <td className="align-top max-w-[300px] break-words">
-                            <DisplayInput
-                              className={cn(
-                                isRunningEval && "opacity-25",
-                                "transition-opacity"
-                              )}
-                              input={result.output}
-                              shouldTruncateText
-                              Wrapper={Wrapper}
-                            />
-                          </td>
-                          {showExpectedColumn && (
-                            <td className="align-top max-w-[300px] break-words">
-                              <DisplayInput
-                                className={cn(
-                                  isRunningEval && "opacity-25",
-                                  "transition-opacity"
-                                )}
-                                input={result.expected}
-                                shouldTruncateText
-                                Wrapper={Wrapper}
-                              />
-                            </td>
-                          )}
-                        </>
-                      )}
-
-                      {result.scores.map((scorer, index) => {
-                        const scoreInPreviousEvaluation =
-                          prevEvaluation?.results
-                            .find((r) => r.input === result.input)
-                            ?.scores.find((s) => s.name === scorer.name);
+                {hasTrials
+                  ? // Render grouped trials with rowspan
+                    resultGroups.flatMap((group) =>
+                      group.results.map((result, trialIndex) => {
+                        const resultIndex =
+                          evaluationWithoutLayoutShift!.results.indexOf(result);
                         return (
-                          <td
-                            key={scorer.id}
-                            className={cn(
-                              index === 0 && "border-l",
-                              "align-top"
-                            )}
-                          >
-                            <Wrapper>
-                              <Score
-                                hasScores={hasScores}
-                                score={scorer.score}
-                                state={getScoreState({
-                                  score: scorer.score,
-                                  prevScore: scoreInPreviousEvaluation?.score,
-                                  status: result.status,
-                                })}
-                              />
-                            </Wrapper>
-                          </td>
+                          <ResultTableRow
+                            key={`${JSON.stringify(result.input)}-${result.trial_index}`}
+                            result={result}
+                            resultIndex={resultIndex}
+                            name={name}
+                            timestamp={timestamp}
+                            showExpectedColumn={showExpectedColumn}
+                            isRunningEval={isRunningEval}
+                            hasScores={hasScores}
+                            prevEvaluation={prevEvaluation}
+                            trialConfig={{
+                              isFirstTrial: trialIndex === 0,
+                              rowSpan: group.results.length,
+                              isOddGroup: group.groupIndex % 2 === 1,
+                            }}
+                          />
                         );
-                      })}
-                    </TableRow>
-                  );
-                })}
+                      })
+                    )
+                  : // Original rendering for non-trial results
+                    evaluationWithoutLayoutShift.results.map(
+                      (result, index) => (
+                        <ResultTableRow
+                          key={JSON.stringify(result.input)}
+                          result={result}
+                          resultIndex={index}
+                          name={name}
+                          timestamp={timestamp}
+                          showExpectedColumn={showExpectedColumn}
+                          isRunningEval={isRunningEval}
+                          hasScores={hasScores}
+                          prevEvaluation={prevEvaluation}
+                        />
+                      )
+                    )}
               </TableBody>
             </Table>
           </>

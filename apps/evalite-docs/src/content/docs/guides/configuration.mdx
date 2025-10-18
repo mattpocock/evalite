@@ -33,6 +33,7 @@ export default defineConfig({
 - **`hideTable`**: Hide the results table in terminal output. Default is false.
 - **`server.port`**: Port for the Evalite UI server. Default is 3006.
 - **`storage`**: Factory function to create a custom storage storage.
+- **`trialCount`**: Number of times to run each test case. Default is 1. Useful for measuring variance in non-deterministic evaluations.
 
 ## Vitest Configuration
 
@@ -125,5 +126,38 @@ export default defineConfig({
 ```
 
 Note: `vitest.config.ts` will override `evalite.config.ts` if both are present.
+
+### Running Evals Multiple Times
+
+Run each test case multiple times to measure variance in non-deterministic evaluations.
+
+Configure globally in `evalite.config.ts`:
+
+```ts
+// evalite.config.ts
+import { defineConfig } from "evalite/config";
+
+export default defineConfig({
+  trialCount: 3, // Run each test case 3 times
+});
+```
+
+Or override per-eval in the `evalite()` call:
+
+```ts
+evalite("Non-deterministic eval", {
+  data: () => [{ input: "Alice", expected: "Alice" }],
+  task: async (input) => {
+    // Non-deterministic task
+    return getRandomGreeting(input);
+  },
+  scorers: [
+    /* ... */
+  ],
+  trialCount: 5, // Override config: run 5 times
+});
+```
+
+Note: Per-eval `trialCount` overrides `evalite.config.ts` if both are present.
 
 For more Vitest configuration options, see the [Vitest documentation](https://vitest.dev/config/).

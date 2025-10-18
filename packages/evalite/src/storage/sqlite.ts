@@ -99,6 +99,11 @@ const createDatabase = (url: string): BetterSqlite3.Database => {
     db.exec(`ALTER TABLE evals ADD COLUMN variant_group TEXT`);
   } catch (e) {}
 
+  // Add trial_index column to results table
+  try {
+    db.exec(`ALTER TABLE results ADD COLUMN trial_index INTEGER`);
+  } catch (e) {}
+
   return db;
 };
 
@@ -171,6 +176,7 @@ export class SqliteStorage implements Evalite.Storage {
     duration,
     status,
     renderedColumns,
+    trialIndex,
   }: {
     evalId: number | bigint;
     order: number;
@@ -180,11 +186,12 @@ export class SqliteStorage implements Evalite.Storage {
     duration: number;
     status: string;
     renderedColumns: unknown;
+    trialIndex?: number;
   }): Evalite.Storage.Entities.Result {
     const id = this.db
       .prepare(
-        `INSERT INTO results (eval_id, col_order, input, expected, output, duration, status, rendered_columns)
-         VALUES (@eval_id, @col_order, @input, @expected, @output, @duration, @status, @rendered_columns)`
+        `INSERT INTO results (eval_id, col_order, input, expected, output, duration, status, rendered_columns, trial_index)
+         VALUES (@eval_id, @col_order, @input, @expected, @output, @duration, @status, @rendered_columns, @trial_index)`
       )
       .run({
         eval_id: evalId,
@@ -195,6 +202,7 @@ export class SqliteStorage implements Evalite.Storage {
         duration,
         status,
         rendered_columns: JSON.stringify(renderedColumns),
+        trial_index: trialIndex ?? null,
       }).lastInsertRowid;
 
     return jsonParseFields(
@@ -216,6 +224,7 @@ export class SqliteStorage implements Evalite.Storage {
     renderedColumns,
     input,
     expected,
+    trialIndex,
   }: {
     resultId: number | bigint;
     output: unknown;
@@ -224,6 +233,7 @@ export class SqliteStorage implements Evalite.Storage {
     expected: unknown;
     status: string;
     renderedColumns: unknown;
+    trialIndex?: number;
   }): Evalite.Storage.Entities.Result {
     this.db
       .prepare(
@@ -234,7 +244,8 @@ export class SqliteStorage implements Evalite.Storage {
         input = @input,
         expected = @expected,
         status = @status,
-        rendered_columns = @rendered_columns
+        rendered_columns = @rendered_columns,
+        trial_index = @trial_index
        WHERE id = @id`
       )
       .run({
@@ -242,6 +253,7 @@ export class SqliteStorage implements Evalite.Storage {
         output: JSON.stringify(output),
         duration,
         status,
+        trial_index: trialIndex ?? null,
         rendered_columns: JSON.stringify(renderedColumns),
         input: JSON.stringify(input),
         expected: JSON.stringify(expected),
@@ -522,6 +534,7 @@ export class SqliteStorage implements Evalite.Storage {
         duration: opts.duration,
         status: opts.status,
         renderedColumns: opts.renderedColumns,
+        trialIndex: opts.trialIndex,
       });
     },
 

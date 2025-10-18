@@ -242,6 +242,7 @@ export default class EvaliteReporter extends BasicReporter implements Reporter {
           renderedColumns: [],
           variantName: data.initialResult.variantName,
           variantGroup: data.initialResult.variantGroup,
+          trialIndex: data.initialResult.trialIndex,
         },
       });
     }
