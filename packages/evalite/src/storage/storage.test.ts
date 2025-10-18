@@ -1,79 +1,79 @@
 import { describe, expect } from "vitest";
-import { testAllAdapters } from "./test-utils.js";
+import { testAllStorage } from "./test-utils.js";
 
-describe("EvaliteAdapter", () => {
+describe("EvaliteStorage", () => {
   describe("runs", () => {
-    testAllAdapters("creates run with full runType", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run = await adapter.runs.create({ runType: "full" });
+    testAllStorage("creates run with full runType", async (getStorage) => {
+      await using storage = await getStorage();
+      const run = await storage.runs.create({ runType: "full" });
 
       expect(run.id).toBeDefined();
       expect(run.runType).toBe("full");
       expect(run.created_at).toBeDefined();
     });
 
-    testAllAdapters("getMany returns all runs", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run1 = await adapter.runs.create({ runType: "full" });
-      const run2 = await adapter.runs.create({ runType: "partial" });
+    testAllStorage("getMany returns all runs", async (getStorage) => {
+      await using storage = await getStorage();
+      const run1 = await storage.runs.create({ runType: "full" });
+      const run2 = await storage.runs.create({ runType: "partial" });
 
-      const runs = await adapter.runs.getMany();
+      const runs = await storage.runs.getMany();
 
       expect(runs).toHaveLength(2);
       expect(runs.map((r) => r.id)).toContain(run1.id);
       expect(runs.map((r) => r.id)).toContain(run2.id);
     });
 
-    testAllAdapters("getMany filters by ids", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run1 = await adapter.runs.create({ runType: "full" });
-      const run2 = await adapter.runs.create({ runType: "partial" });
+    testAllStorage("getMany filters by ids", async (getStorage) => {
+      await using storage = await getStorage();
+      const run1 = await storage.runs.create({ runType: "full" });
+      const run2 = await storage.runs.create({ runType: "partial" });
 
-      const runs = await adapter.runs.getMany({ ids: [run1.id] });
+      const runs = await storage.runs.getMany({ ids: [run1.id] });
 
       expect(runs).toHaveLength(1);
       expect(runs[0]!.id).toBe(run1.id);
     });
 
-    testAllAdapters("getMany filters by runType", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      await adapter.runs.create({ runType: "full" });
-      await adapter.runs.create({ runType: "partial" });
-      await adapter.runs.create({ runType: "full" });
+    testAllStorage("getMany filters by runType", async (getStorage) => {
+      await using storage = await getStorage();
+      await storage.runs.create({ runType: "full" });
+      await storage.runs.create({ runType: "partial" });
+      await storage.runs.create({ runType: "full" });
 
-      const runs = await adapter.runs.getMany({ runType: "full" });
+      const runs = await storage.runs.getMany({ runType: "full" });
 
       expect(runs).toHaveLength(2);
       expect(runs.every((r) => r.runType === "full")).toBe(true);
     });
 
-    testAllAdapters("getMany respects limit", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      await adapter.runs.create({ runType: "full" });
-      await adapter.runs.create({ runType: "full" });
-      await adapter.runs.create({ runType: "full" });
+    testAllStorage("getMany respects limit", async (getStorage) => {
+      await using storage = await getStorage();
+      await storage.runs.create({ runType: "full" });
+      await storage.runs.create({ runType: "full" });
+      await storage.runs.create({ runType: "full" });
 
-      const runs = await adapter.runs.getMany({ limit: 2 });
+      const runs = await storage.runs.getMany({ limit: 2 });
 
       expect(runs).toHaveLength(2);
     });
 
-    testAllAdapters(
+    testAllStorage(
       "getMany respects orderBy and orderDirection",
-      async (getAdapter) => {
-        await using adapter = await getAdapter();
-        const run1 = await adapter.runs.create({ runType: "full" });
-        const run2 = await adapter.runs.create({ runType: "full" });
-        const run3 = await adapter.runs.create({ runType: "full" });
+      async (getStorage) => {
+        await using storage = await getStorage();
+        const run1 = await storage.runs.create({ runType: "full" });
+        const run2 = await storage.runs.create({ runType: "full" });
+        const run3 = await storage.runs.create({ runType: "full" });
 
-        const runsDesc = await adapter.runs.getMany({
+        const runsDesc = await storage.runs.getMany({
           orderBy: "id",
           orderDirection: "desc",
         });
         expect(runsDesc[0]!.id).toBe(run3.id);
         expect(runsDesc[2]!.id).toBe(run1.id);
 
-        const runsAsc = await adapter.runs.getMany({
+        const runsAsc = await storage.runs.getMany({
           orderBy: "id",
           orderDirection: "asc",
         });
@@ -84,11 +84,11 @@ describe("EvaliteAdapter", () => {
   });
 
   describe("evals", () => {
-    testAllAdapters("create creates new eval", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run = await adapter.runs.create({ runType: "full" });
+    testAllStorage("create creates new eval", async (getStorage) => {
+      await using storage = await getStorage();
+      const run = await storage.runs.create({ runType: "full" });
 
-      const eval1 = await adapter.evals.create({
+      const eval1 = await storage.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
@@ -102,17 +102,17 @@ describe("EvaliteAdapter", () => {
       expect(eval1.created_at).toBeDefined();
     });
 
-    testAllAdapters("create always creates new eval", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run = await adapter.runs.create({ runType: "full" });
+    testAllStorage("create always creates new eval", async (getStorage) => {
+      await using storage = await getStorage();
+      const run = await storage.runs.create({ runType: "full" });
 
-      const eval1 = await adapter.evals.create({
+      const eval1 = await storage.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
       });
 
-      const eval2 = await adapter.evals.create({
+      const eval2 = await storage.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
@@ -121,13 +121,13 @@ describe("EvaliteAdapter", () => {
       expect(eval2.id).not.toBe(eval1.id);
     });
 
-    testAllAdapters(
+    testAllStorage(
       "create handles variantName and variantGroup",
-      async (getAdapter) => {
-        await using adapter = await getAdapter();
-        const run = await adapter.runs.create({ runType: "full" });
+      async (getStorage) => {
+        await using storage = await getStorage();
+        const run = await storage.runs.create({ runType: "full" });
 
-        const eval1 = await adapter.evals.create({
+        const eval1 = await storage.evals.create({
           runId: run.id,
           name: "test-eval",
           filepath: "/test/path.eval.ts",
@@ -140,16 +140,16 @@ describe("EvaliteAdapter", () => {
       }
     );
 
-    testAllAdapters("update changes eval status", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.create({
+    testAllStorage("update changes eval status", async (getStorage) => {
+      await using storage = await getStorage();
+      const run = await storage.runs.create({ runType: "full" });
+      const eval1 = await storage.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
       });
 
-      const updated = await adapter.evals.update({
+      const updated = await storage.evals.update({
         id: eval1.id,
         status: "success",
       });
@@ -157,104 +157,104 @@ describe("EvaliteAdapter", () => {
       expect(updated.status).toBe("success");
     });
 
-    testAllAdapters("getMany returns all evals", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.create({
+    testAllStorage("getMany returns all evals", async (getStorage) => {
+      await using storage = await getStorage();
+      const run = await storage.runs.create({ runType: "full" });
+      const eval1 = await storage.evals.create({
         runId: run.id,
         name: "eval-1",
         filepath: "/test/path1.eval.ts",
       });
-      const eval2 = await adapter.evals.create({
+      const eval2 = await storage.evals.create({
         runId: run.id,
         name: "eval-2",
         filepath: "/test/path2.eval.ts",
       });
 
-      const evals = await adapter.evals.getMany();
+      const evals = await storage.evals.getMany();
 
       expect(evals).toHaveLength(2);
       expect(evals.map((e) => e.id)).toContain(eval1.id);
       expect(evals.map((e) => e.id)).toContain(eval2.id);
     });
 
-    testAllAdapters("getMany filters by ids", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.create({
+    testAllStorage("getMany filters by ids", async (getStorage) => {
+      await using storage = await getStorage();
+      const run = await storage.runs.create({ runType: "full" });
+      const eval1 = await storage.evals.create({
         runId: run.id,
         name: "eval-1",
         filepath: "/test/path1.eval.ts",
       });
-      const eval2 = await adapter.evals.create({
+      const eval2 = await storage.evals.create({
         runId: run.id,
         name: "eval-2",
         filepath: "/test/path2.eval.ts",
       });
 
-      const evals = await adapter.evals.getMany({ ids: [eval1.id] });
+      const evals = await storage.evals.getMany({ ids: [eval1.id] });
 
       expect(evals).toHaveLength(1);
       expect(evals[0]!.id).toBe(eval1.id);
     });
 
-    testAllAdapters("getMany filters by runIds", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run1 = await adapter.runs.create({ runType: "full" });
-      const run2 = await adapter.runs.create({ runType: "full" });
-      await adapter.evals.create({
+    testAllStorage("getMany filters by runIds", async (getStorage) => {
+      await using storage = await getStorage();
+      const run1 = await storage.runs.create({ runType: "full" });
+      const run2 = await storage.runs.create({ runType: "full" });
+      await storage.evals.create({
         runId: run1.id,
         name: "eval-1",
         filepath: "/test/path.eval.ts",
       });
-      const eval2 = await adapter.evals.create({
+      const eval2 = await storage.evals.create({
         runId: run2.id,
         name: "eval-2",
         filepath: "/test/path.eval.ts",
       });
 
-      const evals = await adapter.evals.getMany({ runIds: [run2.id] });
+      const evals = await storage.evals.getMany({ runIds: [run2.id] });
 
       expect(evals).toHaveLength(1);
       expect(evals[0]!.id).toBe(eval2.id);
     });
 
-    testAllAdapters("getMany filters by name", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run = await adapter.runs.create({ runType: "full" });
-      await adapter.evals.create({
+    testAllStorage("getMany filters by name", async (getStorage) => {
+      await using storage = await getStorage();
+      const run = await storage.runs.create({ runType: "full" });
+      await storage.evals.create({
         runId: run.id,
         name: "eval-1",
         filepath: "/test/path.eval.ts",
       });
-      const eval2 = await adapter.evals.create({
+      const eval2 = await storage.evals.create({
         runId: run.id,
         name: "eval-2",
         filepath: "/test/path.eval.ts",
       });
 
-      const evals = await adapter.evals.getMany({ name: "eval-2" });
+      const evals = await storage.evals.getMany({ name: "eval-2" });
 
       expect(evals).toHaveLength(1);
       expect(evals[0]!.id).toBe(eval2.id);
     });
 
-    testAllAdapters("getMany filters by statuses", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.create({
+    testAllStorage("getMany filters by statuses", async (getStorage) => {
+      await using storage = await getStorage();
+      const run = await storage.runs.create({ runType: "full" });
+      const eval1 = await storage.evals.create({
         runId: run.id,
         name: "eval-1",
         filepath: "/test/path.eval.ts",
       });
-      const eval2 = await adapter.evals.create({
+      const eval2 = await storage.evals.create({
         runId: run.id,
         name: "eval-2",
         filepath: "/test/path.eval.ts",
       });
 
       // Create result so eval can be updated
-      await adapter.results.create({
+      await storage.results.create({
         evalId: eval1.id,
         order: 0,
         input: {},
@@ -265,50 +265,50 @@ describe("EvaliteAdapter", () => {
         renderedColumns: [],
       });
 
-      await adapter.evals.update({ id: eval1.id, status: "success" });
+      await storage.evals.update({ id: eval1.id, status: "success" });
 
-      const evals = await adapter.evals.getMany({ statuses: ["success"] });
+      const evals = await storage.evals.getMany({ statuses: ["success"] });
 
       expect(evals).toHaveLength(1);
       expect(evals[0]!.id).toBe(eval1.id);
     });
 
-    testAllAdapters("getMany respects limit", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run = await adapter.runs.create({ runType: "full" });
-      await adapter.evals.create({
+    testAllStorage("getMany respects limit", async (getStorage) => {
+      await using storage = await getStorage();
+      const run = await storage.runs.create({ runType: "full" });
+      await storage.evals.create({
         runId: run.id,
         name: "eval-1",
         filepath: "/test/path.eval.ts",
       });
-      await adapter.evals.create({
+      await storage.evals.create({
         runId: run.id,
         name: "eval-2",
         filepath: "/test/path.eval.ts",
       });
-      await adapter.evals.create({
+      await storage.evals.create({
         runId: run.id,
         name: "eval-3",
         filepath: "/test/path.eval.ts",
       });
 
-      const evals = await adapter.evals.getMany({ limit: 2 });
+      const evals = await storage.evals.getMany({ limit: 2 });
 
       expect(evals).toHaveLength(2);
     });
   });
 
   describe("results", () => {
-    testAllAdapters("create creates new result", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.create({
+    testAllStorage("create creates new result", async (getStorage) => {
+      await using storage = await getStorage();
+      const run = await storage.runs.create({ runType: "full" });
+      const eval1 = await storage.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
       });
 
-      const result = await adapter.results.create({
+      const result = await storage.results.create({
         evalId: eval1.id,
         order: 0,
         input: { test: "input" },
@@ -333,16 +333,16 @@ describe("EvaliteAdapter", () => {
       expect(result.created_at).toBeDefined();
     });
 
-    testAllAdapters("update updates result", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.create({
+    testAllStorage("update updates result", async (getStorage) => {
+      await using storage = await getStorage();
+      const run = await storage.runs.create({ runType: "full" });
+      const eval1 = await storage.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
       });
 
-      const result = await adapter.results.create({
+      const result = await storage.results.create({
         evalId: eval1.id,
         order: 0,
         input: { test: "input" },
@@ -353,7 +353,7 @@ describe("EvaliteAdapter", () => {
         renderedColumns: [],
       });
 
-      const updated = await adapter.results.update({
+      const updated = await storage.results.update({
         id: result.id,
         output: { test: "new output" },
         duration: 200,
@@ -373,16 +373,16 @@ describe("EvaliteAdapter", () => {
       ]);
     });
 
-    testAllAdapters("getMany returns all results", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.create({
+    testAllStorage("getMany returns all results", async (getStorage) => {
+      await using storage = await getStorage();
+      const run = await storage.runs.create({ runType: "full" });
+      const eval1 = await storage.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
       });
 
-      const result1 = await adapter.results.create({
+      const result1 = await storage.results.create({
         evalId: eval1.id,
         order: 0,
         input: {},
@@ -393,7 +393,7 @@ describe("EvaliteAdapter", () => {
         renderedColumns: [],
       });
 
-      const result2 = await adapter.results.create({
+      const result2 = await storage.results.create({
         evalId: eval1.id,
         order: 1,
         input: {},
@@ -404,23 +404,23 @@ describe("EvaliteAdapter", () => {
         renderedColumns: [],
       });
 
-      const results = await adapter.results.getMany();
+      const results = await storage.results.getMany();
 
       expect(results).toHaveLength(2);
       expect(results.map((r) => r.id)).toContain(result1.id);
       expect(results.map((r) => r.id)).toContain(result2.id);
     });
 
-    testAllAdapters("getMany filters by ids", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.create({
+    testAllStorage("getMany filters by ids", async (getStorage) => {
+      await using storage = await getStorage();
+      const run = await storage.runs.create({ runType: "full" });
+      const eval1 = await storage.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
       });
 
-      const result1 = await adapter.results.create({
+      const result1 = await storage.results.create({
         evalId: eval1.id,
         order: 0,
         input: {},
@@ -431,7 +431,7 @@ describe("EvaliteAdapter", () => {
         renderedColumns: [],
       });
 
-      await adapter.results.create({
+      await storage.results.create({
         evalId: eval1.id,
         order: 1,
         input: {},
@@ -442,27 +442,27 @@ describe("EvaliteAdapter", () => {
         renderedColumns: [],
       });
 
-      const results = await adapter.results.getMany({ ids: [result1.id] });
+      const results = await storage.results.getMany({ ids: [result1.id] });
 
       expect(results).toHaveLength(1);
       expect(results[0]!.id).toBe(result1.id);
     });
 
-    testAllAdapters("getMany filters by evalIds", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.create({
+    testAllStorage("getMany filters by evalIds", async (getStorage) => {
+      await using storage = await getStorage();
+      const run = await storage.runs.create({ runType: "full" });
+      const eval1 = await storage.evals.create({
         runId: run.id,
         name: "eval-1",
         filepath: "/test/path.eval.ts",
       });
-      const eval2 = await adapter.evals.create({
+      const eval2 = await storage.evals.create({
         runId: run.id,
         name: "eval-2",
         filepath: "/test/path.eval.ts",
       });
 
-      await adapter.results.create({
+      await storage.results.create({
         evalId: eval1.id,
         order: 0,
         input: {},
@@ -473,7 +473,7 @@ describe("EvaliteAdapter", () => {
         renderedColumns: [],
       });
 
-      const result2 = await adapter.results.create({
+      const result2 = await storage.results.create({
         evalId: eval2.id,
         order: 0,
         input: {},
@@ -484,22 +484,22 @@ describe("EvaliteAdapter", () => {
         renderedColumns: [],
       });
 
-      const results = await adapter.results.getMany({ evalIds: [eval2.id] });
+      const results = await storage.results.getMany({ evalIds: [eval2.id] });
 
       expect(results).toHaveLength(1);
       expect(results[0]!.id).toBe(result2.id);
     });
 
-    testAllAdapters("getMany filters by order", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.create({
+    testAllStorage("getMany filters by order", async (getStorage) => {
+      await using storage = await getStorage();
+      const run = await storage.runs.create({ runType: "full" });
+      const eval1 = await storage.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
       });
 
-      await adapter.results.create({
+      await storage.results.create({
         evalId: eval1.id,
         order: 0,
         input: {},
@@ -510,7 +510,7 @@ describe("EvaliteAdapter", () => {
         renderedColumns: [],
       });
 
-      const result2 = await adapter.results.create({
+      const result2 = await storage.results.create({
         evalId: eval1.id,
         order: 1,
         input: {},
@@ -521,22 +521,22 @@ describe("EvaliteAdapter", () => {
         renderedColumns: [],
       });
 
-      const results = await adapter.results.getMany({ order: 1 });
+      const results = await storage.results.getMany({ order: 1 });
 
       expect(results).toHaveLength(1);
       expect(results[0]!.id).toBe(result2.id);
     });
 
-    testAllAdapters("getMany filters by statuses", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.create({
+    testAllStorage("getMany filters by statuses", async (getStorage) => {
+      await using storage = await getStorage();
+      const run = await storage.runs.create({ runType: "full" });
+      const eval1 = await storage.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
       });
 
-      const result1 = await adapter.results.create({
+      const result1 = await storage.results.create({
         evalId: eval1.id,
         order: 0,
         input: {},
@@ -547,7 +547,7 @@ describe("EvaliteAdapter", () => {
         renderedColumns: [],
       });
 
-      await adapter.results.create({
+      await storage.results.create({
         evalId: eval1.id,
         order: 1,
         input: {},
@@ -558,7 +558,7 @@ describe("EvaliteAdapter", () => {
         renderedColumns: [],
       });
 
-      const results = await adapter.results.getMany({ statuses: ["success"] });
+      const results = await storage.results.getMany({ statuses: ["success"] });
 
       expect(results).toHaveLength(1);
       expect(results[0]!.id).toBe(result1.id);
@@ -566,15 +566,15 @@ describe("EvaliteAdapter", () => {
   });
 
   describe("scores", () => {
-    testAllAdapters("create creates new score", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.create({
+    testAllStorage("create creates new score", async (getStorage) => {
+      await using storage = await getStorage();
+      const run = await storage.runs.create({ runType: "full" });
+      const eval1 = await storage.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
       });
-      const result = await adapter.results.create({
+      const result = await storage.results.create({
         evalId: eval1.id,
         order: 0,
         input: {},
@@ -585,7 +585,7 @@ describe("EvaliteAdapter", () => {
         renderedColumns: [],
       });
 
-      const score = await adapter.scores.create({
+      const score = await storage.scores.create({
         resultId: result.id,
         name: "accuracy",
         score: 0.95,
@@ -602,17 +602,17 @@ describe("EvaliteAdapter", () => {
       expect(score.created_at).toBeDefined();
     });
 
-    testAllAdapters(
+    testAllStorage(
       "create handles optional description",
-      async (getAdapter) => {
-        await using adapter = await getAdapter();
-        const run = await adapter.runs.create({ runType: "full" });
-        const eval1 = await adapter.evals.create({
+      async (getStorage) => {
+        await using storage = await getStorage();
+        const run = await storage.runs.create({ runType: "full" });
+        const eval1 = await storage.evals.create({
           runId: run.id,
           name: "test-eval",
           filepath: "/test/path.eval.ts",
         });
-        const result = await adapter.results.create({
+        const result = await storage.results.create({
           evalId: eval1.id,
           order: 0,
           input: {},
@@ -623,7 +623,7 @@ describe("EvaliteAdapter", () => {
           renderedColumns: [],
         });
 
-        const score = await adapter.scores.create({
+        const score = await storage.scores.create({
           resultId: result.id,
           name: "accuracy",
           score: 0.95,
@@ -635,15 +635,15 @@ describe("EvaliteAdapter", () => {
       }
     );
 
-    testAllAdapters("getMany returns all scores", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.create({
+    testAllStorage("getMany returns all scores", async (getStorage) => {
+      await using storage = await getStorage();
+      const run = await storage.runs.create({ runType: "full" });
+      const eval1 = await storage.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
       });
-      const result = await adapter.results.create({
+      const result = await storage.results.create({
         evalId: eval1.id,
         order: 0,
         input: {},
@@ -654,36 +654,36 @@ describe("EvaliteAdapter", () => {
         renderedColumns: [],
       });
 
-      const score1 = await adapter.scores.create({
+      const score1 = await storage.scores.create({
         resultId: result.id,
         name: "score-1",
         score: 0.8,
         metadata: null,
       });
 
-      const score2 = await adapter.scores.create({
+      const score2 = await storage.scores.create({
         resultId: result.id,
         name: "score-2",
         score: 0.6,
         metadata: null,
       });
 
-      const scores = await adapter.scores.getMany();
+      const scores = await storage.scores.getMany();
 
       expect(scores).toHaveLength(2);
       expect(scores.map((s) => s.id)).toContain(score1.id);
       expect(scores.map((s) => s.id)).toContain(score2.id);
     });
 
-    testAllAdapters("getMany filters by ids", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.create({
+    testAllStorage("getMany filters by ids", async (getStorage) => {
+      await using storage = await getStorage();
+      const run = await storage.runs.create({ runType: "full" });
+      const eval1 = await storage.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
       });
-      const result = await adapter.results.create({
+      const result = await storage.results.create({
         evalId: eval1.id,
         order: 0,
         input: {},
@@ -694,35 +694,35 @@ describe("EvaliteAdapter", () => {
         renderedColumns: [],
       });
 
-      const score1 = await adapter.scores.create({
+      const score1 = await storage.scores.create({
         resultId: result.id,
         name: "score-1",
         score: 0.8,
         metadata: null,
       });
 
-      await adapter.scores.create({
+      await storage.scores.create({
         resultId: result.id,
         name: "score-2",
         score: 0.6,
         metadata: null,
       });
 
-      const scores = await adapter.scores.getMany({ ids: [score1.id] });
+      const scores = await storage.scores.getMany({ ids: [score1.id] });
 
       expect(scores).toHaveLength(1);
       expect(scores[0]!.id).toBe(score1.id);
     });
 
-    testAllAdapters("getMany filters by resultIds", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.create({
+    testAllStorage("getMany filters by resultIds", async (getStorage) => {
+      await using storage = await getStorage();
+      const run = await storage.runs.create({ runType: "full" });
+      const eval1 = await storage.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
       });
-      const result1 = await adapter.results.create({
+      const result1 = await storage.results.create({
         evalId: eval1.id,
         order: 0,
         input: {},
@@ -732,7 +732,7 @@ describe("EvaliteAdapter", () => {
         status: "success",
         renderedColumns: [],
       });
-      const result2 = await adapter.results.create({
+      const result2 = await storage.results.create({
         evalId: eval1.id,
         order: 1,
         input: {},
@@ -743,21 +743,21 @@ describe("EvaliteAdapter", () => {
         renderedColumns: [],
       });
 
-      await adapter.scores.create({
+      await storage.scores.create({
         resultId: result1.id,
         name: "score-1",
         score: 0.8,
         metadata: null,
       });
 
-      const score2 = await adapter.scores.create({
+      const score2 = await storage.scores.create({
         resultId: result2.id,
         name: "score-2",
         score: 0.6,
         metadata: null,
       });
 
-      const scores = await adapter.scores.getMany({ resultIds: [result2.id] });
+      const scores = await storage.scores.getMany({ resultIds: [result2.id] });
 
       expect(scores).toHaveLength(1);
       expect(scores[0]!.id).toBe(score2.id);
@@ -765,15 +765,15 @@ describe("EvaliteAdapter", () => {
   });
 
   describe("traces", () => {
-    testAllAdapters("create creates new trace", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.create({
+    testAllStorage("create creates new trace", async (getStorage) => {
+      await using storage = await getStorage();
+      const run = await storage.runs.create({ runType: "full" });
+      const eval1 = await storage.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
       });
-      const result = await adapter.results.create({
+      const result = await storage.results.create({
         evalId: eval1.id,
         order: 0,
         input: {},
@@ -784,7 +784,7 @@ describe("EvaliteAdapter", () => {
         renderedColumns: [],
       });
 
-      const trace = await adapter.traces.create({
+      const trace = await storage.traces.create({
         resultId: result.id,
         input: [{ role: "user", content: "test" }],
         output: "response",
@@ -808,17 +808,17 @@ describe("EvaliteAdapter", () => {
       expect(trace.col_order).toBe(0);
     });
 
-    testAllAdapters(
+    testAllStorage(
       "create handles optional token fields",
-      async (getAdapter) => {
-        await using adapter = await getAdapter();
-        const run = await adapter.runs.create({ runType: "full" });
-        const eval1 = await adapter.evals.create({
+      async (getStorage) => {
+        await using storage = await getStorage();
+        const run = await storage.runs.create({ runType: "full" });
+        const eval1 = await storage.evals.create({
           runId: run.id,
           name: "test-eval",
           filepath: "/test/path.eval.ts",
         });
-        const result = await adapter.results.create({
+        const result = await storage.results.create({
           evalId: eval1.id,
           order: 0,
           input: {},
@@ -829,7 +829,7 @@ describe("EvaliteAdapter", () => {
           renderedColumns: [],
         });
 
-        const trace = await adapter.traces.create({
+        const trace = await storage.traces.create({
           resultId: result.id,
           input: "test input",
           output: "test output",
@@ -845,15 +845,15 @@ describe("EvaliteAdapter", () => {
       }
     );
 
-    testAllAdapters("getMany returns all traces", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.create({
+    testAllStorage("getMany returns all traces", async (getStorage) => {
+      await using storage = await getStorage();
+      const run = await storage.runs.create({ runType: "full" });
+      const eval1 = await storage.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
       });
-      const result = await adapter.results.create({
+      const result = await storage.results.create({
         evalId: eval1.id,
         order: 0,
         input: {},
@@ -864,7 +864,7 @@ describe("EvaliteAdapter", () => {
         renderedColumns: [],
       });
 
-      const trace1 = await adapter.traces.create({
+      const trace1 = await storage.traces.create({
         resultId: result.id,
         input: "input1",
         output: "output1",
@@ -873,7 +873,7 @@ describe("EvaliteAdapter", () => {
         order: 0,
       });
 
-      const trace2 = await adapter.traces.create({
+      const trace2 = await storage.traces.create({
         resultId: result.id,
         input: "input2",
         output: "output2",
@@ -882,22 +882,22 @@ describe("EvaliteAdapter", () => {
         order: 1,
       });
 
-      const traces = await adapter.traces.getMany();
+      const traces = await storage.traces.getMany();
 
       expect(traces).toHaveLength(2);
       expect(traces.map((t) => t.id)).toContain(trace1.id);
       expect(traces.map((t) => t.id)).toContain(trace2.id);
     });
 
-    testAllAdapters("getMany filters by ids", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.create({
+    testAllStorage("getMany filters by ids", async (getStorage) => {
+      await using storage = await getStorage();
+      const run = await storage.runs.create({ runType: "full" });
+      const eval1 = await storage.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
       });
-      const result = await adapter.results.create({
+      const result = await storage.results.create({
         evalId: eval1.id,
         order: 0,
         input: {},
@@ -908,7 +908,7 @@ describe("EvaliteAdapter", () => {
         renderedColumns: [],
       });
 
-      const trace1 = await adapter.traces.create({
+      const trace1 = await storage.traces.create({
         resultId: result.id,
         input: "input1",
         output: "output1",
@@ -917,7 +917,7 @@ describe("EvaliteAdapter", () => {
         order: 0,
       });
 
-      await adapter.traces.create({
+      await storage.traces.create({
         resultId: result.id,
         input: "input2",
         output: "output2",
@@ -926,21 +926,21 @@ describe("EvaliteAdapter", () => {
         order: 1,
       });
 
-      const traces = await adapter.traces.getMany({ ids: [trace1.id] });
+      const traces = await storage.traces.getMany({ ids: [trace1.id] });
 
       expect(traces).toHaveLength(1);
       expect(traces[0]!.id).toBe(trace1.id);
     });
 
-    testAllAdapters("getMany filters by resultIds", async (getAdapter) => {
-      await using adapter = await getAdapter();
-      const run = await adapter.runs.create({ runType: "full" });
-      const eval1 = await adapter.evals.create({
+    testAllStorage("getMany filters by resultIds", async (getStorage) => {
+      await using storage = await getStorage();
+      const run = await storage.runs.create({ runType: "full" });
+      const eval1 = await storage.evals.create({
         runId: run.id,
         name: "test-eval",
         filepath: "/test/path.eval.ts",
       });
-      const result1 = await adapter.results.create({
+      const result1 = await storage.results.create({
         evalId: eval1.id,
         order: 0,
         input: {},
@@ -950,7 +950,7 @@ describe("EvaliteAdapter", () => {
         status: "success",
         renderedColumns: [],
       });
-      const result2 = await adapter.results.create({
+      const result2 = await storage.results.create({
         evalId: eval1.id,
         order: 1,
         input: {},
@@ -961,7 +961,7 @@ describe("EvaliteAdapter", () => {
         renderedColumns: [],
       });
 
-      await adapter.traces.create({
+      await storage.traces.create({
         resultId: result1.id,
         input: "input1",
         output: "output1",
@@ -970,7 +970,7 @@ describe("EvaliteAdapter", () => {
         order: 0,
       });
 
-      const trace2 = await adapter.traces.create({
+      const trace2 = await storage.traces.create({
         resultId: result2.id,
         input: "input2",
         output: "output2",
@@ -979,7 +979,7 @@ describe("EvaliteAdapter", () => {
         order: 0,
       });
 
-      const traces = await adapter.traces.getMany({ resultIds: [result2.id] });
+      const traces = await storage.traces.getMany({ resultIds: [result2.id] });
 
       expect(traces).toHaveLength(1);
       expect(traces[0]!.id).toBe(trace2.id);
@@ -987,14 +987,14 @@ describe("EvaliteAdapter", () => {
   });
 
   describe("lifecycle", () => {
-    testAllAdapters("close method works", async (getAdapter) => {
-      const adapter = await getAdapter();
-      await expect(adapter.close()).resolves.not.toThrow();
+    testAllStorage("close method works", async (getStorage) => {
+      const storage = await getStorage();
+      await expect(storage.close()).resolves.not.toThrow();
     });
 
-    testAllAdapters("Symbol.asyncDispose works", async (getAdapter) => {
-      const adapter = await getAdapter();
-      await expect(adapter[Symbol.asyncDispose]()).resolves.not.toThrow();
+    testAllStorage("Symbol.asyncDispose works", async (getStorage) => {
+      const storage = await getStorage();
+      await expect(storage[Symbol.asyncDispose]()).resolves.not.toThrow();
     });
   });
 });

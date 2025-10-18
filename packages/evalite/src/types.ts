@@ -153,15 +153,15 @@ export declare namespace Evalite {
         score: number;
         date: string;
       }[];
-      evaluation: Evalite.Adapter.Entities.Eval & {
-        results: (Evalite.Adapter.Entities.Result & {
-          scores: Evalite.Adapter.Entities.Score[];
+      evaluation: Evalite.Storage.Entities.Eval & {
+        results: (Evalite.Storage.Entities.Result & {
+          scores: Evalite.Storage.Entities.Score[];
         })[];
       };
       prevEvaluation:
-        | (Evalite.Adapter.Entities.Eval & {
-            results: (Evalite.Adapter.Entities.Result & {
-              scores: Evalite.Adapter.Entities.Score[];
+        | (Evalite.Storage.Entities.Eval & {
+            results: (Evalite.Storage.Entities.Result & {
+              scores: Evalite.Storage.Entities.Score[];
             })[];
           })
         | undefined;
@@ -172,7 +172,7 @@ export declare namespace Evalite {
       score: number;
       name: string;
       prevScore: number | undefined;
-      evalStatus: Evalite.Adapter.Entities.EvalStatus;
+      evalStatus: Evalite.Storage.Entities.EvalStatus;
       variantName: string | undefined;
       variantGroup: string | undefined;
       hasScores: boolean;
@@ -182,34 +182,34 @@ export declare namespace Evalite {
       evals: GetMenuItemsResultEval[];
       score: number;
       prevScore: number | undefined;
-      evalStatus: Evalite.Adapter.Entities.EvalStatus;
+      evalStatus: Evalite.Storage.Entities.EvalStatus;
     };
 
     export type GetResultResult = {
-      result: Evalite.Adapter.Entities.Result & {
-        traces: Evalite.Adapter.Entities.Trace[];
+      result: Evalite.Storage.Entities.Result & {
+        traces: Evalite.Storage.Entities.Trace[];
         score: number;
-        scores: Evalite.Adapter.Entities.Score[];
+        scores: Evalite.Storage.Entities.Score[];
       };
       prevResult:
-        | (Evalite.Adapter.Entities.Result & {
+        | (Evalite.Storage.Entities.Result & {
             score: number;
-            scores: Evalite.Adapter.Entities.Score[];
+            scores: Evalite.Storage.Entities.Score[];
           })
         | undefined;
-      evaluation: Evalite.Adapter.Entities.Eval;
+      evaluation: Evalite.Storage.Entities.Eval;
     };
   }
 
   /**
-   * Types for the Adapter API.
+   * Types for the Storage API.
    * These types define the interface for pluggable storage backends.
    */
-  export namespace Adapter {
+  export namespace Storage {
     // ========== ENTITIES ==========
     /**
-     * Database entity types that adapters must return.
-     * These are the canonical types for the adapter contract.
+     * Database entity types that storage backends must return.
+     * These are the canonical types for the storage contract.
      */
     export namespace Entities {
       export type Run = {
@@ -503,4 +503,4 @@ export declare namespace Evalite {
   }
 }
 
-export type { EvaliteAdapter } from "./adapters/types.js";
+export type { EvaliteStorage } from "./storage/types.js";

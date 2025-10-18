@@ -34,7 +34,7 @@ export const jsonParseFieldsArray = <T extends object, K extends keyof T>(
 };
 
 export const computeAverageScores = (
-  scores: Evalite.Adapter.Entities.Score[]
+  scores: Evalite.Storage.Entities.Score[]
 ): Array<{ result_id: number; average: number }> => {
   const grouped = new Map<number, number[]>();
   for (const score of scores) {

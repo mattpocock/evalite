@@ -45,15 +45,15 @@ export type GetEvalByNameResult = {
     score: number;
     date: string;
   }[];
-  evaluation: Evalite.Adapter.Entities.Eval & {
-    results: (Evalite.Adapter.Entities.Result & {
-      scores: Evalite.Adapter.Entities.Score[];
+  evaluation: Evalite.Storage.Entities.Eval & {
+    results: (Evalite.Storage.Entities.Result & {
+      scores: Evalite.Storage.Entities.Score[];
     })[];
   };
   prevEvaluation:
-    | (Evalite.Adapter.Entities.Eval & {
-        results: (Evalite.Adapter.Entities.Result & {
-          scores: Evalite.Adapter.Entities.Score[];
+    | (Evalite.Storage.Entities.Eval & {
+        results: (Evalite.Storage.Entities.Result & {
+          scores: Evalite.Storage.Entities.Score[];
         })[];
       })
     | undefined;
@@ -72,18 +72,18 @@ export const getEvalByName = async (
 };
 
 export type GetResultResult = {
-  result: Evalite.Adapter.Entities.Result & {
-    traces: Evalite.Adapter.Entities.Trace[];
+  result: Evalite.Storage.Entities.Result & {
+    traces: Evalite.Storage.Entities.Trace[];
     score: number;
-    scores: Evalite.Adapter.Entities.Score[];
+    scores: Evalite.Storage.Entities.Score[];
   };
   prevResult:
-    | (Evalite.Adapter.Entities.Result & {
+    | (Evalite.Storage.Entities.Result & {
         score: number;
-        scores: Evalite.Adapter.Entities.Score[];
+        scores: Evalite.Storage.Entities.Score[];
       })
     | undefined;
-  evaluation: Evalite.Adapter.Entities.Eval;
+  evaluation: Evalite.Storage.Entities.Eval;
 };
 
 export const getResult = async (

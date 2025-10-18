@@ -5,9 +5,9 @@ import path from "path";
 import { Writable } from "stream";
 import stripAnsi from "strip-ansi";
 import type { Evalite } from "evalite";
-import type { EvaliteAdapter } from "evalite/types";
+import type { EvaliteStorage } from "evalite/types";
 import { runEvalite } from "evalite/runner";
-import { createInMemoryAdapter } from "evalite/in-memory-adapter";
+import { createInMemoryStorage } from "evalite/in-memory-storage";
 
 const FIXTURES_DIR = path.join(import.meta.dirname, "./fixtures");
 const PLAYGROUND_DIR = path.join(import.meta.dirname, "./playground");
@@ -26,13 +26,13 @@ export const loadFixture = async (
     recursive: true,
   });
 
-  await using adapter = await createInMemoryAdapter();
+  await using storage = await createInMemoryStorage();
 
   const captured = captureStdout();
 
   return {
     dir: dirPath,
-    adapter,
+    storage,
     getOutput: () => captured.getOutput(),
     [Symbol.dispose]: () => {
       rmSync(dirPath, {
@@ -53,7 +53,7 @@ export const loadFixture = async (
       await runEvalite({
         ...opts,
         cwd: dirPath,
-        adapter,
+        storage,
         testOutputWritable: captured.writable,
       });
     },
@@ -77,34 +77,34 @@ export const captureStdout = () => {
   };
 };
 
-export interface EvalWithInlineResults extends Evalite.Adapter.Entities.Eval {
+export interface EvalWithInlineResults extends Evalite.Storage.Entities.Eval {
   results: ResultWithInlineScoresAndTraces[];
 }
 
 export interface ResultWithInlineScoresAndTraces
-  extends Evalite.Adapter.Entities.Result {
-  scores: Evalite.Adapter.Entities.Score[];
-  traces: Evalite.Adapter.Entities.Trace[];
+  extends Evalite.Storage.Entities.Result {
+  scores: Evalite.Storage.Entities.Score[];
+  traces: Evalite.Storage.Entities.Trace[];
 }
 
 /**
- * Get evals as a record using the new adapter API.
+ * Get evals as a record using the new storage API.
  * Replaces deprecated getEvalsAsRecord.
  */
-export const getEvalsAsRecordViaAdapter = async (
-  adapter: EvaliteAdapter
+export const getEvalsAsRecordViaStorage = async (
+  storage: EvaliteStorage
 ): Promise<Record<string, EvalWithInlineResults[]>> => {
-  const evals = await adapter.evals.getMany();
+  const evals = await storage.evals.getMany();
   const evalIds = evals.map((e) => e.id);
 
   const results =
-    evalIds.length > 0 ? await adapter.results.getMany({ evalIds }) : [];
+    evalIds.length > 0 ? await storage.results.getMany({ evalIds }) : [];
   const resultIds = results.map((r) => r.id);
 
   const scores =
-    resultIds.length > 0 ? await adapter.scores.getMany({ resultIds }) : [];
+    resultIds.length > 0 ? await storage.scores.getMany({ resultIds }) : [];
   const traces =
-    resultIds.length > 0 ? await adapter.traces.getMany({ resultIds }) : [];
+    resultIds.length > 0 ? await storage.traces.getMany({ resultIds }) : [];
 
   const recordOfEvals: Record<string, EvalWithInlineResults[]> = {};
 

@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { getEvalsAsRecordViaAdapter, loadFixture } from "./test-utils.js";
+import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Should allow non-serializable data (like validators/schemas) in expected field", async () => {
   await using fixture = await loadFixture("non-serializable-data");
@@ -16,7 +16,7 @@ it("Should allow non-serializable data (like validators/schemas) in expected fie
   // Should complete successfully
   expect(output).toContain("non-serializable-data.eval.ts");
 
-  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   // Should successfully run without serialization errors
   expect(evals["Non-serializable data"]).toBeDefined();

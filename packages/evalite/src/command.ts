@@ -6,7 +6,7 @@ import {
 } from "@stricli/auto-complete";
 import { createRequire } from "node:module";
 import { exportStaticUI } from "./export-static.js";
-import { createSqliteAdapter } from "./adapters/sqlite.js";
+import { createSqliteStorage } from "./storage/sqlite.js";
 import path from "node:path";
 import { DB_LOCATION } from "./backend-only-constants.js";
 
@@ -204,16 +204,16 @@ export const program = createProgram({
   export: async (opts) => {
     const cwd = process.cwd();
     const dbPath = path.join(cwd, DB_LOCATION);
-    const adapter = await createSqliteAdapter(dbPath);
+    const storage = await createSqliteStorage(dbPath);
 
     try {
       await exportStaticUI({
-        adapter,
+        storage,
         outputPath: opts.output ?? "./evalite-export",
         runId: opts.runId,
       });
     } finally {
-      await adapter.close();
+      await storage.close();
     }
   },
 });

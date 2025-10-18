@@ -89,7 +89,7 @@ export const Score = (props: {
 };
 
 export const getScoreState = (opts: {
-  status: Evalite.Adapter.Entities.EvalStatus;
+  status: Evalite.Storage.Entities.EvalStatus;
   score: number;
   prevScore: number | null | undefined;
 }) => {

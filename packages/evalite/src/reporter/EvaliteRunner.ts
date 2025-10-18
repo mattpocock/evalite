@@ -1,9 +1,9 @@
-import type { EvaliteAdapter } from "../adapters/types.js";
+import type { EvaliteStorage } from "../storage/types.js";
 import type { Evalite } from "../types.js";
 import type { ReporterEvent } from "./events.js";
 
 export interface EvaliteRunnerOptions {
-  adapter: EvaliteAdapter;
+  storage: EvaliteStorage;
   logNewState: (event: Evalite.ServerState) => void;
   modifyExitCode: (exitCode: number) => void;
   scoreThreshold: number | undefined;
@@ -103,26 +103,26 @@ export class EvaliteRunner {
             break;
           case "RESULT_STARTED":
             {
-              const run: Evalite.Adapter.Entities.Run = this.state.runId
+              const run: Evalite.Storage.Entities.Run = this.state.runId
                 ? (
-                    await this.opts.adapter.runs.getMany({
+                    await this.opts.storage.runs.getMany({
                       ids: [this.state.runId as number],
                       limit: 1,
                     })
                   )[0]!
-                : await this.opts.adapter.runs.create({
+                : await this.opts.storage.runs.create({
                     runType: this.state.runType,
                   });
 
               // Check if eval already exists for this run
-              const existingEvals = await this.opts.adapter.evals.getMany({
+              const existingEvals = await this.opts.storage.evals.getMany({
                 runIds: [run.id],
                 name: event.initialResult.evalName,
               });
 
               const evaluation =
                 existingEvals[0] ??
-                (await this.opts.adapter.evals.create({
+                (await this.opts.storage.evals.create({
                   filepath: event.initialResult.filepath,
                   name: event.initialResult.evalName,
                   runId: run.id,
@@ -130,7 +130,7 @@ export class EvaliteRunner {
                   variantGroup: event.initialResult.variantGroup,
                 }));
 
-              const result = await this.opts.adapter.results.create({
+              const result = await this.opts.storage.results.create({
                 evalId: evaluation.id,
                 order: event.initialResult.order,
                 input: "",
@@ -161,24 +161,24 @@ export class EvaliteRunner {
 
               const run = this.state.runId
                 ? (
-                    await this.opts.adapter.runs.getMany({
+                    await this.opts.storage.runs.getMany({
                       ids: [this.state.runId as number],
                       limit: 1,
                     })
                   )[0]!
-                : await this.opts.adapter.runs.create({
+                : await this.opts.storage.runs.create({
                     runType: this.state.runType,
                   });
 
               // Check if eval already exists for this run
-              const existingEvals = await this.opts.adapter.evals.getMany({
+              const existingEvals = await this.opts.storage.evals.getMany({
                 runIds: [run.id],
                 name: event.result.evalName,
               });
 
               const evaluation =
                 existingEvals[0] ??
-                (await this.opts.adapter.evals.create({
+                (await this.opts.storage.evals.create({
                   filepath: event.result.filepath,
                   name: event.result.evalName,
                   runId: run.id,
@@ -186,7 +186,7 @@ export class EvaliteRunner {
                   variantGroup: event.result.variantGroup,
                 }));
 
-              const existingResults = await this.opts.adapter.results.getMany({
+              const existingResults = await this.opts.storage.results.getMany({
                 evalIds: [evaluation.id],
                 order: event.result.order,
               });
@@ -195,7 +195,7 @@ export class EvaliteRunner {
               const existingResult = existingResults[0];
 
               if (existingResult) {
-                const updated = await this.opts.adapter.results.update({
+                const updated = await this.opts.storage.results.update({
                   id: existingResult.id,
                   output: event.result.output,
                   duration: event.result.duration,
@@ -206,7 +206,7 @@ export class EvaliteRunner {
                 });
                 resultId = updated.id;
               } else {
-                const created = await this.opts.adapter.results.create({
+                const created = await this.opts.storage.results.create({
                   evalId: evaluation.id,
                   order: event.result.order,
                   input: event.result.input,
@@ -220,7 +220,7 @@ export class EvaliteRunner {
               }
 
               for (const score of event.result.scores) {
-                await this.opts.adapter.scores.create({
+                await this.opts.storage.scores.create({
                   resultId: resultId,
                   description: score.description,
                   name: score.name,
@@ -232,7 +232,7 @@ export class EvaliteRunner {
               let traceOrder = 0;
               for (const trace of event.result.traces) {
                 traceOrder++;
-                await this.opts.adapter.traces.create({
+                await this.opts.storage.traces.create({
                   resultId: resultId,
                   input: trace.input,
                   output: trace.output,
@@ -245,7 +245,7 @@ export class EvaliteRunner {
                 });
               }
 
-              const allResults = await this.opts.adapter.results.getMany({
+              const allResults = await this.opts.storage.results.getMany({
                 evalIds: [evaluation.id],
               });
 
@@ -263,7 +263,7 @@ export class EvaliteRunner {
 
               // Update the eval status and duration
               if (isEvalComplete) {
-                await this.opts.adapter.evals.update({
+                await this.opts.storage.evals.update({
                   id: evaluation.id,
                   status: allResults.some((r) => r.status === "fail")
                     ? "fail"

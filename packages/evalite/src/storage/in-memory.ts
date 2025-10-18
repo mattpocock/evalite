@@ -1,14 +1,14 @@
 import type { Evalite } from "../types.js";
-import type { EvaliteAdapter } from "./types.js";
+import type { EvaliteStorage } from "./types.js";
 
-export type { EvaliteAdapter };
+export type { EvaliteStorage };
 
-export class InMemoryAdapter implements EvaliteAdapter {
-  private runsStore = new Map<number, Evalite.Adapter.Entities.Run>();
-  private evalsStore = new Map<number, Evalite.Adapter.Entities.Eval>();
-  private resultsStore = new Map<number, Evalite.Adapter.Entities.Result>();
-  private scoresStore = new Map<number, Evalite.Adapter.Entities.Score>();
-  private tracesStore = new Map<number, Evalite.Adapter.Entities.Trace>();
+export class InMemoryStorage implements EvaliteStorage {
+  private runsStore = new Map<number, Evalite.Storage.Entities.Run>();
+  private evalsStore = new Map<number, Evalite.Storage.Entities.Eval>();
+  private resultsStore = new Map<number, Evalite.Storage.Entities.Result>();
+  private scoresStore = new Map<number, Evalite.Storage.Entities.Score>();
+  private tracesStore = new Map<number, Evalite.Storage.Entities.Trace>();
 
   private nextRunId = 1;
   private nextEvalId = 1;
@@ -19,17 +19,17 @@ export class InMemoryAdapter implements EvaliteAdapter {
   private constructor() {}
 
   /**
-   * Create a new in-memory adapter
+   * Create a new in-memory storage
    */
-  static create(): InMemoryAdapter {
-    return new InMemoryAdapter();
+  static create(): InMemoryStorage {
+    return new InMemoryStorage();
   }
 
   runs = {
     create: async (
-      opts: Evalite.Adapter.Runs.CreateOpts
-    ): Promise<Evalite.Adapter.Entities.Run> => {
-      const run: Evalite.Adapter.Entities.Run = {
+      opts: Evalite.Storage.Runs.CreateOpts
+    ): Promise<Evalite.Storage.Entities.Run> => {
+      const run: Evalite.Storage.Entities.Run = {
         id: this.nextRunId++,
         runType: opts.runType,
         created_at: new Date().toISOString(),
@@ -39,8 +39,8 @@ export class InMemoryAdapter implements EvaliteAdapter {
     },
 
     getMany: async (
-      opts?: Evalite.Adapter.Runs.GetManyOpts
-    ): Promise<Evalite.Adapter.Entities.Run[]> => {
+      opts?: Evalite.Storage.Runs.GetManyOpts
+    ): Promise<Evalite.Storage.Entities.Run[]> => {
       let runs = Array.from(this.runsStore.values());
 
       if (opts?.ids && opts.ids.length > 0) {
@@ -83,9 +83,9 @@ export class InMemoryAdapter implements EvaliteAdapter {
 
   evals = {
     create: async (
-      opts: Evalite.Adapter.Evals.CreateOpts
-    ): Promise<Evalite.Adapter.Entities.Eval> => {
-      const evalEntity: Evalite.Adapter.Entities.Eval = {
+      opts: Evalite.Storage.Evals.CreateOpts
+    ): Promise<Evalite.Storage.Entities.Eval> => {
+      const evalEntity: Evalite.Storage.Entities.Eval = {
         id: this.nextEvalId++,
         run_id: opts.runId,
         name: opts.name,
@@ -102,8 +102,8 @@ export class InMemoryAdapter implements EvaliteAdapter {
     },
 
     update: async (
-      opts: Evalite.Adapter.Evals.UpdateOpts
-    ): Promise<Evalite.Adapter.Entities.Eval> => {
+      opts: Evalite.Storage.Evals.UpdateOpts
+    ): Promise<Evalite.Storage.Entities.Eval> => {
       const evalEntity = this.evalsStore.get(opts.id);
       if (!evalEntity) {
         throw new Error(`Eval with id ${opts.id} not found`);
@@ -120,8 +120,8 @@ export class InMemoryAdapter implements EvaliteAdapter {
     },
 
     getMany: async (
-      opts?: Evalite.Adapter.Evals.GetManyOpts
-    ): Promise<Evalite.Adapter.Entities.Eval[]> => {
+      opts?: Evalite.Storage.Evals.GetManyOpts
+    ): Promise<Evalite.Storage.Entities.Eval[]> => {
       let evals = Array.from(this.evalsStore.values());
 
       if (opts?.ids && opts.ids.length > 0) {
@@ -172,9 +172,9 @@ export class InMemoryAdapter implements EvaliteAdapter {
 
   results = {
     create: async (
-      opts: Evalite.Adapter.Results.CreateOpts
-    ): Promise<Evalite.Adapter.Entities.Result> => {
-      const result: Evalite.Adapter.Entities.Result = {
+      opts: Evalite.Storage.Results.CreateOpts
+    ): Promise<Evalite.Storage.Entities.Result> => {
+      const result: Evalite.Storage.Entities.Result = {
         id: this.nextResultId++,
         eval_id: opts.evalId,
         col_order: opts.order,
@@ -198,14 +198,14 @@ export class InMemoryAdapter implements EvaliteAdapter {
     },
 
     update: async (
-      opts: Evalite.Adapter.Results.UpdateOpts
-    ): Promise<Evalite.Adapter.Entities.Result> => {
+      opts: Evalite.Storage.Results.UpdateOpts
+    ): Promise<Evalite.Storage.Entities.Result> => {
       const result = this.resultsStore.get(opts.id);
       if (!result) {
         throw new Error(`Result with id ${opts.id} not found`);
       }
 
-      const updated: Evalite.Adapter.Entities.Result = {
+      const updated: Evalite.Storage.Entities.Result = {
         ...result,
         ...(opts.input !== undefined && {
           input: JSON.stringify(opts.input),
@@ -236,8 +236,8 @@ export class InMemoryAdapter implements EvaliteAdapter {
     },
 
     getMany: async (
-      opts?: Evalite.Adapter.Results.GetManyOpts
-    ): Promise<Evalite.Adapter.Entities.Result[]> => {
+      opts?: Evalite.Storage.Results.GetManyOpts
+    ): Promise<Evalite.Storage.Entities.Result[]> => {
       let results = Array.from(this.resultsStore.values());
 
       if (opts?.ids && opts.ids.length > 0) {
@@ -270,9 +270,9 @@ export class InMemoryAdapter implements EvaliteAdapter {
 
   scores = {
     create: async (
-      opts: Evalite.Adapter.Scores.CreateOpts
-    ): Promise<Evalite.Adapter.Entities.Score> => {
-      const score: Evalite.Adapter.Entities.Score = {
+      opts: Evalite.Storage.Scores.CreateOpts
+    ): Promise<Evalite.Storage.Entities.Score> => {
+      const score: Evalite.Storage.Entities.Score = {
         id: this.nextScoreId++,
         result_id: opts.resultId,
         name: opts.name,
@@ -291,8 +291,8 @@ export class InMemoryAdapter implements EvaliteAdapter {
     },
 
     getMany: async (
-      opts?: Evalite.Adapter.Scores.GetManyOpts
-    ): Promise<Evalite.Adapter.Entities.Score[]> => {
+      opts?: Evalite.Storage.Scores.GetManyOpts
+    ): Promise<Evalite.Storage.Entities.Score[]> => {
       let scores = Array.from(this.scoresStore.values());
 
       if (opts?.ids && opts.ids.length > 0) {
@@ -312,9 +312,9 @@ export class InMemoryAdapter implements EvaliteAdapter {
 
   traces = {
     create: async (
-      opts: Evalite.Adapter.Traces.CreateOpts
-    ): Promise<Evalite.Adapter.Entities.Trace> => {
-      const trace: Evalite.Adapter.Entities.Trace = {
+      opts: Evalite.Storage.Traces.CreateOpts
+    ): Promise<Evalite.Storage.Entities.Trace> => {
+      const trace: Evalite.Storage.Entities.Trace = {
         id: this.nextTraceId++,
         result_id: opts.resultId,
         input: JSON.stringify(opts.input),
@@ -337,8 +337,8 @@ export class InMemoryAdapter implements EvaliteAdapter {
     },
 
     getMany: async (
-      opts?: Evalite.Adapter.Traces.GetManyOpts
-    ): Promise<Evalite.Adapter.Entities.Trace[]> => {
+      opts?: Evalite.Storage.Traces.GetManyOpts
+    ): Promise<Evalite.Storage.Entities.Trace[]> => {
       let traces = Array.from(this.tracesStore.values());
 
       if (opts?.ids && opts.ids.length > 0) {
@@ -369,9 +369,9 @@ export class InMemoryAdapter implements EvaliteAdapter {
 }
 
 /**
- * Create a new in-memory adapter
- * @returns A new InMemoryAdapter instance
+ * Create a new in-memory storage
+ * @returns A new InMemoryStorage instance
  */
-export const createInMemoryAdapter = (): InMemoryAdapter => {
-  return InMemoryAdapter.create();
+export const createInMemoryStorage = (): InMemoryStorage => {
+  return InMemoryStorage.create();
 };

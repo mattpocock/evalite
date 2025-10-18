@@ -9,7 +9,7 @@ import type {
   Vitest,
 } from "vitest/node.js";
 import { BasicReporter } from "vitest/reporters";
-import type { EvaliteAdapter } from "./adapters/types.js";
+import type { EvaliteStorage } from "./storage/types.js";
 import { EvaliteRunner } from "./reporter/EvaliteRunner.js";
 import {
   renderDetailedTable,
@@ -30,7 +30,7 @@ export interface EvaliteReporterOptions {
   isWatching: boolean;
   port: number;
   logNewState: (event: Evalite.ServerState) => void;
-  adapter: EvaliteAdapter;
+  storage: EvaliteStorage;
   scoreThreshold: number | undefined;
   modifyExitCode: (exitCode: number) => void;
   mode: "watch-for-file-changes" | "run-once-and-exit" | "run-once-and-serve";
@@ -45,7 +45,7 @@ export default class EvaliteReporter extends BasicReporter implements Reporter {
     super();
     this.opts = opts;
     this.runner = new EvaliteRunner({
-      adapter: opts.adapter,
+      storage: opts.storage,
       logNewState: opts.logNewState,
       modifyExitCode: opts.modifyExitCode,
       scoreThreshold: opts.scoreThreshold,

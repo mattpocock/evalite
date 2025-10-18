@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { loadFixture } from "./test-utils.js";
-import { getEvalsAsRecordViaAdapter } from "./test-utils.js";
+import { getEvalsAsRecordViaStorage } from "./test-utils.js";
 
 it("Should work with data as an array (polymorphic)", async () => {
   await using fixture = await loadFixture("polymorphic-data");
@@ -20,7 +20,7 @@ it("Should save results correctly with polymorphic data", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   expect(evals).toMatchObject({
     "Direct Array Data": [

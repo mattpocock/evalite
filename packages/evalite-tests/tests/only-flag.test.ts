@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { getEvalsAsRecordViaAdapter, loadFixture } from "./test-utils.js";
+import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Should run only the marked entry when only: true is present", async () => {
   await using fixture = await loadFixture("only-flag-single");
@@ -8,7 +8,7 @@ it("Should run only the marked entry when only: true is present", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   // Should only have 1 result (the one with only: true)
   expect(evals["Only Flag Single"]?.[0]?.results).toHaveLength(1);
@@ -24,7 +24,7 @@ it("Should run all entries when no only: true is present", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   // Should have all 3 results
   expect(evals["Only Flag None"]?.[0]?.results).toHaveLength(3);
@@ -41,7 +41,7 @@ it("Should run multiple entries when multiple only: true are present", async () 
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   // Should only have 2 results (the ones with only: true)
   expect(evals["Only Flag Multiple"]?.[0]?.results).toHaveLength(2);
@@ -71,7 +71,7 @@ it("Should work with variants when only: true is present", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   // Should have 2 evals (one per variant), each with 1 result
   const variantAEval = evals["Only Flag Variants [variant-a]"];

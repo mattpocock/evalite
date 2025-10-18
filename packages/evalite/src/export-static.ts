@@ -1,10 +1,10 @@
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
-import type { EvaliteAdapter } from "./adapters/types.js";
+import type { EvaliteStorage } from "./storage/types.js";
 import type { Evalite } from "./types.js";
 import { average, EvaliteFile } from "./utils.js";
-import { computeAverageScores } from "./adapters/utils.js";
+import { computeAverageScores } from "./storage/utils.js";
 
 /**
  * Sanitizes an eval name for use in filenames
@@ -17,11 +17,11 @@ const sanitizeFilename = (name: string): string => {
  * Get the previous completed eval by name and created_at time
  */
 const getPreviousCompletedEval = async (
-  adapter: EvaliteAdapter,
+  storage: EvaliteStorage,
   name: string,
   createdAt: string
-): Promise<Evalite.Adapter.Entities.Eval | undefined> => {
-  const evals = await adapter.evals.getMany({
+): Promise<Evalite.Storage.Entities.Eval | undefined> => {
+  const evals = await storage.evals.getMany({
     name,
     createdBefore: createdAt,
     statuses: ["success", "fail"],
@@ -36,10 +36,10 @@ const getPreviousCompletedEval = async (
  * Get historical evals with average scores by name
  */
 const getHistoricalEvalsWithScoresByName = async (
-  adapter: EvaliteAdapter,
+  storage: EvaliteStorage,
   name: string
-): Promise<(Evalite.Adapter.Entities.Eval & { average_score: number })[]> => {
-  const evals = await adapter.evals.getMany({
+): Promise<(Evalite.Storage.Entities.Eval & { average_score: number })[]> => {
+  const evals = await storage.evals.getMany({
     name,
     statuses: ["success", "fail"],
     orderBy: "created_at",
@@ -47,10 +47,10 @@ const getHistoricalEvalsWithScoresByName = async (
   });
 
   // Get results and scores for all evals
-  const allResults = await adapter.results.getMany({
+  const allResults = await storage.results.getMany({
     evalIds: evals.map((e) => e.id),
   });
-  const allScores = await adapter.scores.getMany({
+  const allScores = await storage.scores.getMany({
     resultIds: allResults.map((r) => r.id),
   });
 
@@ -104,8 +104,8 @@ const transformEvaliteFilePaths = (
  * Options for exporting static UI
  */
 export interface ExportStaticOptions {
-  /** Adapter instance for accessing evaluation data */
-  adapter: EvaliteAdapter;
+  /** Storage instance for accessing evaluation data */
+  storage: EvaliteStorage;
   /** Output directory path for the export */
   outputPath: string;
   /** Optional specific run ID to export (defaults to latest full run) */
@@ -118,12 +118,12 @@ export interface ExportStaticOptions {
 export const exportStaticUI = async (
   options: ExportStaticOptions
 ): Promise<void> => {
-  const { adapter, outputPath, runId } = options;
+  const { storage, outputPath, runId } = options;
 
   // Get the run to export
   const run = runId
-    ? (await adapter.runs.getMany({ ids: [runId] }))[0]
-    : (await adapter.runs.getMany({ runType: "full", limit: 1 }))[0];
+    ? (await storage.runs.getMany({ ids: [runId] }))[0]
+    : (await storage.runs.getMany({ runType: "full", limit: 1 }))[0];
 
   if (!run) {
     throw new Error(
@@ -142,19 +142,19 @@ export const exportStaticUI = async (
   await fs.mkdir(filesDir, { recursive: true });
 
   // Get all data for this run
-  const evals = await adapter.evals.getMany({
+  const evals = await storage.evals.getMany({
     runIds: [run.id],
     statuses: ["success", "fail"],
   });
   console.log(`Found ${evals.length} evaluations`);
 
-  const allResults = await adapter.results.getMany({
+  const allResults = await storage.results.getMany({
     evalIds: evals.map((e) => e.id),
   });
-  const allScores = await adapter.scores.getMany({
+  const allScores = await storage.scores.getMany({
     resultIds: allResults.map((r) => r.id),
   });
-  const allTraces = await adapter.traces.getMany({
+  const allTraces = await storage.traces.getMany({
     resultIds: allResults.map((r) => r.id),
   });
   const averageScores = computeAverageScores(allScores);
@@ -197,7 +197,7 @@ export const exportStaticUI = async (
   const evalsWithPrevEvals = await Promise.all(
     evals.map(async (e) => ({
       ...e,
-      prevEval: await getPreviousCompletedEval(adapter, e.name, e.created_at),
+      prevEval: await getPreviousCompletedEval(storage, e.name, e.created_at),
     }))
   );
 
@@ -262,23 +262,23 @@ export const exportStaticUI = async (
     availableEvals.push(sanitizedName);
 
     const prevEvaluation = await getPreviousCompletedEval(
-      adapter,
+      storage,
       evaluation.name,
       evaluation.created_at
     );
 
-    const results = await adapter.results.getMany({
+    const results = await storage.results.getMany({
       evalIds: [evaluation.id, prevEvaluation?.id].filter(
         (i) => typeof i === "number"
       ),
     });
 
-    const scores = await adapter.scores.getMany({
+    const scores = await storage.scores.getMany({
       resultIds: results.map((r) => r.id),
     });
 
     const history = await getHistoricalEvalsWithScoresByName(
-      adapter,
+      storage,
       evaluation.name
     );
 

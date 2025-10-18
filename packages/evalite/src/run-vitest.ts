@@ -2,15 +2,15 @@ import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { Writable } from "stream";
 import { createVitest, registerConsoleShortcuts } from "vitest/node";
-import { createInMemoryAdapter } from "./adapters/in-memory.js";
-import type { EvaliteAdapter } from "./adapters/types.js";
-import { computeAverageScores } from "./adapters/utils.js";
+import { createInMemoryStorage } from "./storage/in-memory.js";
+import type { EvaliteStorage } from "./storage/types.js";
+import { computeAverageScores } from "./storage/utils.js";
 import { DB_LOCATION, FILES_LOCATION } from "./backend-only-constants.js";
 import { DEFAULT_SERVER_PORT } from "./constants.js";
 import EvaliteReporter from "./reporter.js";
 import { createServer } from "./server.js";
 import type { Evalite } from "./types.js";
-import { createSqliteAdapter } from "./adapters/sqlite.js";
+import { createSqliteStorage } from "./storage/sqlite.js";
 import { loadEvaliteConfig } from "./config.js";
 
 declare module "vitest" {
@@ -20,11 +20,11 @@ declare module "vitest" {
 }
 
 const exportResultsToJSON = async (opts: {
-  adapter: EvaliteAdapter;
+  storage: EvaliteStorage;
   outputPath: string;
   cwd: string;
 }) => {
-  const latestFullRunResults = await opts.adapter.runs.getMany({
+  const latestFullRunResults = await opts.storage.runs.getMany({
     runType: "full",
     orderBy: "created_at",
     orderDirection: "desc",
@@ -36,20 +36,20 @@ const exportResultsToJSON = async (opts: {
     throw new Error("No completed run found to export");
   }
 
-  const allEvals = await opts.adapter.evals.getMany({
+  const allEvals = await opts.storage.evals.getMany({
     runIds: [latestFullRun.id],
     statuses: ["fail", "success"],
   });
 
-  const evalResults = await opts.adapter.results.getMany({
+  const evalResults = await opts.storage.results.getMany({
     evalIds: allEvals.map((e) => e.id),
   });
 
-  const allScores = await opts.adapter.scores.getMany({
+  const allScores = await opts.storage.scores.getMany({
     resultIds: evalResults.map((r) => r.id),
   });
 
-  const allTraces = await opts.adapter.traces.getMany({
+  const allTraces = await opts.storage.traces.getMany({
     resultIds: evalResults.map((r) => r.id),
   });
 
@@ -193,7 +193,7 @@ export const runEvalite = async (opts: {
   scoreThreshold?: number;
   outputPath?: string;
   hideTable?: boolean;
-  adapter?: EvaliteAdapter;
+  storage?: EvaliteStorage;
 }) => {
   const cwd = opts.cwd ?? process.cwd();
   const filesLocation = path.join(cwd, FILES_LOCATION);
@@ -203,16 +203,16 @@ export const runEvalite = async (opts: {
   const config = await loadEvaliteConfig(cwd);
 
   // Merge options: opts (highest priority) > config > defaults
-  let adapter = opts.adapter;
+  let storage = opts.storage;
 
-  if (!adapter && config?.adapter) {
-    // Call config adapter factory (may be async)
-    adapter = await config.adapter();
+  if (!storage && config?.storage) {
+    // Call config storage factory (may be async)
+    storage = await config.storage();
   }
 
-  if (!adapter) {
+  if (!storage) {
     const dbLocation = path.join(cwd, DB_LOCATION);
-    adapter = await createSqliteAdapter(dbLocation);
+    storage = await createSqliteStorage(dbLocation);
   }
 
   const scoreThreshold = opts.scoreThreshold ?? config?.scoreThreshold;
@@ -231,7 +231,7 @@ export const runEvalite = async (opts: {
     opts.mode === "run-once-and-serve"
   ) {
     server = createServer({
-      adapter: adapter,
+      storage: storage,
     });
     server.start(serverPort);
   }
@@ -255,7 +255,7 @@ export const runEvalite = async (opts: {
           isWatching:
             opts.mode === "watch-for-file-changes" ||
             opts.mode === "run-once-and-serve",
-          adapter: adapter,
+          storage: storage,
           scoreThreshold: scoreThreshold,
           modifyExitCode: (code) => {
             exitCode = code;
@@ -308,7 +308,7 @@ export const runEvalite = async (opts: {
 
     if (opts.outputPath) {
       await exportResultsToJSON({
-        adapter,
+        storage,
         outputPath: opts.outputPath,
         cwd,
       });

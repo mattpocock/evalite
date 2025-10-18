@@ -1,25 +1,25 @@
 import { createJiti } from "jiti";
 import path from "path";
-import type { EvaliteAdapter } from "./adapters/types.js";
+import type { EvaliteStorage } from "./storage/types.js";
 
 /**
  * Configuration options for Evalite
  */
 export interface EvaliteConfig {
   /**
-   * Factory function to create a custom storage adapter.
-   * Can be async if the adapter requires async initialization.
+   * Factory function to create a custom storage backend.
+   * Can be async if the storage requires async initialization.
    *
    * @example
    * ```ts
-   * import { createSqliteAdapter } from "evalite/sqlite-adapter"
+   * import { createSqliteStorage } from "evalite/sqlite-storage"
    *
    * export default defineConfig({
-   *   adapter: () => createSqliteAdapter("./custom.db")
+   *   storage: () => createSqliteStorage("./custom.db")
    * })
    * ```
    */
-  adapter?: () => EvaliteAdapter | Promise<EvaliteAdapter>;
+  storage?: () => EvaliteStorage | Promise<EvaliteStorage>;
 
   /**
    * Server configuration options
@@ -84,10 +84,10 @@ export interface EvaliteConfig {
  * ```ts
  * // evalite.config.ts
  * import { defineConfig } from "evalite/config"
- * import { createSqliteAdapter } from "evalite/sqlite-adapter"
+ * import { createSqliteStorage } from "evalite/sqlite-storage"
  *
  * export default defineConfig({
- *   adapter: () => createSqliteAdapter("./custom.db"),
+ *   storage: () => createSqliteStorage("./custom.db"),
  *   server: { port: 3001 },
  *   scoreThreshold: 80,
  *   hideTable: true

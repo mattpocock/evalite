@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { getEvalsAsRecordViaAdapter, loadFixture } from "./test-utils.js";
+import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Should create separate evals for each variant", async () => {
   await using fixture = await loadFixture("variants");
@@ -8,7 +8,7 @@ it("Should create separate evals for each variant", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   // Should have 3 separate evals, one for each variant
   expect(evals["Compare models [Variant A]"]).toBeDefined();
@@ -23,7 +23,7 @@ it("Should store variant metadata in database", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   expect(evals["Compare models [Variant A]"]?.[0]).toMatchObject({
     variant_name: "Variant A",
@@ -48,7 +48,7 @@ it("Should pass correct variant value to task function", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   // Each variant should have results with different outputs based on variant value
   expect(evals["Compare models [Variant A]"]?.[0]?.results[0]?.output).toBe(

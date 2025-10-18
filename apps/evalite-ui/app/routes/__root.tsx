@@ -235,7 +235,7 @@ const EvalSidebarItem = (props: {
   variantName?: string | undefined;
   state: ScoreState;
   score: number;
-  evalStatus: Evalite.Adapter.Entities.EvalStatus;
+  evalStatus: Evalite.Storage.Entities.EvalStatus;
   isVariant?: boolean;
   hasScores: boolean;
 }) => {

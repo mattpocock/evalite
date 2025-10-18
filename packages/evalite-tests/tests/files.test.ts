@@ -3,7 +3,7 @@ import { FILES_LOCATION } from "evalite/backend-only-constants";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, it } from "vitest";
-import { getEvalsAsRecordViaAdapter, loadFixture } from "./test-utils.js";
+import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Should save files returned from task() in node_modules", async () => {
   await using fixture = await loadFixture("files");
@@ -24,7 +24,7 @@ it("Should save files returned from task() in node_modules", async () => {
 
   expect(file).toBeTruthy();
 
-  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   expect(evals).toMatchObject({
     Files: [
@@ -54,7 +54,7 @@ it("Should save files reported in traces", async () => {
 
   const filePath = path.join(dir, files[0]!);
 
-  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   expect(evals).toMatchObject({
     FilesWithTraces: [
@@ -104,7 +104,7 @@ it("Should let users add files to data().input and data().expected", async () =>
 
   expect(file).toBeTruthy();
 
-  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   expect(evals.FilesInInput![0]).toMatchObject({
     results: [
@@ -135,7 +135,7 @@ it("Should let users add files to columns", async () => {
 
   expect(file).toBeTruthy();
 
-  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   expect(evals.FilesWithColumns![0]).toMatchObject({
     results: [
@@ -170,7 +170,7 @@ it("Should let users add files to experimental_customColumns", async () => {
 
   expect(file).toBeTruthy();
 
-  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   expect(evals.experimental_customColumns![0]).toMatchObject({
     results: [

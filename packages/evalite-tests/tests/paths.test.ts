@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { getEvalsAsRecordViaAdapter, loadFixture } from "./test-utils.js";
+import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Should allow you to pass a specific filename to run", async () => {
   await using fixture = await loadFixture("paths");
@@ -9,7 +9,7 @@ it("Should allow you to pass a specific filename to run", async () => {
     path: "should-run.eval.ts",
   });
 
-  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   expect(evals["Should Run"]).toHaveLength(1);
   expect(evals["Should Not Run"]).not.toBeDefined();
@@ -23,7 +23,7 @@ it("Should allow you to pass a filename filter", async () => {
     path: "should-run",
   });
 
-  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   expect(evals["Should Run"]).toHaveLength(1);
   expect(evals["Should Not Run"]).not.toBeDefined();

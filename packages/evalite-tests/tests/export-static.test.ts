@@ -2,7 +2,7 @@ import { exportStaticUI } from "evalite/export-static";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, it } from "vitest";
-import { getEvalsAsRecordViaAdapter, loadFixture } from "./test-utils.js";
+import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Should export all required files and directory structure", async () => {
   await using fixture = await loadFixture("export");
@@ -13,10 +13,10 @@ it("Should export all required files and directory structure", async () => {
 
   // Export to a temp directory
   const exportDir = path.join(fixture.dir, "evalite-export");
-  const evals = await getEvalsAsRecordViaAdapter(fixture.adapter);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   await exportStaticUI({
-    adapter: fixture.adapter,
+    storage: fixture.storage,
     outputPath: exportDir,
   });
 
@@ -55,7 +55,7 @@ it("Should remap file paths to unique filenames", async () => {
   const exportDir = path.join(fixture.dir, "evalite-export");
 
   await exportStaticUI({
-    adapter: fixture.adapter,
+    storage: fixture.storage,
     outputPath: exportDir,
   });
 

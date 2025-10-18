@@ -1,10 +1,10 @@
 import type { Evalite } from "../types.js";
 
 /**
- * New namespaced adapter interface for storage backends in Evalite.
- * Implement this interface to create custom storage adapters (e.g., Postgres, Turso, in-memory).
+ * Storage interface for storage backends in Evalite.
+ * Implement this interface to create custom storage backends (e.g., Postgres, Turso, in-memory).
  */
-export interface EvaliteAdapter {
+export interface EvaliteStorage {
   /**
    * Operations for managing test runs.
    */
@@ -13,15 +13,15 @@ export interface EvaliteAdapter {
      * Create a new run and return the complete run entity.
      */
     create(
-      opts: Evalite.Adapter.Runs.CreateOpts
-    ): Promise<Evalite.Adapter.Entities.Run>;
+      opts: Evalite.Storage.Runs.CreateOpts
+    ): Promise<Evalite.Storage.Entities.Run>;
 
     /**
      * Get runs matching the specified criteria.
      */
     getMany(
-      opts?: Evalite.Adapter.Runs.GetManyOpts
-    ): Promise<Evalite.Adapter.Entities.Run[]>;
+      opts?: Evalite.Storage.Runs.GetManyOpts
+    ): Promise<Evalite.Storage.Entities.Run[]>;
   };
 
   /**
@@ -32,22 +32,22 @@ export interface EvaliteAdapter {
      * Create a new eval and return the complete eval entity.
      */
     create(
-      opts: Evalite.Adapter.Evals.CreateOpts
-    ): Promise<Evalite.Adapter.Entities.Eval>;
+      opts: Evalite.Storage.Evals.CreateOpts
+    ): Promise<Evalite.Storage.Entities.Eval>;
 
     /**
      * Update an eval and return the updated entity.
      */
     update(
-      opts: Evalite.Adapter.Evals.UpdateOpts
-    ): Promise<Evalite.Adapter.Entities.Eval>;
+      opts: Evalite.Storage.Evals.UpdateOpts
+    ): Promise<Evalite.Storage.Entities.Eval>;
 
     /**
      * Get evals matching the specified criteria.
      */
     getMany(
-      opts?: Evalite.Adapter.Evals.GetManyOpts
-    ): Promise<Evalite.Adapter.Entities.Eval[]>;
+      opts?: Evalite.Storage.Evals.GetManyOpts
+    ): Promise<Evalite.Storage.Entities.Eval[]>;
   };
 
   /**
@@ -58,22 +58,22 @@ export interface EvaliteAdapter {
      * Create a new result and return the complete result entity.
      */
     create(
-      opts: Evalite.Adapter.Results.CreateOpts
-    ): Promise<Evalite.Adapter.Entities.Result>;
+      opts: Evalite.Storage.Results.CreateOpts
+    ): Promise<Evalite.Storage.Entities.Result>;
 
     /**
      * Update a result and return the updated entity.
      */
     update(
-      opts: Evalite.Adapter.Results.UpdateOpts
-    ): Promise<Evalite.Adapter.Entities.Result>;
+      opts: Evalite.Storage.Results.UpdateOpts
+    ): Promise<Evalite.Storage.Entities.Result>;
 
     /**
      * Get results matching the specified criteria.
      */
     getMany(
-      opts?: Evalite.Adapter.Results.GetManyOpts
-    ): Promise<Evalite.Adapter.Entities.Result[]>;
+      opts?: Evalite.Storage.Results.GetManyOpts
+    ): Promise<Evalite.Storage.Entities.Result[]>;
   };
 
   /**
@@ -84,15 +84,15 @@ export interface EvaliteAdapter {
      * Create a new score and return the complete score entity.
      */
     create(
-      opts: Evalite.Adapter.Scores.CreateOpts
-    ): Promise<Evalite.Adapter.Entities.Score>;
+      opts: Evalite.Storage.Scores.CreateOpts
+    ): Promise<Evalite.Storage.Entities.Score>;
 
     /**
      * Get scores matching the specified criteria.
      */
     getMany(
-      opts?: Evalite.Adapter.Scores.GetManyOpts
-    ): Promise<Evalite.Adapter.Entities.Score[]>;
+      opts?: Evalite.Storage.Scores.GetManyOpts
+    ): Promise<Evalite.Storage.Entities.Score[]>;
   };
 
   /**
@@ -103,19 +103,19 @@ export interface EvaliteAdapter {
      * Create a new trace and return the complete trace entity.
      */
     create(
-      opts: Evalite.Adapter.Traces.CreateOpts
-    ): Promise<Evalite.Adapter.Entities.Trace>;
+      opts: Evalite.Storage.Traces.CreateOpts
+    ): Promise<Evalite.Storage.Entities.Trace>;
 
     /**
      * Get traces matching the specified criteria.
      */
     getMany(
-      opts?: Evalite.Adapter.Traces.GetManyOpts
-    ): Promise<Evalite.Adapter.Entities.Trace[]>;
+      opts?: Evalite.Storage.Traces.GetManyOpts
+    ): Promise<Evalite.Storage.Entities.Trace[]>;
   };
 
   /**
-   * Close/cleanup the adapter (e.g., close database connection).
+   * Close/cleanup the storage (e.g., close database connection).
    */
   close(): Promise<void>;
 

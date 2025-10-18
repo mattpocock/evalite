@@ -1,12 +1,12 @@
 import type * as BetterSqlite3 from "better-sqlite3";
 import { jsonParseFields, jsonParseFieldsArray } from "./utils.js";
 import type { Evalite } from "../types.js";
-import type { EvaliteAdapter } from "./types.js";
+import type { EvaliteStorage } from "./types.js";
 import { mkdir } from "fs/promises";
 import path from "path";
 import Database from "better-sqlite3";
 
-export type { EvaliteAdapter };
+export type { EvaliteStorage };
 
 const createDatabase = (url: string): BetterSqlite3.Database => {
   const db: BetterSqlite3.Database = new Database(url);
@@ -105,7 +105,7 @@ const createDatabase = (url: string): BetterSqlite3.Database => {
   return db;
 };
 
-export class SqliteAdapter implements EvaliteAdapter {
+export class SqliteStorage implements EvaliteStorage {
   private db: BetterSqlite3.Database;
 
   private constructor(db: BetterSqlite3.Database) {
@@ -124,7 +124,7 @@ export class SqliteAdapter implements EvaliteAdapter {
     filepath: string;
     variantName?: string;
     variantGroup?: string;
-  }): Evalite.Adapter.Entities.Eval {
+  }): Evalite.Storage.Entities.Eval {
     const evaluationId = this.db
       .prepare(
         `INSERT INTO evals (run_id, name, filepath, duration, status, variant_name, variant_group)
@@ -143,7 +143,7 @@ export class SqliteAdapter implements EvaliteAdapter {
     return this.db
       .prepare<
         { id: number | bigint },
-        Evalite.Adapter.Entities.Eval
+        Evalite.Storage.Entities.Eval
       >(`SELECT * FROM evals WHERE id = @id`)
       .get({ id: evaluationId })!;
   }
@@ -152,7 +152,7 @@ export class SqliteAdapter implements EvaliteAdapter {
     runType,
   }: {
     runType: Evalite.RunType;
-  }): Evalite.Adapter.Entities.Run {
+  }): Evalite.Storage.Entities.Run {
     const id = this.db
       .prepare(`INSERT INTO runs (runType) VALUES (@runType)`)
       .run({ runType }).lastInsertRowid;
@@ -160,7 +160,7 @@ export class SqliteAdapter implements EvaliteAdapter {
     return this.db
       .prepare<
         { id: number | bigint },
-        Evalite.Adapter.Entities.Run
+        Evalite.Storage.Entities.Run
       >(`SELECT * FROM runs WHERE id = @id`)
       .get({ id })!;
   }
@@ -183,7 +183,7 @@ export class SqliteAdapter implements EvaliteAdapter {
     duration: number;
     status: string;
     renderedColumns: unknown;
-  }): Evalite.Adapter.Entities.Result {
+  }): Evalite.Storage.Entities.Result {
     const id = this.db
       .prepare(
         `INSERT INTO results (eval_id, col_order, input, expected, output, duration, status, rendered_columns)
@@ -204,7 +204,7 @@ export class SqliteAdapter implements EvaliteAdapter {
       this.db
         .prepare<
           { id: number | bigint },
-          Evalite.Adapter.Entities.Result
+          Evalite.Storage.Entities.Result
         >(`SELECT * FROM results WHERE id = @id`)
         .get({ id })!,
       ["input", "output", "expected", "rendered_columns"]
@@ -227,7 +227,7 @@ export class SqliteAdapter implements EvaliteAdapter {
     expected: unknown;
     status: string;
     renderedColumns: unknown;
-  }): Evalite.Adapter.Entities.Result {
+  }): Evalite.Storage.Entities.Result {
     this.db
       .prepare(
         `UPDATE results
@@ -254,7 +254,7 @@ export class SqliteAdapter implements EvaliteAdapter {
       this.db
         .prepare<
           { id: number | bigint },
-          Evalite.Adapter.Entities.Result
+          Evalite.Storage.Entities.Result
         >(`SELECT * FROM results WHERE id = @id`)
         .get({ id: resultId })!,
       ["input", "output", "expected", "rendered_columns"]
@@ -273,7 +273,7 @@ export class SqliteAdapter implements EvaliteAdapter {
     name: string;
     score: number;
     metadata: unknown;
-  }): Evalite.Adapter.Entities.Score {
+  }): Evalite.Storage.Entities.Score {
     const id = this.db
       .prepare(
         `INSERT INTO scores (result_id, name, score, metadata, description)
@@ -291,7 +291,7 @@ export class SqliteAdapter implements EvaliteAdapter {
       this.db
         .prepare<
           { id: number | bigint },
-          Evalite.Adapter.Entities.Score
+          Evalite.Storage.Entities.Score
         >(`SELECT * FROM scores WHERE id = @id`)
         .get({ id })!,
       ["metadata"]
@@ -318,7 +318,7 @@ export class SqliteAdapter implements EvaliteAdapter {
     outputTokens: number | undefined;
     totalTokens: number | undefined;
     order: number;
-  }): Evalite.Adapter.Entities.Trace {
+  }): Evalite.Storage.Entities.Trace {
     const id = this.db
       .prepare(
         `INSERT INTO traces (result_id, input, output, start_time, end_time, input_tokens, output_tokens, total_tokens, col_order)
@@ -340,7 +340,7 @@ export class SqliteAdapter implements EvaliteAdapter {
       this.db
         .prepare<
           { id: number | bigint },
-          Evalite.Adapter.Entities.Trace
+          Evalite.Storage.Entities.Trace
         >(`SELECT * FROM traces WHERE id = @id`)
         .get({ id })!,
       ["input", "output"]
@@ -352,8 +352,8 @@ export class SqliteAdapter implements EvaliteAdapter {
     status,
   }: {
     evalId: number | bigint;
-    status: Evalite.Adapter.Entities.EvalStatus;
-  }): Evalite.Adapter.Entities.Eval {
+    status: Evalite.Storage.Entities.EvalStatus;
+  }): Evalite.Storage.Entities.Eval {
     this.db
       .prepare(
         `UPDATE evals
@@ -368,29 +368,29 @@ export class SqliteAdapter implements EvaliteAdapter {
     return this.db
       .prepare<
         { id: number | bigint },
-        Evalite.Adapter.Entities.Eval
+        Evalite.Storage.Entities.Eval
       >(`SELECT * FROM evals WHERE id = @id`)
       .get({ id: evalId })!;
   }
 
   /**
-   * Create a new SQLite adapter
+   * Create a new SQLite storage
    */
-  static create(location: string): SqliteAdapter {
+  static create(location: string): SqliteStorage {
     const db = createDatabase(location);
-    return new SqliteAdapter(db);
+    return new SqliteStorage(db);
   }
 
   runs = {
     create: async (
-      opts: Evalite.Adapter.Runs.CreateOpts
-    ): Promise<Evalite.Adapter.Entities.Run> => {
+      opts: Evalite.Storage.Runs.CreateOpts
+    ): Promise<Evalite.Storage.Entities.Run> => {
       return this.createRun({ runType: opts.runType });
     },
 
     getMany: async (
-      opts?: Evalite.Adapter.Runs.GetManyOpts
-    ): Promise<Evalite.Adapter.Entities.Run[]> => {
+      opts?: Evalite.Storage.Runs.GetManyOpts
+    ): Promise<Evalite.Storage.Entities.Run[]> => {
       let query = `SELECT * FROM runs WHERE 1=1`;
       const params: {
         ids?: number[];
@@ -431,23 +431,23 @@ export class SqliteAdapter implements EvaliteAdapter {
       }
 
       return this.db
-        .prepare<typeof params, Evalite.Adapter.Entities.Run>(query)
+        .prepare<typeof params, Evalite.Storage.Entities.Run>(query)
         .all(params);
     },
   };
 
   evals = {
     create: async (
-      opts: Evalite.Adapter.Evals.CreateOpts
-    ): Promise<Evalite.Adapter.Entities.Eval> => {
+      opts: Evalite.Storage.Evals.CreateOpts
+    ): Promise<Evalite.Storage.Entities.Eval> => {
       return this.createEval({
         ...opts,
       });
     },
 
     update: async (
-      opts: Evalite.Adapter.Evals.UpdateOpts
-    ): Promise<Evalite.Adapter.Entities.Eval> => {
+      opts: Evalite.Storage.Evals.UpdateOpts
+    ): Promise<Evalite.Storage.Entities.Eval> => {
       return this.updateEvalStatusAndDuration({
         evalId: opts.id,
         status: opts.status,
@@ -455,14 +455,14 @@ export class SqliteAdapter implements EvaliteAdapter {
     },
 
     getMany: async (
-      opts?: Evalite.Adapter.Evals.GetManyOpts
-    ): Promise<Evalite.Adapter.Entities.Eval[]> => {
+      opts?: Evalite.Storage.Evals.GetManyOpts
+    ): Promise<Evalite.Storage.Entities.Eval[]> => {
       let query = `SELECT * FROM evals WHERE 1=1`;
       const params: {
         ids?: number[];
         runIds?: number[];
         name?: string;
-        statuses?: Evalite.Adapter.Entities.EvalStatus[];
+        statuses?: Evalite.Storage.Entities.EvalStatus[];
         createdAt?: string;
         createdAfter?: string;
         createdBefore?: string;
@@ -507,15 +507,15 @@ export class SqliteAdapter implements EvaliteAdapter {
       }
 
       return this.db
-        .prepare<typeof params, Evalite.Adapter.Entities.Eval>(query)
+        .prepare<typeof params, Evalite.Storage.Entities.Eval>(query)
         .all(params);
     },
   };
 
   results = {
     create: async (
-      opts: Evalite.Adapter.Results.CreateOpts
-    ): Promise<Evalite.Adapter.Entities.Result> => {
+      opts: Evalite.Storage.Results.CreateOpts
+    ): Promise<Evalite.Storage.Entities.Result> => {
       return this.insertResult({
         evalId: opts.evalId,
         order: opts.order,
@@ -529,8 +529,8 @@ export class SqliteAdapter implements EvaliteAdapter {
     },
 
     update: async (
-      opts: Evalite.Adapter.Results.UpdateOpts
-    ): Promise<Evalite.Adapter.Entities.Result> => {
+      opts: Evalite.Storage.Results.UpdateOpts
+    ): Promise<Evalite.Storage.Entities.Result> => {
       return this.updateResult({
         resultId: opts.id,
         ...opts,
@@ -538,8 +538,8 @@ export class SqliteAdapter implements EvaliteAdapter {
     },
 
     getMany: async (
-      opts?: Evalite.Adapter.Results.GetManyOpts
-    ): Promise<Evalite.Adapter.Entities.Result[]> => {
+      opts?: Evalite.Storage.Results.GetManyOpts
+    ): Promise<Evalite.Storage.Entities.Result[]> => {
       let query = `SELECT * FROM results WHERE 1=1`;
       const params: {
         order?: number;
@@ -566,7 +566,7 @@ export class SqliteAdapter implements EvaliteAdapter {
       query += ` ORDER BY col_order ASC`;
 
       const results = this.db
-        .prepare<typeof params, Evalite.Adapter.Entities.Result>(query)
+        .prepare<typeof params, Evalite.Storage.Entities.Result>(query)
         .all(params);
 
       return jsonParseFieldsArray(results, [
@@ -580,8 +580,8 @@ export class SqliteAdapter implements EvaliteAdapter {
 
   scores = {
     create: async (
-      opts: Evalite.Adapter.Scores.CreateOpts
-    ): Promise<Evalite.Adapter.Entities.Score> => {
+      opts: Evalite.Storage.Scores.CreateOpts
+    ): Promise<Evalite.Storage.Entities.Score> => {
       return this.insertScore({
         resultId: opts.resultId,
         name: opts.name,
@@ -592,8 +592,8 @@ export class SqliteAdapter implements EvaliteAdapter {
     },
 
     getMany: async (
-      opts?: Evalite.Adapter.Scores.GetManyOpts
-    ): Promise<Evalite.Adapter.Entities.Score[]> => {
+      opts?: Evalite.Storage.Scores.GetManyOpts
+    ): Promise<Evalite.Storage.Entities.Score[]> => {
       let query = `SELECT * FROM scores WHERE 1=1`;
 
       if (opts?.ids && opts.ids.length > 0) {
@@ -605,7 +605,7 @@ export class SqliteAdapter implements EvaliteAdapter {
       }
 
       const scores = this.db
-        .prepare<{}, Evalite.Adapter.Entities.Score>(query)
+        .prepare<{}, Evalite.Storage.Entities.Score>(query)
         .all({});
 
       return jsonParseFieldsArray(scores, ["metadata"]);
@@ -614,8 +614,8 @@ export class SqliteAdapter implements EvaliteAdapter {
 
   traces = {
     create: async (
-      opts: Evalite.Adapter.Traces.CreateOpts
-    ): Promise<Evalite.Adapter.Entities.Trace> => {
+      opts: Evalite.Storage.Traces.CreateOpts
+    ): Promise<Evalite.Storage.Entities.Trace> => {
       return this.insertTrace({
         resultId: opts.resultId,
         input: opts.input,
@@ -630,8 +630,8 @@ export class SqliteAdapter implements EvaliteAdapter {
     },
 
     getMany: async (
-      opts?: Evalite.Adapter.Traces.GetManyOpts
-    ): Promise<Evalite.Adapter.Entities.Trace[]> => {
+      opts?: Evalite.Storage.Traces.GetManyOpts
+    ): Promise<Evalite.Storage.Entities.Trace[]> => {
       let query = `SELECT * FROM traces WHERE 1=1`;
 
       if (opts?.ids && opts.ids.length > 0) {
@@ -645,7 +645,7 @@ export class SqliteAdapter implements EvaliteAdapter {
       query += ` ORDER BY col_order ASC`;
 
       const traces = this.db
-        .prepare<{}, Evalite.Adapter.Entities.Trace>(query)
+        .prepare<{}, Evalite.Storage.Entities.Trace>(query)
         .all({});
 
       return jsonParseFieldsArray(traces, ["input", "output"]);
@@ -662,13 +662,13 @@ export class SqliteAdapter implements EvaliteAdapter {
 }
 
 /**
- * Create a new SQLite adapter
+ * Create a new SQLite storage
  * @param dbLocation - Path to the SQLite database file
- * @returns A new SqliteAdapter instance
+ * @returns A new SqliteStorage instance
  */
-export const createSqliteAdapter = async (
+export const createSqliteStorage = async (
   dbLocation: string
-): Promise<SqliteAdapter> => {
+): Promise<SqliteStorage> => {
   await mkdir(path.dirname(dbLocation), { recursive: true });
-  return SqliteAdapter.create(dbLocation);
+  return SqliteStorage.create(dbLocation);
 };

@@ -1,7 +1,7 @@
 import { assert, expect, it, vitest } from "vitest";
 import { runEvalite } from "evalite/runner";
 import { captureStdout, loadFixture } from "./test-utils.js";
-import { getEvalsAsRecordViaAdapter } from "./test-utils.js";
+import { getEvalsAsRecordViaStorage } from "./test-utils.js";
 
 it("Should set exitCode to 1 if the score is below the threshold", async () => {
   await using fixture = await loadFixture("threshold");
