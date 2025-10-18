@@ -273,7 +273,7 @@ function EvalComponent() {
 
   const hasTrials =
     evaluationWithoutLayoutShift?.results.some(
-      (result) => result.trial_index !== undefined
+      (result) => typeof result.trial_index === "number"
     ) ?? false;
 
   // Group results by input/expected for trial grouping

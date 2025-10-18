@@ -469,7 +469,7 @@ export declare namespace Evalite {
         col_order: number;
         status: ResultStatus;
         rendered_columns?: unknown;
-        trial_index?: number;
+        trial_index?: number | null;
       };
 
       export type Score = {
