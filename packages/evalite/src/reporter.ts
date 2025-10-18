@@ -4,7 +4,6 @@ import type {
   Reporter,
   TestCase,
   TestModule,
-  TestModuleState,
   TestSuite,
   Vitest,
 } from "vitest/node.js";
