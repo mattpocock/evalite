@@ -1,5 +1,5 @@
 import { openai } from "@ai-sdk/openai";
-import { generateText, streamText } from "ai";
+import { generateText } from "ai";
 import { evalite } from "evalite";
 import { createStorage } from "unstorage";
 import fsDriver from "unstorage/drivers/fs";
@@ -57,7 +57,7 @@ evalite("Test Capitals", {
     },
   ],
   task: async (input) => {
-    const result = await streamText({
+    const result = await generateText({
       model: traceAISDKModel(cacheModel(openai("gpt-4o-mini"), storage)),
       system: `
         Answer the question concisely. Answer in as few words as possible.
@@ -68,7 +68,7 @@ evalite("Test Capitals", {
       prompt: input,
     });
 
-    return result.textStream;
+    return result.text;
   },
   scorers: [Factuality, Levenshtein],
 });

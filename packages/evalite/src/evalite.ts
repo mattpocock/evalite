@@ -9,21 +9,6 @@ import { FILES_LOCATION } from "./backend-only-constants.js";
 import { createScorer } from "./index.js";
 import { serializeAnnotation } from "./reporter/events.js";
 
-const joinArrayOfUnknownResults = (results: unknown[]): unknown => {
-  return results.reduce((acc, result) => {
-    if (
-      typeof result === "string" ||
-      typeof result === "number" ||
-      typeof result === "boolean"
-    ) {
-      return `${acc}${result}`;
-    }
-    throw new Error(
-      `Cannot display results of stream: stream contains non-string, non-number, non-boolean chunks.`
-    );
-  }, "");
-};
-
 const makeSerializable = (obj: unknown): unknown => {
   try {
     structuredClone(obj);
@@ -52,23 +37,7 @@ const executeTask = async <TInput, TOutput, TVariant = undefined>(
   input: TInput,
   variant: TVariant
 ): Promise<TOutput> => {
-  const taskResultOrStream = await task(input, variant);
-
-  if (
-    typeof taskResultOrStream === "object" &&
-    taskResultOrStream &&
-    Symbol.asyncIterator in taskResultOrStream
-  ) {
-    const chunks: TOutput[] = [];
-
-    for await (const chunk of taskResultOrStream) {
-      chunks.push(chunk);
-    }
-
-    return joinArrayOfUnknownResults(chunks) as TOutput;
-  }
-
-  return taskResultOrStream;
+  return await task(input, variant);
 };
 
 const runTask = async <TInput, TOutput, TExpected, TVariant = undefined>(
