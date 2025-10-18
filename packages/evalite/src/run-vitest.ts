@@ -15,7 +15,12 @@ import { loadEvaliteConfig } from "./config.js";
 declare module "vitest" {
   export interface ProvidedContext {
     cwd: string;
-    evaliteConfig: Evalite.Config | undefined;
+    /**
+     * Number of trials to run for each test case.
+     * Only primitives can be passed here - don't pass entire config as it contains
+     * non-serializable functions (like storage factory).
+     */
+    trialCount: number | undefined;
   }
 }
 
@@ -290,7 +295,7 @@ export const runEvalite = async (opts: {
   );
 
   vitest.provide("cwd", cwd);
-  vitest.provide("evaliteConfig", config);
+  vitest.provide("trialCount", config?.trialCount);
 
   await vitest.start(filters);
 

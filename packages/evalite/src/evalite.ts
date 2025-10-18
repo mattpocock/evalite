@@ -184,8 +184,8 @@ function registerEvalite<TInput, TOutput, TExpected>(
       : dataset;
 
     // Get trialCount from opts or config (opts wins)
-    const config = inject("evaliteConfig");
-    const trialCount = opts.trialCount ?? config?.trialCount ?? 1;
+    const configTrialCount = inject("trialCount");
+    const trialCount = opts.trialCount ?? configTrialCount ?? 1;
 
     // Expand dataset with trials
     const expandedDataset: Array<{
