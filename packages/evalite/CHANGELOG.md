@@ -1,5 +1,12 @@
 # evalite
 
+## 0.16.0
+
+### Minor Changes
+
+- 4cdd7a3: Storage system for pluggable storage backend. Introduced `Evalite.Storage` interface allowing custom storage implementations (e.g. Postgres, Turso, in-memory). SQLite remains default backend with no API changes for existing users.
+- 88db673: Added `evalite.config.ts` file to configure Evalite. Added `testTimeout` and `maxConcurrency` options.
+
 ## 0.15.0
 
 ### Minor Changes
