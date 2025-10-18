@@ -1,25 +1,16 @@
 import { expect, it } from "vitest";
-import { runVitest } from "evalite/runner";
-import { captureStdout, loadFixture } from "./test-utils.js";
+import { loadFixture } from "./test-utils.js";
 import { createScorer } from "evalite";
-import { createDatabase, getEvalsAsRecord } from "evalite/db";
+import { getEvalsAsRecordViaStorage } from "./test-utils.js";
 
 it("Should let users create custom scorers", async () => {
-  using fixture = loadFixture("custom-scorer");
+  await using fixture = await loadFixture("custom-scorer");
 
-  const captured = captureStdout();
-
-  await runVitest({
-    cwd: fixture.dir,
-
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  const db = createDatabase(fixture.dbLocation);
-
-  const evals = await getEvalsAsRecord(db);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   expect(evals.Index![0]?.results[0]?.scores[0]?.name).toBe("Is Same");
   expect(evals.Index![0]?.results[0]?.scores[0]?.score).toBe(1);

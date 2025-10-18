@@ -12,7 +12,6 @@ import {
   Outlet,
 } from "@tanstack/react-router";
 
-import type { Db } from "evalite/db";
 import type { Evalite } from "evalite/types";
 import { FolderOpen } from "lucide-react";
 import { lazy } from "react";
@@ -236,7 +235,7 @@ const EvalSidebarItem = (props: {
   variantName?: string | undefined;
   state: ScoreState;
   score: number;
-  evalStatus: Db.EvalStatus;
+  evalStatus: Evalite.Storage.Entities.EvalStatus;
   isVariant?: boolean;
   hasScores: boolean;
 }) => {

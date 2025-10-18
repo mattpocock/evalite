@@ -12,7 +12,8 @@ export const LiveDate = (props: { date: string; className?: string }) => {
     return () => clearInterval(interval);
   }, []);
 
-  const utcDate = new Date(props.date + "Z");
+  const utcDateRaw = props.date.endsWith("Z") ? props.date : props.date + "Z";
+  const utcDate = new Date(utcDateRaw);
 
   return (
     <span className={props.className}>

@@ -1,23 +1,14 @@
-import { runVitest } from "evalite/runner";
 import { expect, it } from "vitest";
-import { captureStdout, loadFixture } from "./test-utils.js";
-import { createDatabase, getEvalsAsRecord } from "evalite/db";
+import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Should allow you to render columns based on the input and output", async () => {
-  using fixture = loadFixture("columns");
+  await using fixture = await loadFixture("columns");
 
-  const captured = captureStdout();
-
-  await runVitest({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  const db = createDatabase(fixture.dbLocation);
-
-  const evals = await getEvalsAsRecord(db);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   expect(evals.Columns![0]).toMatchObject({
     results: [
@@ -33,18 +24,13 @@ it("Should allow you to render columns based on the input and output", async () 
 });
 
 it("Should show in the terminal UI", async () => {
-  using fixture = loadFixture("columns");
+  await using fixture = await loadFixture("columns");
 
-  const captured = captureStdout();
-
-  await runVitest({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  const output = captured.getOutput();
+  const output = fixture.getOutput();
 
   expect(output).toContain("Input First");
   expect(output).toContain("Expected Last");

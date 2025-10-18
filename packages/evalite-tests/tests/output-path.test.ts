@@ -1,23 +1,19 @@
 import { expect, it } from "vitest";
-import { runVitest } from "evalite/runner";
+import { runEvalite } from "evalite/runner";
 import { captureStdout, loadFixture } from "./test-utils.js";
 import { existsSync } from "fs";
 import { readFile } from "fs/promises";
 import path from "path";
 
 it("Should export results to JSON when outputPath is specified", async () => {
-  using fixture = loadFixture("basics");
+  await using fixture = await loadFixture("basics");
 
-  const captured = captureStdout();
-  const outputPath = path.join(fixture.dir, "results.json");
-
-  await runVitest({
-    cwd: fixture.dir,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
-    outputPath,
-    path: undefined,
+    outputPath: path.join(fixture.dir, "results.json"),
   });
+
+  const outputPath = path.join(fixture.dir, "results.json");
 
   // Verify the file was created
   expect(existsSync(outputPath)).toBe(true);
@@ -69,19 +65,14 @@ it("Should export results to JSON when outputPath is specified", async () => {
 });
 
 it("Should support relative output paths", async () => {
-  using fixture = loadFixture("basics");
+  await using fixture = await loadFixture("basics");
 
-  const captured = captureStdout();
-  const relativeOutputPath = "output/test-results.json";
-
-  await runVitest({
-    cwd: fixture.dir,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
-    outputPath: relativeOutputPath,
-    path: undefined,
+    outputPath: "output/test-results.json",
   });
 
+  const relativeOutputPath = "output/test-results.json";
   const absoluteOutputPath = path.join(fixture.dir, relativeOutputPath);
 
   // Verify the file was created at the correct location
@@ -96,49 +87,29 @@ it("Should support relative output paths", async () => {
 });
 
 it("Should create nested directories if they don't exist", async () => {
-  using fixture = loadFixture("basics");
+  await using fixture = await loadFixture("basics");
 
-  const captured = captureStdout();
-  const nestedOutputPath = path.join(
-    fixture.dir,
-    "deeply",
-    "nested",
-    "path",
-    "results.json"
-  );
-
-  await runVitest({
-    cwd: fixture.dir,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
-    outputPath: nestedOutputPath,
-    path: undefined,
+    outputPath: "deeply/nested/path/results.json",
   });
 
-  // Verify the file was created
-  expect(existsSync(nestedOutputPath)).toBe(true);
+  const outputPath = path.join(fixture.dir, "deeply/nested/path/results.json");
+  expect(existsSync(outputPath)).toBe(true);
 
-  // Verify it contains valid data
-  const fileContent = await readFile(nestedOutputPath, "utf-8");
-  const output = JSON.parse(fileContent);
-
+  const output = JSON.parse(await readFile(outputPath, "utf-8"));
   expect(output.evals.length).toBeGreaterThan(0);
 });
 
 it("Should include result scores in the output", async () => {
-  using fixture = loadFixture("basics");
+  await using fixture = await loadFixture("basics");
 
-  const captured = captureStdout();
-  const outputPath = path.join(fixture.dir, "results.json");
-
-  await runVitest({
-    cwd: fixture.dir,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
-    outputPath,
-    path: undefined,
+    outputPath: "results.json",
   });
 
+  const outputPath = path.join(fixture.dir, "results.json");
   const fileContent = await readFile(outputPath, "utf-8");
   const output = JSON.parse(fileContent);
 

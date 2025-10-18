@@ -1,27 +1,22 @@
-import { runVitest } from "evalite/runner";
 import { exportStaticUI } from "evalite/export-static";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, it } from "vitest";
-import { captureStdout, loadFixture } from "./test-utils.js";
+import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Should export all required files and directory structure", async () => {
-  using fixture = loadFixture("export");
+  await using fixture = await loadFixture("export");
 
-  const captured = captureStdout();
-
-  // Run the eval first
-  await runVitest({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
   // Export to a temp directory
   const exportDir = path.join(fixture.dir, "evalite-export");
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+
   await exportStaticUI({
-    cwd: fixture.dir,
+    storage: fixture.storage,
     outputPath: exportDir,
   });
 
@@ -50,22 +45,17 @@ it("Should export all required files and directory structure", async () => {
 });
 
 it("Should remap file paths to unique filenames", async () => {
-  using fixture = loadFixture("export");
+  await using fixture = await loadFixture("export");
 
-  const captured = captureStdout();
-
-  // Run the eval first
-  await runVitest({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
   // Export to a temp directory
   const exportDir = path.join(fixture.dir, "evalite-export");
+
   await exportStaticUI({
-    cwd: fixture.dir,
+    storage: fixture.storage,
     outputPath: exportDir,
   });
 

@@ -1,39 +1,26 @@
 import { expect, it } from "vitest";
-import { runVitest } from "evalite/runner";
-import { captureStdout, loadFixture } from "./test-utils.js";
-import { createDatabase, getEvalsAsRecord } from "evalite/db";
+import { loadFixture } from "./test-utils.js";
+import { getEvalsAsRecordViaStorage } from "./test-utils.js";
 
 it("Should work with data as an array (polymorphic)", async () => {
-  using fixture = loadFixture("polymorphic-data");
+  await using fixture = await loadFixture("polymorphic-data");
 
-  const captured = captureStdout();
-
-  await runVitest({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  expect(captured.getOutput()).toContain("Duration");
-  expect(captured.getOutput()).toContain("Score  100%");
+  expect(fixture.getOutput()).toContain("Duration");
+  expect(fixture.getOutput()).toContain("Score  100%");
 });
 
 it("Should save results correctly with polymorphic data", async () => {
-  using fixture = loadFixture("polymorphic-data");
+  await using fixture = await loadFixture("polymorphic-data");
 
-  const captured = captureStdout();
-
-  await runVitest({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  const db = createDatabase(fixture.dbLocation);
-
-  const evals = await getEvalsAsRecord(db);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   expect(evals).toMatchObject({
     "Direct Array Data": [

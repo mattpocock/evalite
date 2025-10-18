@@ -1,20 +1,8 @@
-import {
-  createEvalIfNotExists,
-  createRun,
-  findResultByEvalIdAndOrder,
-  getAllResultsForEval,
-  insertResult,
-  insertScore,
-  insertTrace,
-  updateEvalStatusAndDuration,
-  updateResult,
-  type SQLiteDatabase,
-} from "../db.js";
 import type { Evalite } from "../types.js";
 import type { ReporterEvent } from "./events.js";
 
 export interface EvaliteRunnerOptions {
-  db: SQLiteDatabase;
+  storage: Evalite.Storage;
   logNewState: (event: Evalite.ServerState) => void;
   modifyExitCode: (exitCode: number) => void;
   scoreThreshold: number | undefined;
@@ -25,6 +13,7 @@ export class EvaliteRunner {
   private state: Evalite.ServerState = { type: "idle" };
   private didLastRunFailThreshold: "yes" | "no" | "unknown" = "unknown";
   private collectedResults: Map<string, Evalite.Result> = new Map();
+  private eventQueue: Promise<void> = Promise.resolve();
 
   constructor(opts: EvaliteRunnerOptions) {
     this.opts = opts;
@@ -89,9 +78,22 @@ export class EvaliteRunner {
   }
 
   /**
+   * Wait for all queued events to complete processing
+   */
+  async waitForCompletion(): Promise<void> {
+    await this.eventQueue;
+  }
+
+  /**
    * Handles the state management for the reporter
    */
   sendEvent(event: ReporterEvent): void {
+    this.eventQueue = this.eventQueue.then(async () => {
+      await this.processEvent(event);
+    });
+  }
+
+  private async processEvent(event: ReporterEvent): Promise<void> {
     switch (this.state.type) {
       case "running":
         switch (event.type) {
@@ -100,25 +102,35 @@ export class EvaliteRunner {
             break;
           case "RESULT_STARTED":
             {
-              const runId =
-                this.state.runId ??
-                createRun({
-                  db: this.opts.db,
-                  runType: this.state.runType,
-                });
+              const run: Evalite.Storage.Entities.Run = this.state.runId
+                ? (
+                    await this.opts.storage.runs.getMany({
+                      ids: [this.state.runId as number],
+                      limit: 1,
+                    })
+                  )[0]!
+                : await this.opts.storage.runs.create({
+                    runType: this.state.runType,
+                  });
 
-              const evalId = createEvalIfNotExists({
-                db: this.opts.db,
-                filepath: event.initialResult.filepath,
+              // Check if eval already exists for this run
+              const existingEvals = await this.opts.storage.evals.getMany({
+                runIds: [run.id],
                 name: event.initialResult.evalName,
-                runId,
-                variantName: event.initialResult.variantName,
-                variantGroup: event.initialResult.variantGroup,
               });
 
-              const resultId = insertResult({
-                db: this.opts.db,
-                evalId,
+              const evaluation =
+                existingEvals[0] ??
+                (await this.opts.storage.evals.create({
+                  filepath: event.initialResult.filepath,
+                  name: event.initialResult.evalName,
+                  runId: run.id,
+                  variantName: event.initialResult.variantName,
+                  variantGroup: event.initialResult.variantGroup,
+                }));
+
+              const result = await this.opts.storage.results.create({
+                evalId: evaluation.id,
                 order: event.initialResult.order,
                 input: "",
                 expected: "",
@@ -134,8 +146,8 @@ export class EvaliteRunner {
                   ...this.state.evalNamesRunning,
                   event.initialResult.evalName,
                 ],
-                resultIdsRunning: [...this.state.resultIdsRunning, resultId],
-                runId,
+                resultIdsRunning: [...this.state.resultIdsRunning, result.id],
+                runId: run.id,
               });
             }
 
@@ -146,33 +158,44 @@ export class EvaliteRunner {
               const resultKey = `${event.result.filepath}:${event.result.evalName}:${event.result.order}`;
               this.collectedResults.set(resultKey, event.result);
 
-              const runId =
-                this.state.runId ??
-                createRun({
-                  db: this.opts.db,
-                  runType: this.state.runType,
-                });
+              const run = this.state.runId
+                ? (
+                    await this.opts.storage.runs.getMany({
+                      ids: [this.state.runId as number],
+                      limit: 1,
+                    })
+                  )[0]!
+                : await this.opts.storage.runs.create({
+                    runType: this.state.runType,
+                  });
 
-              const evalId = createEvalIfNotExists({
-                db: this.opts.db,
-                filepath: event.result.filepath,
+              // Check if eval already exists for this run
+              const existingEvals = await this.opts.storage.evals.getMany({
+                runIds: [run.id],
                 name: event.result.evalName,
-                runId,
-                variantName: event.result.variantName,
-                variantGroup: event.result.variantGroup,
               });
 
-              let existingResultId: number | bigint | undefined =
-                findResultByEvalIdAndOrder({
-                  db: this.opts.db,
-                  evalId,
-                  order: event.result.order,
-                });
+              const evaluation =
+                existingEvals[0] ??
+                (await this.opts.storage.evals.create({
+                  filepath: event.result.filepath,
+                  name: event.result.evalName,
+                  runId: run.id,
+                  variantName: event.result.variantName,
+                  variantGroup: event.result.variantGroup,
+                }));
 
-              if (existingResultId) {
-                updateResult({
-                  db: this.opts.db,
-                  resultId: existingResultId,
+              const existingResults = await this.opts.storage.results.getMany({
+                evalIds: [evaluation.id],
+                order: event.result.order,
+              });
+
+              let resultId: number;
+              const existingResult = existingResults[0];
+
+              if (existingResult) {
+                const updated = await this.opts.storage.results.update({
+                  id: existingResult.id,
                   output: event.result.output,
                   duration: event.result.duration,
                   status: event.result.status,
@@ -180,10 +203,10 @@ export class EvaliteRunner {
                   input: event.result.input,
                   expected: event.result.expected,
                 });
+                resultId = updated.id;
               } else {
-                existingResultId = insertResult({
-                  db: this.opts.db,
-                  evalId,
+                const created = await this.opts.storage.results.create({
+                  evalId: evaluation.id,
                   order: event.result.order,
                   input: event.result.input,
                   expected: event.result.expected,
@@ -192,12 +215,12 @@ export class EvaliteRunner {
                   status: event.result.status,
                   renderedColumns: event.result.renderedColumns,
                 });
+                resultId = created.id;
               }
 
               for (const score of event.result.scores) {
-                insertScore({
-                  db: this.opts.db,
-                  resultId: existingResultId,
+                await this.opts.storage.scores.create({
+                  resultId: resultId,
                   description: score.description,
                   name: score.name,
                   score: score.score ?? 0,
@@ -208,9 +231,8 @@ export class EvaliteRunner {
               let traceOrder = 0;
               for (const trace of event.result.traces) {
                 traceOrder++;
-                insertTrace({
-                  db: this.opts.db,
-                  resultId: existingResultId,
+                await this.opts.storage.traces.create({
+                  resultId: resultId,
                   input: trace.input,
                   output: trace.output,
                   start: trace.start,
@@ -222,13 +244,12 @@ export class EvaliteRunner {
                 });
               }
 
-              const allResults = getAllResultsForEval({
-                db: this.opts.db,
-                evalId,
+              const allResults = await this.opts.storage.results.getMany({
+                evalIds: [evaluation.id],
               });
 
               const resultIdsRunning = this.state.resultIdsRunning.filter(
-                (id) => id !== existingResultId
+                (id) => id !== resultId
               );
 
               /**
@@ -241,9 +262,8 @@ export class EvaliteRunner {
 
               // Update the eval status and duration
               if (isEvalComplete) {
-                updateEvalStatusAndDuration({
-                  db: this.opts.db,
-                  evalId,
+                await this.opts.storage.evals.update({
+                  id: evaluation.id,
                   status: allResults.some((r) => r.status === "fail")
                     ? "fail"
                     : "success",
@@ -258,7 +278,7 @@ export class EvaliteRunner {
                     )
                   : this.state.evalNamesRunning,
                 resultIdsRunning,
-                runId,
+                runId: run.id,
               });
             }
 

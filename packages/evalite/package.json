@@ -33,17 +33,19 @@
   },
   "exports": {
     ".": "./dist/index.js",
+    "./config": "./dist/config.js",
     "./constants": "./dist/constants.js",
     "./backend-only-constants": "./dist/backend-only-constants.js",
     "./utils": "./dist/utils.js",
     "./server": "./dist/server.js",
     "./types": "./dist/types.js",
-    "./db": "./dist/db.js",
     "./reporter": "./dist/reporter.js",
     "./traces": "./dist/traces.js",
     "./ai-sdk": "./dist/ai-sdk.js",
     "./runner": "./dist/run-vitest.js",
-    "./export-static": "./dist/export-static.js"
+    "./export-static": "./dist/export-static.js",
+    "./sqlite-storage": "./dist/storage/sqlite.js",
+    "./in-memory-storage": "./dist/storage/in-memory.js"
   },
   "dependencies": {
     "@ai-sdk/provider": "^2.0.0",
@@ -55,6 +57,7 @@
     "better-sqlite3": "^11.6.0",
     "fastify": "^5.6.1",
     "file-type": "^19.6.0",
+    "jiti": "^2.6.1",
     "table": "^6.9.0",
     "tinyrainbow": "^3.0.3"
   },

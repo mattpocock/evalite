@@ -25,12 +25,13 @@ evalite<Shape[], Shape[], Shape[]>("Basics", {
     ];
   },
   task: async (input) => {
-    input.push({
+    const newInput = [...input];
+    newInput.push({
       input: "abc",
       output: 123,
     });
 
-    return input;
+    return newInput;
   },
   scorers: [
     createScorer({

@@ -1,6 +1,78 @@
-import type { Db } from "./db.js";
-
 export declare namespace Evalite {
+  /**
+   * Configuration options for Evalite
+   */
+  export interface Config {
+    /**
+     * Factory function to create a custom storage backend.
+     * Can be async if the storage requires async initialization.
+     *
+     * @example
+     * ```ts
+     * import { createSqliteStorage } from "evalite/sqlite-storage"
+     *
+     * export default defineConfig({
+     *   storage: () => createSqliteStorage("./custom.db")
+     * })
+     * ```
+     */
+    storage?: () => Evalite.Storage | Promise<Evalite.Storage>;
+
+    /**
+     * Server configuration options
+     */
+    server?: {
+      /**
+       * Port for the Evalite UI server
+       * @default 3006
+       */
+      port?: number;
+    };
+
+    /**
+     * Minimum average score threshold (0-100).
+     * If the average score falls below this threshold, the process will exit with code 1.
+     *
+     * @example
+     * ```ts
+     * export default defineConfig({
+     *   scoreThreshold: 80 // Fail if average score < 80
+     * })
+     * ```
+     */
+    scoreThreshold?: number;
+
+    /**
+     * Hide the results table in terminal output
+     * @default false
+     */
+    hideTable?: boolean;
+
+    /**
+     * Maximum time (in milliseconds) a test can run before timing out
+     * @default 30000
+     * @example
+     * ```ts
+     * export default defineConfig({
+     *   testTimeout: 60000 // 60 seconds
+     * })
+     * ```
+     */
+    testTimeout?: number;
+
+    /**
+     * Maximum number of test cases to run in parallel
+     * @default 5
+     * @example
+     * ```ts
+     * export default defineConfig({
+     *   maxConcurrency: 100 // Run up to 100 tests in parallel
+     * })
+     * ```
+     */
+    maxConcurrency?: number;
+  }
+
   export type RunType = "full" | "partial";
 
   export type RunningServerState = {
@@ -155,9 +227,17 @@ export declare namespace Evalite {
         score: number;
         date: string;
       }[];
-      evaluation: Db.Eval & { results: (Db.Result & { scores: Db.Score[] })[] };
+      evaluation: Evalite.Storage.Entities.Eval & {
+        results: (Evalite.Storage.Entities.Result & {
+          scores: Evalite.Storage.Entities.Score[];
+        })[];
+      };
       prevEvaluation:
-        | (Db.Eval & { results: (Db.Result & { scores: Db.Score[] })[] })
+        | (Evalite.Storage.Entities.Eval & {
+            results: (Evalite.Storage.Entities.Result & {
+              scores: Evalite.Storage.Entities.Score[];
+            })[];
+          })
         | undefined;
     };
 
@@ -166,7 +246,7 @@ export declare namespace Evalite {
       score: number;
       name: string;
       prevScore: number | undefined;
-      evalStatus: Db.EvalStatus;
+      evalStatus: Evalite.Storage.Entities.EvalStatus;
       variantName: string | undefined;
       variantGroup: string | undefined;
       hasScores: boolean;
@@ -176,20 +256,331 @@ export declare namespace Evalite {
       evals: GetMenuItemsResultEval[];
       score: number;
       prevScore: number | undefined;
-      evalStatus: Db.EvalStatus;
+      evalStatus: Evalite.Storage.Entities.EvalStatus;
     };
 
     export type GetResultResult = {
-      result: Db.Result & {
-        traces: Db.Trace[];
+      result: Evalite.Storage.Entities.Result & {
+        traces: Evalite.Storage.Entities.Trace[];
         score: number;
-        scores: Db.Score[];
+        scores: Evalite.Storage.Entities.Score[];
       };
       prevResult:
-        | (Db.Result & { score: number; scores: Db.Score[] })
+        | (Evalite.Storage.Entities.Result & {
+            score: number;
+            scores: Evalite.Storage.Entities.Score[];
+          })
         | undefined;
-      evaluation: Db.Eval;
+      evaluation: Evalite.Storage.Entities.Eval;
     };
+  }
+
+  /**
+   * Storage interface for storage backends in Evalite.
+   * Implement this interface to create custom storage backends (e.g., Postgres, Turso, in-memory).
+   */
+  export interface Storage {
+    /**
+     * Operations for managing test runs.
+     */
+    runs: {
+      /**
+       * Create a new run and return the complete run entity.
+       */
+      create(
+        opts: Evalite.Storage.Runs.CreateOpts
+      ): Promise<Evalite.Storage.Entities.Run>;
+
+      /**
+       * Get runs matching the specified criteria.
+       */
+      getMany(
+        opts?: Evalite.Storage.Runs.GetManyOpts
+      ): Promise<Evalite.Storage.Entities.Run[]>;
+    };
+
+    /**
+     * Operations for managing evaluations.
+     */
+    evals: {
+      /**
+       * Create a new eval and return the complete eval entity.
+       */
+      create(
+        opts: Evalite.Storage.Evals.CreateOpts
+      ): Promise<Evalite.Storage.Entities.Eval>;
+
+      /**
+       * Update an eval and return the updated entity.
+       */
+      update(
+        opts: Evalite.Storage.Evals.UpdateOpts
+      ): Promise<Evalite.Storage.Entities.Eval>;
+
+      /**
+       * Get evals matching the specified criteria.
+       */
+      getMany(
+        opts?: Evalite.Storage.Evals.GetManyOpts
+      ): Promise<Evalite.Storage.Entities.Eval[]>;
+    };
+
+    /**
+     * Operations for managing test results.
+     */
+    results: {
+      /**
+       * Create a new result and return the complete result entity.
+       */
+      create(
+        opts: Evalite.Storage.Results.CreateOpts
+      ): Promise<Evalite.Storage.Entities.Result>;
+
+      /**
+       * Update a result and return the updated entity.
+       */
+      update(
+        opts: Evalite.Storage.Results.UpdateOpts
+      ): Promise<Evalite.Storage.Entities.Result>;
+
+      /**
+       * Get results matching the specified criteria.
+       */
+      getMany(
+        opts?: Evalite.Storage.Results.GetManyOpts
+      ): Promise<Evalite.Storage.Entities.Result[]>;
+    };
+
+    /**
+     * Operations for managing scores.
+     */
+    scores: {
+      /**
+       * Create a new score and return the complete score entity.
+       */
+      create(
+        opts: Evalite.Storage.Scores.CreateOpts
+      ): Promise<Evalite.Storage.Entities.Score>;
+
+      /**
+       * Get scores matching the specified criteria.
+       */
+      getMany(
+        opts?: Evalite.Storage.Scores.GetManyOpts
+      ): Promise<Evalite.Storage.Entities.Score[]>;
+    };
+
+    /**
+     * Operations for managing traces.
+     */
+    traces: {
+      /**
+       * Create a new trace and return the complete trace entity.
+       */
+      create(
+        opts: Evalite.Storage.Traces.CreateOpts
+      ): Promise<Evalite.Storage.Entities.Trace>;
+
+      /**
+       * Get traces matching the specified criteria.
+       */
+      getMany(
+        opts?: Evalite.Storage.Traces.GetManyOpts
+      ): Promise<Evalite.Storage.Entities.Trace[]>;
+    };
+
+    /**
+     * Close/cleanup the storage (e.g., close database connection).
+     */
+    close(): Promise<void>;
+
+    /**
+     * Symbol.asyncDispose for use with `await using` syntax.
+     */
+    [Symbol.asyncDispose](): Promise<void>;
+  }
+
+  /**
+   * Types for the Storage API.
+   * These types define the interface for pluggable storage backends.
+   */
+  export namespace Storage {
+    // ========== ENTITIES ==========
+    /**
+     * Database entity types that storage backends must return.
+     * These are the canonical types for the storage contract.
+     */
+    export namespace Entities {
+      export type Run = {
+        id: number;
+        runType: RunType;
+        created_at: string;
+      };
+
+      export type EvalStatus = "fail" | "success" | "running";
+
+      export type Eval = {
+        id: number;
+        run_id: number;
+        name: string;
+        status: EvalStatus;
+        filepath: string;
+        duration: number;
+        created_at: string;
+        variant_name?: string;
+        variant_group?: string;
+      };
+
+      export type Result = {
+        id: number;
+        eval_id: number;
+        duration: number;
+        input: unknown;
+        output: unknown;
+        expected?: unknown;
+        created_at: string;
+        col_order: number;
+        status: ResultStatus;
+        rendered_columns?: unknown;
+      };
+
+      export type Score = {
+        id: number;
+        result_id: number;
+        name: string;
+        score: number;
+        description?: string;
+        metadata?: unknown;
+        created_at: string;
+      };
+
+      export type Trace = {
+        id: number;
+        result_id: number;
+        input: unknown;
+        output: unknown;
+        start_time: number;
+        end_time: number;
+        input_tokens?: number;
+        output_tokens?: number;
+        total_tokens?: number;
+        col_order: number;
+      };
+    }
+
+    // ========== RUNS ==========
+    export namespace Runs {
+      export interface CreateOpts {
+        runType: RunType;
+      }
+
+      export interface GetManyOpts {
+        ids?: number[];
+        runType?: RunType;
+        createdAfter?: string;
+        createdBefore?: string;
+        createdAt?: string;
+        limit?: number;
+        orderBy?: "created_at" | "id";
+        orderDirection?: "asc" | "desc";
+      }
+    }
+
+    // ========== EVALS ==========
+    export namespace Evals {
+      export interface CreateOpts {
+        runId: number;
+        name: string;
+        filepath: string;
+        variantName?: string;
+        variantGroup?: string;
+      }
+
+      export interface UpdateOpts {
+        id: number;
+        status: Entities.EvalStatus;
+      }
+
+      export interface GetManyOpts {
+        ids?: number[];
+        runIds?: number[];
+        name?: string;
+        statuses?: Entities.EvalStatus[];
+        createdAt?: string;
+        createdAfter?: string;
+        createdBefore?: string;
+        limit?: number;
+        orderBy?: "created_at" | "name" | "id";
+        orderDirection?: "asc" | "desc";
+      }
+    }
+
+    // ========== RESULTS ==========
+    export namespace Results {
+      export interface CreateOpts {
+        evalId: number;
+        order: number;
+        input: unknown;
+        expected: unknown;
+        output: unknown;
+        duration: number;
+        status: ResultStatus;
+        renderedColumns: unknown;
+      }
+
+      export interface UpdateOpts {
+        id: number;
+        output: unknown;
+        duration: number;
+        input: unknown;
+        expected: unknown;
+        status: ResultStatus;
+        renderedColumns: unknown;
+      }
+
+      export interface GetManyOpts {
+        ids?: number[];
+        evalIds?: number[];
+        order?: number;
+        statuses?: ResultStatus[];
+      }
+    }
+
+    // ========== SCORES ==========
+    export namespace Scores {
+      export interface CreateOpts {
+        resultId: number;
+        name: string;
+        score: number;
+        description?: string;
+        metadata: unknown;
+      }
+
+      export interface GetManyOpts {
+        ids?: number[];
+        resultIds?: number[];
+      }
+    }
+
+    // ========== TRACES ==========
+    export namespace Traces {
+      export interface CreateOpts {
+        resultId: number;
+        input: unknown;
+        output: unknown;
+        start: number;
+        end: number;
+        inputTokens?: number;
+        outputTokens?: number;
+        totalTokens?: number;
+        order: number;
+      }
+
+      export interface GetManyOpts {
+        ids?: number[];
+        resultIds?: number[];
+      }
+    }
   }
 
   /**

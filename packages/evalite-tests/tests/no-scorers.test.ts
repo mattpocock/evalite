@@ -1,21 +1,14 @@
 import { expect, it } from "vitest";
-import { runEvalite } from "evalite/runner";
-import { captureStdout, loadFixture } from "./test-utils.js";
-import { createDatabase, getEvalsAsRecord } from "evalite/db";
+import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Terminal output should contain '-' instead of '0%' or '100%'", async () => {
-  using fixture = loadFixture("no-scorers");
+  await using fixture = await loadFixture("no-scorers");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  const output = captured.getOutput();
+  const output = fixture.getOutput();
 
   // Should not show percentage scores
   expect(output).not.toContain("0%");
@@ -26,20 +19,13 @@ it("Terminal output should contain '-' instead of '0%' or '100%'", async () => {
 });
 
 it("DB should have empty scores array", async () => {
-  using fixture = loadFixture("no-scorers");
+  await using fixture = await loadFixture("no-scorers");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  const db = createDatabase(fixture.dbLocation);
-
-  const evals = await getEvalsAsRecord(db);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   expect(evals["No Scorers"]).toBeDefined();
   expect(evals["No Scorers"]?.[0]?.results).toBeDefined();
@@ -48,18 +34,13 @@ it("DB should have empty scores array", async () => {
 });
 
 it("Score display should show '-' in summary", async () => {
-  using fixture = loadFixture("no-scorers");
+  await using fixture = await loadFixture("no-scorers");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  const output = captured.getOutput();
+  const output = fixture.getOutput();
 
   // Check for "-" in the score display area
   expect(output).toContain("Score");
@@ -72,18 +53,13 @@ it("Score display should show '-' in summary", async () => {
 });
 
 it("Task rendering should show '-' for file", async () => {
-  using fixture = loadFixture("no-scorers");
+  await using fixture = await loadFixture("no-scorers");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  const output = captured.getOutput();
+  const output = fixture.getOutput();
 
   // Check for "-" next to the file name
   expect(output).toContain("no-scorers.eval.ts");
@@ -96,18 +72,13 @@ it("Task rendering should show '-' for file", async () => {
 });
 
 it("Detailed table should show '-' in Score column", async () => {
-  using fixture = loadFixture("no-scorers");
+  await using fixture = await loadFixture("no-scorers");
 
-  const captured = captureStdout();
-
-  await runEvalite({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  const output = captured.getOutput();
+  const output = fixture.getOutput();
 
   // Should show table with Input, Output, Score columns
   expect(output).toContain("Input");

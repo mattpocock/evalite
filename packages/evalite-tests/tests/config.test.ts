@@ -1,23 +1,14 @@
-import { createDatabase, getEvalsAsRecord } from "evalite/db";
-import { runVitest } from "evalite/runner";
-import { assert, expect, it } from "vitest";
-import { captureStdout, loadFixture } from "./test-utils.js";
+import { expect, it, vi } from "vitest";
+import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Should ignore includes in a vite.config.ts", async () => {
-  using fixture = loadFixture("config-includes");
+  await using fixture = await loadFixture("config-includes");
 
-  const captured = captureStdout();
-
-  await runVitest({
-    cwd: fixture.dir,
-    path: undefined,
+  await fixture.run({
     mode: "run-once-and-exit",
-    testOutputWritable: captured.writable,
   });
 
-  const db = createDatabase(fixture.dbLocation);
-
-  const evals = await getEvalsAsRecord(db);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   expect(evals.Basics).toHaveLength(1);
 });

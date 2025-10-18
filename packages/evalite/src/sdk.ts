@@ -1,5 +1,4 @@
 import { DEFAULT_SERVER_PORT } from "./constants.js";
-import type { Db } from "./db.js";
 import type { Evalite } from "./types.js";
 
 const BASE_URL = `http://localhost:${DEFAULT_SERVER_PORT}`;
@@ -46,9 +45,17 @@ export type GetEvalByNameResult = {
     score: number;
     date: string;
   }[];
-  evaluation: Db.Eval & { results: (Db.Result & { scores: Db.Score[] })[] };
+  evaluation: Evalite.Storage.Entities.Eval & {
+    results: (Evalite.Storage.Entities.Result & {
+      scores: Evalite.Storage.Entities.Score[];
+    })[];
+  };
   prevEvaluation:
-    | (Db.Eval & { results: (Db.Result & { scores: Db.Score[] })[] })
+    | (Evalite.Storage.Entities.Eval & {
+        results: (Evalite.Storage.Entities.Result & {
+          scores: Evalite.Storage.Entities.Score[];
+        })[];
+      })
     | undefined;
 };
 
@@ -65,9 +72,18 @@ export const getEvalByName = async (
 };
 
 export type GetResultResult = {
-  result: Db.Result & { traces: Db.Trace[]; score: number; scores: Db.Score[] };
-  prevResult: (Db.Result & { score: number; scores: Db.Score[] }) | undefined;
-  evaluation: Db.Eval;
+  result: Evalite.Storage.Entities.Result & {
+    traces: Evalite.Storage.Entities.Trace[];
+    score: number;
+    scores: Evalite.Storage.Entities.Score[];
+  };
+  prevResult:
+    | (Evalite.Storage.Entities.Result & {
+        score: number;
+        scores: Evalite.Storage.Entities.Score[];
+      })
+    | undefined;
+  evaluation: Evalite.Storage.Entities.Eval;
 };
 
 export const getResult = async (

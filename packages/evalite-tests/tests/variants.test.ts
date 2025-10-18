@@ -1,23 +1,14 @@
 import { expect, it } from "vitest";
-import { runVitest } from "evalite/runner";
-import { captureStdout, loadFixture } from "./test-utils.js";
-import { createDatabase, getEvalsAsRecord } from "evalite/db";
+import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Should create separate evals for each variant", async () => {
-  using fixture = loadFixture("variants");
+  await using fixture = await loadFixture("variants");
 
-  const captured = captureStdout();
-
-  await runVitest({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  const db = createDatabase(fixture.dbLocation);
-
-  const evals = await getEvalsAsRecord(db);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   // Should have 3 separate evals, one for each variant
   expect(evals["Compare models [Variant A]"]).toBeDefined();
@@ -26,20 +17,13 @@ it("Should create separate evals for each variant", async () => {
 });
 
 it("Should store variant metadata in database", async () => {
-  using fixture = loadFixture("variants");
+  await using fixture = await loadFixture("variants");
 
-  const captured = captureStdout();
-
-  await runVitest({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  const db = createDatabase(fixture.dbLocation);
-
-  const evals = await getEvalsAsRecord(db);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   expect(evals["Compare models [Variant A]"]?.[0]).toMatchObject({
     variant_name: "Variant A",
@@ -58,20 +42,13 @@ it("Should store variant metadata in database", async () => {
 });
 
 it("Should pass correct variant value to task function", async () => {
-  using fixture = loadFixture("variants");
+  await using fixture = await loadFixture("variants");
 
-  const captured = captureStdout();
-
-  await runVitest({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  const db = createDatabase(fixture.dbLocation);
-
-  const evals = await getEvalsAsRecord(db);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   // Each variant should have results with different outputs based on variant value
   expect(evals["Compare models [Variant A]"]?.[0]?.results[0]?.output).toBe(

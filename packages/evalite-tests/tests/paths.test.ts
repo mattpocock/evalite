@@ -1,41 +1,29 @@
-import { assert, expect, it } from "vitest";
-import { runVitest } from "evalite/runner";
-import { captureStdout, loadFixture } from "./test-utils.js";
-import { createDatabase, getEvalsAsRecord } from "evalite/db";
+import { expect, it } from "vitest";
+import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Should allow you to pass a specific filename to run", async () => {
-  using fixture = loadFixture("paths");
+  await using fixture = await loadFixture("paths");
 
-  const captured = captureStdout();
-
-  await runVitest({
-    cwd: fixture.dir,
-    path: "should-run.eval.ts",
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
+    path: "should-run.eval.ts",
   });
-  const db = createDatabase(fixture.dbLocation);
 
-  const evals = await getEvalsAsRecord(db);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   expect(evals["Should Run"]).toHaveLength(1);
   expect(evals["Should Not Run"]).not.toBeDefined();
 });
 
 it("Should allow you to pass a filename filter", async () => {
-  using fixture = loadFixture("paths");
+  await using fixture = await loadFixture("paths");
 
-  const captured = captureStdout();
-
-  await runVitest({
-    cwd: fixture.dir,
-    path: "should-run",
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
+    path: "should-run",
   });
-  const db = createDatabase(fixture.dbLocation);
 
-  const evals = await getEvalsAsRecord(db);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   expect(evals["Should Run"]).toHaveLength(1);
   expect(evals["Should Not Run"]).not.toBeDefined();

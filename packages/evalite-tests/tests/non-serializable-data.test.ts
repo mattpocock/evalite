@@ -1,23 +1,14 @@
-import { createDatabase, getEvalsAsRecord } from "evalite/db";
-import { runVitest } from "evalite/runner";
-import { expect, it, vitest } from "vitest";
-import { captureStdout, loadFixture } from "./test-utils.js";
+import { expect, it } from "vitest";
+import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Should allow non-serializable data (like validators/schemas) in expected field", async () => {
-  using fixture = loadFixture("non-serializable-data");
+  await using fixture = await loadFixture("non-serializable-data");
 
-  const captured = captureStdout();
-  const exit = vitest.fn();
-  globalThis.process.exit = exit as any;
-
-  await runVitest({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  const output = captured.getOutput();
+  const output = fixture.getOutput();
 
   // Should not have serialization errors
   expect(output).not.toContain("could not be cloned");
@@ -25,8 +16,7 @@ it("Should allow non-serializable data (like validators/schemas) in expected fie
   // Should complete successfully
   expect(output).toContain("non-serializable-data.eval.ts");
 
-  const db = createDatabase(fixture.dbLocation);
-  const evals = await getEvalsAsRecord(db);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   // Should successfully run without serialization errors
   expect(evals["Non-serializable data"]).toBeDefined();

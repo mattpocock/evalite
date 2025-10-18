@@ -2,22 +2,15 @@ import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { Writable } from "stream";
 import { createVitest, registerConsoleShortcuts } from "vitest/node";
-import EvaliteReporter from "./reporter.js";
-import {
-  createDatabase,
-  getMostRecentRun,
-  getEvals,
-  getEvalsAverageScores,
-  type SQLiteDatabase,
-  getResults,
-  getScores,
-  getTraces,
-  getAverageScoresFromResults,
-} from "./db.js";
-import type { Evalite } from "./types.js";
-import { createServer } from "./server.js";
-import { DEFAULT_SERVER_PORT } from "./constants.js";
+import { createInMemoryStorage } from "./storage/in-memory.js";
+import { computeAverageScores } from "./storage/utils.js";
 import { DB_LOCATION, FILES_LOCATION } from "./backend-only-constants.js";
+import { DEFAULT_SERVER_PORT } from "./constants.js";
+import EvaliteReporter from "./reporter.js";
+import { createServer } from "./server.js";
+import type { Evalite } from "./types.js";
+import { createSqliteStorage } from "./storage/sqlite.js";
+import { loadEvaliteConfig } from "./config.js";
 
 declare module "vitest" {
   export interface ProvidedContext {
@@ -26,42 +19,40 @@ declare module "vitest" {
 }
 
 const exportResultsToJSON = async (opts: {
-  db: SQLiteDatabase;
+  storage: Evalite.Storage;
   outputPath: string;
   cwd: string;
 }) => {
-  const latestFullRun = getMostRecentRun(opts.db, "full");
+  const latestFullRunResults = await opts.storage.runs.getMany({
+    runType: "full",
+    orderBy: "created_at",
+    orderDirection: "desc",
+    limit: 1,
+  });
 
+  const latestFullRun = latestFullRunResults[0];
   if (!latestFullRun) {
-    console.warn("No completed run found to export");
-    return;
+    throw new Error("No completed run found to export");
   }
 
-  const allEvals = getEvals(opts.db, [latestFullRun.id], ["fail", "success"]);
-  const evalResults = getResults(
-    opts.db,
-    allEvals.map((e) => e.id).filter((i) => typeof i === "number")
-  );
+  const allEvals = await opts.storage.evals.getMany({
+    runIds: [latestFullRun.id],
+    statuses: ["fail", "success"],
+  });
 
-  const allScores = getScores(
-    opts.db,
-    evalResults.map((r) => r.id)
-  );
+  const evalResults = await opts.storage.results.getMany({
+    evalIds: allEvals.map((e) => e.id),
+  });
 
-  const allTraces = getTraces(
-    opts.db,
-    evalResults.map((r) => r.id)
-  );
+  const allScores = await opts.storage.scores.getMany({
+    resultIds: evalResults.map((r) => r.id),
+  });
 
-  const evalsAverageScores = getEvalsAverageScores(
-    opts.db,
-    allEvals.map((e) => e.id)
-  );
+  const allTraces = await opts.storage.traces.getMany({
+    resultIds: evalResults.map((r) => r.id),
+  });
 
-  const resultsAverageScores = getAverageScoresFromResults(
-    opts.db,
-    evalResults.map((r) => r.id)
-  );
+  const resultsAverageScores = computeAverageScores(allScores);
 
   // Group results by eval and transform to camelCase
   const outputData: Evalite.Exported.Output = {
@@ -70,14 +61,20 @@ const exportResultsToJSON = async (opts: {
       runType: latestFullRun.runType,
       createdAt: latestFullRun.created_at,
     },
-    evals: allEvals.map((evaluation) => {
-      const evalAvgScore = evalsAverageScores.find(
-        (e) => e.eval_id === evaluation.id
+    evals: allEvals.map((evaluation: any) => {
+      const resultsForEval = evalResults.filter(
+        (r: any) => r.eval_id === evaluation.id
       );
 
-      const resultsForEval = evalResults.filter(
-        (r) => r.eval_id === evaluation.id
+      const scoresForEval = allScores.filter((s: any) =>
+        resultsForEval.some((r: any) => r.id === s.result_id)
       );
+
+      const evalAvgScore =
+        scoresForEval.length > 0
+          ? scoresForEval.reduce((sum: number, s: any) => sum + s.score, 0) /
+            scoresForEval.length
+          : 0;
 
       return {
         id: evaluation.id,
@@ -88,18 +85,18 @@ const exportResultsToJSON = async (opts: {
         variantName: evaluation.variant_name,
         variantGroup: evaluation.variant_group,
         createdAt: evaluation.created_at,
-        averageScore: evalAvgScore?.average ?? 0,
-        results: resultsForEval.map((result) => {
+        averageScore: evalAvgScore,
+        results: resultsForEval.map((result: any) => {
           const resultAvgScore = resultsAverageScores.find(
-            (r) => r.result_id === result.id
+            (r: any) => r.result_id === result.id
           );
 
           const scoresForResult = allScores.filter(
-            (s) => s.result_id === result.id
+            (s: any) => s.result_id === result.id
           );
 
           const tracesForResult = allTraces.filter(
-            (t) => t.result_id === result.id
+            (t: any) => t.result_id === result.id
           );
 
           return {
@@ -113,7 +110,7 @@ const exportResultsToJSON = async (opts: {
             renderedColumns: result.rendered_columns,
             createdAt: result.created_at,
             averageScore: resultAvgScore?.average ?? 0,
-            scores: scoresForResult.map((score) => ({
+            scores: scoresForResult.map((score: any) => ({
               id: score.id,
               name: score.name,
               score: score.score,
@@ -121,7 +118,7 @@ const exportResultsToJSON = async (opts: {
               metadata: score.metadata,
               createdAt: score.created_at,
             })),
-            traces: tracesForResult.map((trace) => ({
+            traces: tracesForResult.map((trace: any) => ({
               id: trace.id,
               input: trace.input,
               output: trace.output,
@@ -195,14 +192,34 @@ export const runEvalite = async (opts: {
   scoreThreshold?: number;
   outputPath?: string;
   hideTable?: boolean;
+  storage?: Evalite.Storage;
 }) => {
   const cwd = opts.cwd ?? process.cwd();
-  const dbLocation = path.join(cwd, DB_LOCATION);
   const filesLocation = path.join(cwd, FILES_LOCATION);
-  await mkdir(path.dirname(dbLocation), { recursive: true });
   await mkdir(filesLocation, { recursive: true });
 
-  const db = createDatabase(dbLocation);
+  // Load config file if present
+  const config = await loadEvaliteConfig(cwd);
+
+  // Merge options: opts (highest priority) > config > defaults
+  let storage = opts.storage;
+
+  if (!storage && config?.storage) {
+    // Call config storage factory (may be async)
+    storage = await config.storage();
+  }
+
+  if (!storage) {
+    const dbLocation = path.join(cwd, DB_LOCATION);
+    storage = await createSqliteStorage(dbLocation);
+  }
+
+  const scoreThreshold = opts.scoreThreshold ?? config?.scoreThreshold;
+  const hideTable = opts.hideTable ?? config?.hideTable;
+  const serverPort = config?.server?.port ?? DEFAULT_SERVER_PORT;
+  const testTimeout = config?.testTimeout;
+  const maxConcurrency = config?.maxConcurrency;
+
   const filters = opts.path ? [opts.path] : undefined;
   process.env.EVALITE_REPORT_TRACES = "true";
 
@@ -213,9 +230,9 @@ export const runEvalite = async (opts: {
     opts.mode === "run-once-and-serve"
   ) {
     server = createServer({
-      db: db,
+      storage: storage,
     });
-    server.start(DEFAULT_SERVER_PORT);
+    server.start(serverPort);
   }
 
   let exitCode: number | undefined = undefined;
@@ -233,17 +250,17 @@ export const runEvalite = async (opts: {
           logNewState: (newState) => {
             server?.updateState(newState);
           },
-          port: DEFAULT_SERVER_PORT,
+          port: serverPort,
           isWatching:
             opts.mode === "watch-for-file-changes" ||
             opts.mode === "run-once-and-serve",
-          db: db,
-          scoreThreshold: opts.scoreThreshold,
+          storage: storage,
+          scoreThreshold: scoreThreshold,
           modifyExitCode: (code) => {
             exitCode = code;
           },
           mode: opts.mode,
-          hideTable: opts.hideTable,
+          hideTable: hideTable,
         }),
       ],
       mode: "test",
@@ -256,7 +273,8 @@ export const runEvalite = async (opts: {
           // Everything inside this config CAN be overridden
           config(config) {
             config.test ??= {};
-            config.test.testTimeout ??= 30_000;
+            config.test.testTimeout ??= testTimeout ?? 30_000;
+            config.test.maxConcurrency ??= maxConcurrency;
 
             config.test.sequence ??= {};
             config.test.sequence.concurrent ??= true;
@@ -289,7 +307,7 @@ export const runEvalite = async (opts: {
 
     if (opts.outputPath) {
       await exportResultsToJSON({
-        db,
+        storage,
         outputPath: opts.outputPath,
         cwd,
       });

@@ -1,68 +1,50 @@
-import { createDatabase, getEvalsAsRecord, type Db } from "evalite/db";
-import { runVitest } from "evalite/runner";
+import type { Evalite } from "evalite";
 import { expect, it, vitest } from "vitest";
-import { captureStdout, loadFixture } from "./test-utils.js";
+import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Should set exitCode to 1 if there is a failing test", async () => {
-  using fixture = loadFixture("failing-test");
+  await using fixture = await loadFixture("failing-test");
 
-  const captured = captureStdout();
   const exit = vitest.fn();
   globalThis.process.exit = exit as any;
 
-  await runVitest({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  expect(captured.getOutput()).toContain("failed");
+  expect(fixture.getOutput()).toContain("failed");
   expect(exit).toHaveBeenCalledWith(1);
 });
 
 it("Should report a failing test", async () => {
-  using fixture = loadFixture("failing-test");
+  await using fixture = await loadFixture("failing-test");
 
-  const captured = captureStdout();
   const exit = vitest.fn();
   globalThis.process.exit = exit as any;
 
-  await runVitest({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  expect(captured.getOutput()).toContain("failing-test.eval.ts");
-  expect(captured.getOutput()).toContain("Score  ✖ (1 failed)");
+  expect(fixture.getOutput()).toContain("failing-test.eval.ts");
+  expect(fixture.getOutput()).toContain("Score  ✖ (1 failed)");
 
   // Should not display a table
-  expect(captured.getOutput()).not.toContain("Input");
+  expect(fixture.getOutput()).not.toContain("Input");
 });
 
 it("Should save the result AND eval as failed in the database", async () => {
-  using fixture = loadFixture("failing-test");
+  await using fixture = await loadFixture("failing-test");
 
-  const captured = captureStdout();
-  const exit = vitest.fn();
-  globalThis.process.exit = exit as any;
-
-  await runVitest({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  const db = createDatabase(fixture.dbLocation);
-
-  const evals = await getEvalsAsRecord(db);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
   expect(evals.Failing?.[0]).toMatchObject({
     name: "Failing",
-    status: "fail" satisfies Db.EvalStatus,
+    status: "fail" satisfies Evalite.Storage.Entities.EvalStatus,
     results: [
       {
         status: "fail",

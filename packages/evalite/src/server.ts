@@ -3,21 +3,9 @@ import { fastifyWebsocket } from "@fastify/websocket";
 import fastify from "fastify";
 import path from "path";
 import { fileURLToPath } from "url";
-import {
-  getAverageScoresFromResults,
-  getEvalByName,
-  getEvals,
-  getEvalsAverageScores,
-  getHistoricalEvalsWithScoresByName,
-  getMostRecentRun,
-  getPreviousCompletedEval,
-  getResults,
-  getScores,
-  getTraces,
-  type SQLiteDatabase,
-} from "./db.js";
 import type { Evalite } from "./types.js";
 import { average } from "./utils.js";
+import { computeAverageScores } from "./storage/utils.js";
 
 export type Server = ReturnType<typeof createServer>;
 
@@ -62,7 +50,7 @@ export const handleWebsockets = (server: fastify.FastifyInstance) => {
   };
 };
 
-export const createServer = (opts: { db: SQLiteDatabase }) => {
+export const createServer = (opts: { storage: Evalite.Storage }) => {
   const UI_ROOT = path.join(
     path.dirname(fileURLToPath(import.meta.url)),
     "./ui"
@@ -95,7 +83,14 @@ export const createServer = (opts: { db: SQLiteDatabase }) => {
   server.get<{
     Reply: Evalite.SDK.GetMenuItemsResult;
   }>("/api/menu-items", async (req, reply) => {
-    const latestFullRun = getMostRecentRun(opts.db, "full");
+    const latestFullRunResults = await opts.storage.runs.getMany({
+      runType: "full",
+      orderBy: "created_at",
+      orderDirection: "desc",
+      limit: 1,
+    });
+
+    const latestFullRun = latestFullRunResults[0];
 
     if (!latestFullRun) {
       return reply.code(200).send({
@@ -106,7 +101,14 @@ export const createServer = (opts: { db: SQLiteDatabase }) => {
       });
     }
 
-    let latestPartialRun = getMostRecentRun(opts.db, "partial");
+    const latestPartialRunResults = await opts.storage.runs.getMany({
+      runType: "partial",
+      orderBy: "created_at",
+      orderDirection: "desc",
+      limit: 1,
+    });
+
+    let latestPartialRun = latestPartialRunResults[0];
 
     /**
      * Ignore latestPartialRun if the latestFullRun is more
@@ -120,45 +122,56 @@ export const createServer = (opts: { db: SQLiteDatabase }) => {
       latestPartialRun = undefined;
     }
 
-    const allEvals = getEvals(
-      opts.db,
-      [latestFullRun.id, latestPartialRun?.id].filter(
-        (id) => typeof id === "number"
-      ),
-      ["fail", "success", "running"]
-    ).map((e) => ({
-      ...e,
-      prevEval: getPreviousCompletedEval(opts.db, e.name, e.created_at),
-    }));
+    const runIds = [latestFullRun.id, latestPartialRun?.id].filter(
+      (id): id is number => typeof id === "number"
+    );
 
-    const evalsAverageScores = getEvalsAverageScores(
-      opts.db,
-      allEvals.flatMap((e) => {
-        if (e.prevEval) {
-          return [e.id, e.prevEval.id];
-        }
-        return [e.id];
+    const evalsFromDb = await opts.storage.evals.getMany({
+      runIds,
+      statuses: ["fail", "success", "running"],
+    });
+
+    const allEvals = await Promise.all(
+      evalsFromDb.map(async (e) => {
+        const prevEvalResults = await opts.storage.evals.getMany({
+          name: e.name,
+          createdBefore: e.created_at,
+          statuses: ["fail", "success"],
+          orderBy: "created_at",
+          orderDirection: "desc",
+          limit: 1,
+        });
+        return {
+          ...e,
+          prevEval: prevEvalResults[0],
+        };
       })
     );
 
-    const allResults = getResults(
-      opts.db,
-      allEvals.map((e) => e.id)
-    );
+    const allResults = await opts.storage.results.getMany({
+      evalIds: allEvals.map((e) => e.id),
+    });
 
-    const allScores = getScores(
-      opts.db,
-      allResults.map((r) => r.id)
-    );
+    const allScores = await opts.storage.scores.getMany({
+      resultIds: allResults.map((r) => r.id),
+    });
+
+    const calcEvalAverage = (evalId: number): number => {
+      const evalResults = allResults.filter((r) => r.eval_id === evalId);
+      const evalScores = allScores.filter((s) =>
+        evalResults.some((r) => r.id === s.result_id)
+      );
+      if (evalScores.length === 0) return 0;
+      return (
+        evalScores.reduce((sum, s) => sum + s.score, 0) / evalScores.length
+      );
+    };
 
     const createEvalMenuItem = (
       e: (typeof allEvals)[number]
     ): Evalite.SDK.GetMenuItemsResultEval => {
-      const score =
-        evalsAverageScores.find((s) => s.eval_id === e.id)?.average ?? 0;
-      const prevScore = evalsAverageScores.find(
-        (s) => s.eval_id === e.prevEval?.id
-      )?.average;
+      const score = calcEvalAverage(e.id);
+      const prevScore = e.prevEval ? calcEvalAverage(e.prevEval.id) : undefined;
 
       const evalResults = allResults.filter((r) => r.eval_id === e.id);
       const evalScores = allScores.filter((s) =>
@@ -233,32 +246,73 @@ export const createServer = (opts: { db: SQLiteDatabase }) => {
     handler: async (req, res) => {
       const name = req.query.name;
 
-      const evaluation = getEvalByName(opts.db, {
+      const evaluationResults = await opts.storage.evals.getMany({
         name,
-        timestamp: req.query.timestamp,
+        createdAt: req.query.timestamp,
+        orderBy: "created_at",
+        orderDirection: "desc",
+        limit: 1,
       });
+
+      const evaluation = evaluationResults[0];
 
       if (!evaluation) {
         return res.code(404).send();
       }
 
-      const prevEvaluation = getPreviousCompletedEval(
-        opts.db,
+      const prevEvaluationResults = await opts.storage.evals.getMany({
         name,
-        evaluation.created_at
+        createdBefore: evaluation.created_at,
+        statuses: ["fail", "success"],
+        orderBy: "created_at",
+        orderDirection: "desc",
+        limit: 1,
+      });
+
+      const prevEvaluation = prevEvaluationResults[0];
+
+      const evalIds = [evaluation.id, prevEvaluation?.id].filter(
+        (i): i is number => typeof i === "number"
       );
 
-      const results = getResults(
-        opts.db,
-        [evaluation.id, prevEvaluation?.id].filter((i) => typeof i === "number")
-      );
+      const results = await opts.storage.results.getMany({
+        evalIds,
+      });
 
-      const scores = getScores(
-        opts.db,
-        results.map((r) => r.id)
-      );
+      const scores = await opts.storage.scores.getMany({
+        resultIds: results.map((r) => r.id),
+      });
 
-      const history = getHistoricalEvalsWithScoresByName(opts.db, name);
+      const historyEvals = await opts.storage.evals.getMany({
+        name,
+        statuses: ["fail", "success"],
+        orderBy: "created_at",
+        orderDirection: "asc",
+      });
+
+      const historyResults = await opts.storage.results.getMany({
+        evalIds: historyEvals.map((e) => e.id),
+      });
+
+      const historyScores = await opts.storage.scores.getMany({
+        resultIds: historyResults.map((r) => r.id),
+      });
+
+      const history = historyEvals.map((e) => {
+        const evalResults = historyResults.filter((r) => r.eval_id === e.id);
+        const evalScores = historyScores.filter((s) =>
+          evalResults.some((r) => r.id === s.result_id)
+        );
+        const average_score =
+          evalScores.length > 0
+            ? evalScores.reduce((sum, s) => sum + s.score, 0) /
+              evalScores.length
+            : 0;
+        return {
+          average_score,
+          created_at: e.created_at,
+        };
+      });
 
       return res.code(200).send({
         history: history.map((h) => ({
@@ -311,26 +365,39 @@ export const createServer = (opts: { db: SQLiteDatabase }) => {
       },
     },
     handler: async (req, res) => {
-      const evaluation = getEvalByName(opts.db, {
+      const evaluationResults = await opts.storage.evals.getMany({
         name: req.query.name,
-        timestamp: req.query.timestamp,
+        createdAt: req.query.timestamp,
         statuses: ["fail", "success"],
+        orderBy: "created_at",
+        orderDirection: "desc",
+        limit: 1,
       });
+
+      const evaluation = evaluationResults[0];
 
       if (!evaluation) {
         return res.code(404).send();
       }
 
-      const prevEvaluation = getPreviousCompletedEval(
-        opts.db,
-        req.query.name,
-        evaluation.created_at
+      const prevEvaluationResults = await opts.storage.evals.getMany({
+        name: req.query.name,
+        createdBefore: evaluation.created_at,
+        statuses: ["fail", "success"],
+        orderBy: "created_at",
+        orderDirection: "desc",
+        limit: 1,
+      });
+
+      const prevEvaluation = prevEvaluationResults[0];
+
+      const evalIds = [evaluation.id, prevEvaluation?.id].filter(
+        (i): i is number => typeof i === "number"
       );
 
-      const results = getResults(
-        opts.db,
-        [evaluation.id, prevEvaluation?.id].filter((i) => typeof i === "number")
-      );
+      const results = await opts.storage.results.getMany({
+        evalIds,
+      });
 
       const thisEvaluationResults = results.filter(
         (r) => r.eval_id === evaluation.id
@@ -342,24 +409,19 @@ export const createServer = (opts: { db: SQLiteDatabase }) => {
         return res.code(404).send();
       }
 
-      const prevEvaluationResults = results.filter(
+      const prevResultsForEval = results.filter(
         (r) => r.eval_id === prevEvaluation?.id
       );
 
-      const averageScores = getAverageScoresFromResults(
-        opts.db,
-        results.map((r) => r.id)
-      );
+      const scores = await opts.storage.scores.getMany({
+        resultIds: results.map((r) => r.id),
+      });
 
-      const scores = getScores(
-        opts.db,
-        results.map((r) => r.id)
-      );
+      const averageScores = computeAverageScores(scores);
 
-      const traces = getTraces(
-        opts.db,
-        results.map((r) => r.id)
-      );
+      const traces = await opts.storage.traces.getMany({
+        resultIds: results.map((r) => r.id),
+      });
 
       const result: Evalite.SDK.GetResultResult["result"] = {
         ...thisResult,
@@ -370,7 +432,7 @@ export const createServer = (opts: { db: SQLiteDatabase }) => {
         traces: traces.filter((t) => t.result_id === thisResult.id),
       };
 
-      const prevResultInDb = prevEvaluationResults[Number(req.query.index)];
+      const prevResultInDb = prevResultsForEval[Number(req.query.index)];
 
       const prevResult: Evalite.SDK.GetResultResult["prevResult"] =
         prevResultInDb

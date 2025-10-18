@@ -4,12 +4,10 @@ import type {
   Reporter,
   TestCase,
   TestModule,
-  TestModuleState,
   TestSuite,
   Vitest,
 } from "vitest/node.js";
 import { BasicReporter } from "vitest/reporters";
-import type { SQLiteDatabase } from "./db.js";
 import { EvaliteRunner } from "./reporter/EvaliteRunner.js";
 import {
   renderDetailedTable,
@@ -30,17 +28,14 @@ export interface EvaliteReporterOptions {
   isWatching: boolean;
   port: number;
   logNewState: (event: Evalite.ServerState) => void;
-  db: SQLiteDatabase;
+  storage: Evalite.Storage;
   scoreThreshold: number | undefined;
   modifyExitCode: (exitCode: number) => void;
   mode: "watch-for-file-changes" | "run-once-and-exit" | "run-once-and-serve";
   hideTable?: boolean;
 }
 
-export default class EvaliteReporter
-  extends BasicReporter
-  implements Reporter
-{
+export default class EvaliteReporter extends BasicReporter implements Reporter {
   private opts: EvaliteReporterOptions;
   private runner: EvaliteRunner;
 
@@ -48,7 +43,7 @@ export default class EvaliteReporter
     super();
     this.opts = opts;
     this.runner = new EvaliteRunner({
-      db: opts.db,
+      storage: opts.storage,
       logNewState: opts.logNewState,
       modifyExitCode: opts.modifyExitCode,
       scoreThreshold: opts.scoreThreshold,
@@ -100,6 +95,9 @@ export default class EvaliteReporter
     this.runner.sendEvent({
       type: "RUN_ENDED",
     });
+
+    // Wait for all queued events to complete
+    await this.runner.waitForCompletion();
 
     // Call reportTestSummary manually since BasicReporter's onFinished doesn't
     this.reportTestSummary(files);

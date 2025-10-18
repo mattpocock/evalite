@@ -1,25 +1,16 @@
-import { createDatabase, getEvalsAsRecord } from "evalite/db";
-import { runVitest } from "evalite/runner";
 import { expect, it } from "vitest";
-import { captureStdout, loadFixture } from "./test-utils.js";
+import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Should report long datasets consistently in the same order", async () => {
-  using fixture = loadFixture("much-data");
+  await using fixture = await loadFixture("much-data");
 
-  const captured = captureStdout();
-
-  await runVitest({
-    cwd: fixture.dir,
-    path: undefined,
-    testOutputWritable: captured.writable,
+  await fixture.run({
     mode: "run-once-and-exit",
   });
 
-  const db = createDatabase(fixture.dbLocation);
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
 
-  const jsonDbEvals = await getEvalsAsRecord(db);
-
-  expect(jsonDbEvals["Much Data"]![0]!.results).toMatchObject([
+  expect(evals["Much Data"]![0]!.results).toMatchObject([
     {
       input: "first",
     },
