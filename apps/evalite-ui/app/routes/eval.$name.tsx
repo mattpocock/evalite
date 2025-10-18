@@ -114,17 +114,7 @@ function ResultTableRow({
     [resultIndex, timestamp, name]
   );
   return (
-    <TableRow
-      key={
-        trialConfig
-          ? `${JSON.stringify(result.input)}-${result.trial_index}`
-          : JSON.stringify(result.input)
-      }
-      className={cn(
-        "has-[.active]:bg-foreground/20!",
-        trialConfig?.isOddGroup && "bg-muted/30"
-      )}
-    >
+    <TableRow className={cn("has-[.active]:bg-foreground/20!")}>
       {isArrayOfRenderedColumns(result.rendered_columns) ? (
         <>
           {result.rendered_columns.map((column) => (
@@ -144,7 +134,15 @@ function ResultTableRow({
       ) : (
         <>
           {(!trialConfig || trialConfig.isFirstTrial) && (
-            <TableCell rowSpan={trialConfig?.rowSpan}>
+            <TableCell
+              rowSpan={trialConfig?.rowSpan}
+              className={cn(
+                trialConfig &&
+                  (trialConfig.isOddGroup
+                    ? "border-l-4 border-l-foreground/50"
+                    : "border-l-4 border-l-foreground/20")
+              )}
+            >
               <DisplayInput
                 className={cn(
                   isRunningEval && "opacity-25",
