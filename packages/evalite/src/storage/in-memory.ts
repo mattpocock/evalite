@@ -181,6 +181,7 @@ export class InMemoryStorage implements Evalite.Storage {
         duration: opts.duration,
         status: opts.status,
         rendered_columns: JSON.stringify(opts.renderedColumns),
+        trial_index: opts.trialIndex,
         created_at: new Date().toISOString(),
       };
 
@@ -218,6 +219,7 @@ export class InMemoryStorage implements Evalite.Storage {
         ...(opts.renderedColumns !== undefined && {
           rendered_columns: JSON.stringify(opts.renderedColumns),
         }),
+        ...(opts.trialIndex !== undefined && { trial_index: opts.trialIndex }),
       };
 
       this.resultsStore.set(opts.id, updated);

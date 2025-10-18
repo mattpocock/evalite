@@ -15,6 +15,7 @@ import { loadEvaliteConfig } from "./config.js";
 declare module "vitest" {
   export interface ProvidedContext {
     cwd: string;
+    evaliteConfig: Evalite.Config | undefined;
   }
 }
 
@@ -289,6 +290,7 @@ export const runEvalite = async (opts: {
   );
 
   vitest.provide("cwd", cwd);
+  vitest.provide("evaliteConfig", config);
 
   await vitest.start(filters);
 
