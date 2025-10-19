@@ -226,6 +226,7 @@ export const runEvalite = async (opts: {
   const serverPort = config?.server?.port ?? DEFAULT_SERVER_PORT;
   const testTimeout = config?.testTimeout;
   const maxConcurrency = config?.maxConcurrency;
+  const setupFiles = config?.setupFiles;
 
   const filters = opts.path ? [opts.path] : undefined;
   process.env.EVALITE_REPORT_TRACES = "true";
@@ -293,6 +294,11 @@ export const runEvalite = async (opts: {
               config.test.maxConcurrency = maxConcurrency;
             }
             // Note: no fallback for maxConcurrency - let Vitest use its own default
+
+            if (setupFiles !== undefined) {
+              config.test.setupFiles = setupFiles;
+            }
+            // Note: no fallback for setupFiles - let Vitest use its own default
 
             config.test.sequence ??= {};
             config.test.sequence.concurrent ??= true;

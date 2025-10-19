@@ -6,11 +6,7 @@ import { Steps } from "@astrojs/starlight/components";
 
 To call your LLM from a third-party service, you'll likely need some environment variables to keep your API keys safe.
 
-Since **Evalite is based on Vitest**, it should already pick them up from your `vite.config.ts`.
-
 ## Setting Up Env Variables
-
-If you don't have Vitest set up, here's how to do it:
 
 <Steps>
 
@@ -34,17 +30,15 @@ If you don't have Vitest set up, here's how to do it:
    pnpm add -D dotenv
    ```
 
-4. Add a `vite.config.ts` file:
+4. Add an `evalite.config.ts` file:
 
    ```ts
-   // vite.config.ts
+   // evalite.config.ts
 
-   import { defineConfig } from "vite";
+   import { defineConfig } from "evalite/config";
 
    export default defineConfig({
-     test: {
-       setupFiles: ["dotenv/config"],
-     },
+     setupFiles: ["dotenv/config"],
    });
    ```
 

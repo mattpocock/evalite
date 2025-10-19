@@ -33,38 +33,7 @@ export default defineConfig({
 - **`hideTable`**: Hide the results table in terminal output. Default is false.
 - **`server.port`**: Port for the Evalite UI server. Default is 3006.
 - **`trialCount`**: Number of times to run each test case. Default is 1. Useful for measuring variance in non-deterministic evaluations.
-
-## Vitest Configuration
-
-<Steps>
-
-1. Create a `vitest.config.ts` file in your project root (or update it if it already exists):
-
-   ```ts
-   // vitest.config.ts
-
-   import { defineConfig } from "vitest";
-
-   export default defineConfig({
-     test: {
-       // Your configuration here
-     },
-   });
-   ```
-
-2. Run your evals as usual:
-
-   ```bash
-   evalite
-   ```
-
-   Or in watch mode:
-
-   ```bash
-   evalite watch
-   ```
-
-</Steps>
+- **`setupFiles`**: Array of file paths to run before tests (e.g., for loading environment variables).
 
 ## Important Configuration Options
 
@@ -72,7 +41,7 @@ export default defineConfig({
 
 Control how many test cases run in parallel. Default is 5.
 
-You can configure this in `evalite.config.ts`:
+Configure in `evalite.config.ts`:
 
 ```ts
 // evalite.config.ts
@@ -83,26 +52,13 @@ export default defineConfig({
 });
 ```
 
-Or in `vitest.config.ts`:
-
-```ts
-// vitest.config.ts
-export default defineConfig({
-  test: {
-    maxConcurrency: 100, // Run up to 100 tests in parallel
-  },
-});
-```
-
 This is useful for optimizing performance and managing API rate limits.
-
-Note: `evalite.config.ts` will override `vitest.config.ts` if both are present.
 
 ### `testTimeout`
 
 Set the maximum time (in milliseconds) a test can run before timing out. Default is 30000ms in Evalite.
 
-You can configure this in `evalite.config.ts`:
+Configure in `evalite.config.ts`:
 
 ```ts
 // evalite.config.ts
@@ -112,19 +68,6 @@ export default defineConfig({
   testTimeout: 60000, // 60 seconds
 });
 ```
-
-Or in `vitest.config.ts`:
-
-```ts
-// vitest.config.ts
-export default defineConfig({
-  test: {
-    testTimeout: 60000, // 60 seconds
-  },
-});
-```
-
-Note: `evalite.config.ts` will override `vitest.config.ts` if both are present.
 
 ### Running Evals Multiple Times
 
@@ -158,5 +101,3 @@ evalite("Non-deterministic eval", {
 ```
 
 Note: Per-eval `trialCount` overrides `evalite.config.ts` if both are present.
-
-For more Vitest configuration options, see the [Vitest documentation](https://vitest.dev/config/).

@@ -83,6 +83,17 @@ export declare namespace Evalite {
      * ```
      */
     trialCount?: number;
+
+    /**
+     * Setup files to run before tests (e.g., for loading environment variables)
+     * @example
+     * ```ts
+     * export default defineConfig({
+     *   setupFiles: ["dotenv/config"]
+     * })
+     * ```
+     */
+    setupFiles?: string[];
   }
 
   export type RunType = "full" | "partial";

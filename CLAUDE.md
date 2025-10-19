@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Evalite is a TypeScript-native, local-first tool for testing LLM-powered apps built on Vitest. It allows developers to write evaluations (evals) as `.eval.ts` files that run like tests.
 
+## Configuration
+
+The primary configuration method is `evalite.config.ts`. While `vitest.config.ts` is still supported for backward compatibility, it is not documented and `evalite.config.ts` should be used for all configuration needs.
+
 ## Development Commands
 
 **Development mode** (recommended for working on Evalite itself):
