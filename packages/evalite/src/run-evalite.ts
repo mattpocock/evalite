@@ -226,7 +226,11 @@ export const runEvalite = async (opts: {
   const serverPort = config?.server?.port ?? DEFAULT_SERVER_PORT;
   const testTimeout = config?.testTimeout;
   const maxConcurrency = config?.maxConcurrency;
-  const setupFiles = config?.setupFiles;
+  // Always include the env-setup-file to load .env files, then add any user-specified setup files
+  const setupFiles = [
+    "evalite/env-setup-file",
+    ...(config?.setupFiles || []),
+  ];
 
   const filters = opts.path ? [opts.path] : undefined;
   process.env.EVALITE_REPORT_TRACES = "true";

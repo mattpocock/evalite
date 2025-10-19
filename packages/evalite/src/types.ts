@@ -85,11 +85,12 @@ export declare namespace Evalite {
     trialCount?: number;
 
     /**
-     * Setup files to run before tests (e.g., for loading environment variables)
+     * Setup files to run before tests.
+     * Note: .env files are loaded automatically via dotenv - no need to configure.
      * @example
      * ```ts
      * export default defineConfig({
-     *   setupFiles: ["dotenv/config"]
+     *   setupFiles: ["./custom-setup.ts"]
      * })
      * ```
      */
