@@ -12,7 +12,7 @@ export class EvaliteRunner {
   private opts: EvaliteRunnerOptions;
   private state: Evalite.ServerState = { type: "idle" };
   private didLastRunFailThreshold: "yes" | "no" | "unknown" = "unknown";
-  private collectedResults: Map<string, Evalite.Result> = new Map();
+  private collectedResults: Map<string, Evalite.Eval> = new Map();
   private eventQueue: Promise<void> = Promise.resolve();
 
   constructor(opts: EvaliteRunnerOptions) {
@@ -29,20 +29,20 @@ export class EvaliteRunner {
 
   getAllScores(): Evalite.Score[] {
     return Array.from(this.collectedResults.values()).flatMap(
-      (result) => result.scores
+      (_eval) => _eval.scores
     );
   }
 
-  getSuccessfulResults(): Evalite.Result[] {
+  getSuccessfulResults(): Evalite.Eval[] {
     return Array.from(this.collectedResults.values()).filter(
-      (result) => result.status === "success"
+      (_eval) => _eval.status === "success"
     );
   }
 
   getScoresForModule(moduleId: string): Evalite.Score[] {
     return Array.from(this.collectedResults.values())
-      .filter((result) => result.filepath === moduleId)
-      .flatMap((result) => result.scores);
+      .filter((_eval) => _eval.filepath === moduleId)
+      .flatMap((_eval) => _eval.scores);
   }
 
   handleTestSummary(data: {
@@ -100,7 +100,7 @@ export class EvaliteRunner {
           case "RUN_ENDED":
             this.updateState({ type: "idle" });
             break;
-          case "RESULT_STARTED":
+          case "EVAL_STARTED":
             {
               const run: Evalite.Storage.Entities.Run = this.state.runId
                 ? (
@@ -114,50 +114,50 @@ export class EvaliteRunner {
                   });
 
               // Check if eval already exists for this run
-              const existingEvals = await this.opts.storage.evals.getMany({
+              const existingSuites = await this.opts.storage.suites.getMany({
                 runIds: [run.id],
-                name: event.initialResult.evalName,
+                name: event.initialEval.suiteName,
               });
 
-              const evaluation =
-                existingEvals[0] ??
-                (await this.opts.storage.evals.create({
-                  filepath: event.initialResult.filepath,
-                  name: event.initialResult.evalName,
+              const suite =
+                existingSuites[0] ??
+                (await this.opts.storage.suites.create({
+                  filepath: event.initialEval.filepath,
+                  name: event.initialEval.suiteName,
                   runId: run.id,
-                  variantName: event.initialResult.variantName,
-                  variantGroup: event.initialResult.variantGroup,
+                  variantName: event.initialEval.variantName,
+                  variantGroup: event.initialEval.variantGroup,
                 }));
 
-              const result = await this.opts.storage.results.create({
-                evalId: evaluation.id,
-                order: event.initialResult.order,
+              const _eval = await this.opts.storage.evals.create({
+                suiteId: suite.id,
+                order: event.initialEval.order,
                 input: "",
                 expected: "",
                 output: null,
                 duration: 0,
                 status: "running",
                 renderedColumns: [],
-                trialIndex: event.initialResult.trialIndex,
+                trialIndex: event.initialEval.trialIndex,
               });
 
               this.updateState({
                 ...this.state,
-                evalNamesRunning: [
-                  ...this.state.evalNamesRunning,
-                  event.initialResult.evalName,
+                suiteNamesRunning: [
+                  ...this.state.suiteNamesRunning,
+                  event.initialEval.suiteName,
                 ],
-                resultIdsRunning: [...this.state.resultIdsRunning, result.id],
+                evalIdsRunning: [...this.state.evalIdsRunning, _eval.id],
                 runId: run.id,
               });
             }
 
             break;
-          case "RESULT_SUBMITTED":
+          case "EVAL_SUBMITTED":
             {
-              // Store result in memory for reporting
-              const resultKey = `${event.result.filepath}:${event.result.evalName}:${event.result.order}`;
-              this.collectedResults.set(resultKey, event.result);
+              // Store eval in memory for reporting
+              const evalKey = `${event.eval.filepath}:${event.eval.suiteName}:${event.eval.order}`;
+              this.collectedResults.set(evalKey, event.eval);
 
               const run = this.state.runId
                 ? (
@@ -171,59 +171,59 @@ export class EvaliteRunner {
                   });
 
               // Check if eval already exists for this run
-              const existingEvals = await this.opts.storage.evals.getMany({
+              const existingSuites = await this.opts.storage.suites.getMany({
                 runIds: [run.id],
-                name: event.result.evalName,
+                name: event.eval.suiteName,
               });
 
-              const evaluation =
-                existingEvals[0] ??
-                (await this.opts.storage.evals.create({
-                  filepath: event.result.filepath,
-                  name: event.result.evalName,
+              const suite =
+                existingSuites[0] ??
+                (await this.opts.storage.suites.create({
+                  filepath: event.eval.filepath,
+                  name: event.eval.suiteName,
                   runId: run.id,
-                  variantName: event.result.variantName,
-                  variantGroup: event.result.variantGroup,
+                  variantName: event.eval.variantName,
+                  variantGroup: event.eval.variantGroup,
                 }));
 
-              const existingResults = await this.opts.storage.results.getMany({
-                evalIds: [evaluation.id],
-                order: event.result.order,
+              const existingEvals = await this.opts.storage.evals.getMany({
+                suiteIds: [suite.id],
+                order: event.eval.order,
               });
 
-              let resultId: number;
-              const existingResult = existingResults[0];
+              let evalId: number;
+              const existingEval = existingEvals[0];
 
-              if (existingResult) {
-                const updated = await this.opts.storage.results.update({
-                  id: existingResult.id,
-                  output: event.result.output,
-                  duration: event.result.duration,
-                  status: event.result.status,
-                  renderedColumns: event.result.renderedColumns,
-                  input: event.result.input,
-                  expected: event.result.expected,
-                  trialIndex: event.result.trialIndex,
+              if (existingEval) {
+                const updated = await this.opts.storage.evals.update({
+                  id: existingEval.id,
+                  output: event.eval.output,
+                  duration: event.eval.duration,
+                  status: event.eval.status,
+                  renderedColumns: event.eval.renderedColumns,
+                  input: event.eval.input,
+                  expected: event.eval.expected,
+                  trialIndex: event.eval.trialIndex,
                 });
-                resultId = updated.id;
+                evalId = updated.id;
               } else {
-                const created = await this.opts.storage.results.create({
-                  evalId: evaluation.id,
-                  order: event.result.order,
-                  input: event.result.input,
-                  expected: event.result.expected,
-                  output: event.result.output,
-                  duration: event.result.duration,
-                  status: event.result.status,
-                  renderedColumns: event.result.renderedColumns,
-                  trialIndex: event.result.trialIndex,
+                const created = await this.opts.storage.evals.create({
+                  suiteId: suite.id,
+                  order: event.eval.order,
+                  input: event.eval.input,
+                  expected: event.eval.expected,
+                  output: event.eval.output,
+                  duration: event.eval.duration,
+                  status: event.eval.status,
+                  renderedColumns: event.eval.renderedColumns,
+                  trialIndex: event.eval.trialIndex,
                 });
-                resultId = created.id;
+                evalId = created.id;
               }
 
-              for (const score of event.result.scores) {
+              for (const score of event.eval.scores) {
                 await this.opts.storage.scores.create({
-                  resultId: resultId,
+                  evalId: evalId,
                   description: score.description,
                   name: score.name,
                   score: score.score ?? 0,
@@ -232,10 +232,10 @@ export class EvaliteRunner {
               }
 
               let traceOrder = 0;
-              for (const trace of event.result.traces) {
+              for (const trace of event.eval.traces) {
                 traceOrder++;
                 await this.opts.storage.traces.create({
-                  resultId: resultId,
+                  evalId: evalId,
                   input: trace.input,
                   output: trace.output,
                   start: trace.start,
@@ -247,27 +247,27 @@ export class EvaliteRunner {
                 });
               }
 
-              const allResults = await this.opts.storage.results.getMany({
-                evalIds: [evaluation.id],
+              const allEvals = await this.opts.storage.evals.getMany({
+                suiteIds: [suite.id],
               });
 
-              const resultIdsRunning = this.state.resultIdsRunning.filter(
-                (id) => id !== resultId
+              const evalIdsRunning = this.state.evalIdsRunning.filter(
+                (id) => id !== evalId
               );
 
               /**
                * The eval is complete if all results are no longer
                * running
                */
-              const isEvalComplete = allResults.every(
-                (result) => !resultIdsRunning.includes(result.id)
+              const isSuiteComplete = allEvals.every(
+                (_eval) => !evalIdsRunning.includes(_eval.id)
               );
 
               // Update the eval status and duration
-              if (isEvalComplete) {
-                await this.opts.storage.evals.update({
-                  id: evaluation.id,
-                  status: allResults.some((r) => r.status === "fail")
+              if (isSuiteComplete) {
+                await this.opts.storage.suites.update({
+                  id: suite.id,
+                  status: allEvals.some((e) => e.status === "fail")
                     ? "fail"
                     : "success",
                 });
@@ -275,12 +275,12 @@ export class EvaliteRunner {
 
               this.updateState({
                 ...this.state,
-                evalNamesRunning: isEvalComplete
-                  ? this.state.evalNamesRunning.filter(
-                      (name) => name !== event.result.evalName
+                suiteNamesRunning: isSuiteComplete
+                  ? this.state.suiteNamesRunning.filter(
+                      (name) => name !== event.eval.suiteName
                     )
-                  : this.state.evalNamesRunning,
-                resultIdsRunning,
+                  : this.state.suiteNamesRunning,
+                evalIdsRunning: evalIdsRunning,
                 runId: run.id,
               });
             }
@@ -301,8 +301,8 @@ export class EvaliteRunner {
               runType: event.runType,
               type: "running",
               runId: undefined, // Run is created lazily
-              evalNamesRunning: [],
-              resultIdsRunning: [],
+              suiteNamesRunning: [],
+              evalIdsRunning: [],
             });
             break;
         }

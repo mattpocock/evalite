@@ -41,82 +41,76 @@ const exportResultsToJSON = async (opts: {
     throw new Error("No completed run found to export");
   }
 
-  const allEvals = await opts.storage.evals.getMany({
+  const allSuites = await opts.storage.suites.getMany({
     runIds: [latestFullRun.id],
     statuses: ["fail", "success"],
   });
 
-  const evalResults = await opts.storage.results.getMany({
-    evalIds: allEvals.map((e) => e.id),
+  const evals = await opts.storage.evals.getMany({
+    suiteIds: allSuites.map((e) => e.id),
   });
 
   const allScores = await opts.storage.scores.getMany({
-    resultIds: evalResults.map((r) => r.id),
+    evalIds: evals.map((r) => r.id),
   });
 
   const allTraces = await opts.storage.traces.getMany({
-    resultIds: evalResults.map((r) => r.id),
+    evalIds: evals.map((r) => r.id),
   });
 
-  const resultsAverageScores = computeAverageScores(allScores);
+  const evalsAverageScores = computeAverageScores(allScores);
 
-  // Group results by eval and transform to camelCase
+  // Group evals by suite and transform to camelCase
   const outputData: Evalite.Exported.Output = {
     run: {
       id: latestFullRun.id,
       runType: latestFullRun.runType,
       createdAt: latestFullRun.created_at,
     },
-    evals: allEvals.map((evaluation: any) => {
-      const resultsForEval = evalResults.filter(
-        (r: any) => r.eval_id === evaluation.id
-      );
+    suites: allSuites.map((suite) => {
+      const evalsForSuite = evals.filter((r) => r.suite_id === suite.id);
 
-      const scoresForEval = allScores.filter((s: any) =>
-        resultsForEval.some((r: any) => r.id === s.result_id)
+      const scoresForEval = allScores.filter((s) =>
+        evalsForSuite.some((r) => r.id === s.eval_id)
       );
 
       const evalAvgScore =
         scoresForEval.length > 0
-          ? scoresForEval.reduce((sum: number, s: any) => sum + s.score, 0) /
+          ? scoresForEval.reduce((sum: number, s) => sum + s.score, 0) /
             scoresForEval.length
           : 0;
 
       return {
-        id: evaluation.id,
-        name: evaluation.name,
-        filepath: evaluation.filepath,
-        duration: evaluation.duration,
-        status: evaluation.status,
-        variantName: evaluation.variant_name,
-        variantGroup: evaluation.variant_group,
-        createdAt: evaluation.created_at,
+        id: suite.id,
+        name: suite.name,
+        filepath: suite.filepath,
+        duration: suite.duration,
+        status: suite.status,
+        variantName: suite.variant_name,
+        variantGroup: suite.variant_group,
+        createdAt: suite.created_at,
         averageScore: evalAvgScore,
-        results: resultsForEval.map((result: any) => {
-          const resultAvgScore = resultsAverageScores.find(
-            (r: any) => r.result_id === result.id
+        evals: evalsForSuite.map((_eval) => {
+          const _evalAvgScore = evalsAverageScores.find(
+            (r) => r.eval_id === _eval.id
           );
 
-          const scoresForResult = allScores.filter(
-            (s: any) => s.result_id === result.id
-          );
+          const scoresForEval = allScores.filter((s) => s.eval_id === _eval.id);
 
-          const tracesForResult = allTraces.filter(
-            (t: any) => t.result_id === result.id
-          );
+          const tracesForEval = allTraces.filter((t) => t.eval_id === _eval.id);
 
           return {
-            id: result.id,
-            duration: result.duration,
-            input: result.input,
-            output: result.output,
-            expected: result.expected,
-            status: result.status,
-            colOrder: result.col_order,
-            renderedColumns: result.rendered_columns,
-            createdAt: result.created_at,
-            averageScore: resultAvgScore?.average ?? 0,
-            scores: scoresForResult.map((score: any) => ({
+            id: _eval.id,
+            duration: _eval.duration,
+            input: _eval.input,
+            output: _eval.output,
+            expected: _eval.expected,
+            status: _eval.status,
+            colOrder: _eval.col_order,
+            renderedColumns: _eval.rendered_columns,
+            createdAt: _eval.created_at,
+            averageScore: _evalAvgScore?.average ?? 0,
+            scores: scoresForEval.map((score) => ({
               id: score.id,
               name: score.name,
               score: score.score,
@@ -124,7 +118,7 @@ const exportResultsToJSON = async (opts: {
               metadata: score.metadata,
               createdAt: score.created_at,
             })),
-            traces: tracesForResult.map((trace: any) => ({
+            traces: tracesForEval.map((trace) => ({
               id: trace.id,
               input: trace.input,
               output: trace.output,

@@ -1,11 +1,12 @@
 import { exportStaticUI } from "evalite/export-static";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import { expect, it } from "vitest";
-import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
+import { assert, expect, it } from "vitest";
+import { getSuitesAsRecordViaStorage, loadFixture } from "./test-utils.js";
 import { createInMemoryStorage } from "evalite/in-memory-storage";
 import { createSqliteStorage } from "evalite/sqlite-storage";
 import { runEvalite } from "evalite/runner";
+import type { Evalite } from "evalite";
 
 it("Should export all required files and directory structure", async () => {
   await using fixture = await loadFixture("export");
@@ -16,7 +17,7 @@ it("Should export all required files and directory structure", async () => {
 
   // Export to a temp directory
   const exportDir = path.join(fixture.dir, "evalite-export");
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+  const suites = await getSuitesAsRecordViaStorage(fixture.storage);
 
   await exportStaticUI({
     storage: fixture.storage,
@@ -29,8 +30,8 @@ it("Should export all required files and directory structure", async () => {
 
   expect(dataFiles).toContain("server-state.json");
   expect(dataFiles).toContain("menu-items.json");
-  expect(dataFiles).toContain("eval-Export.json");
-  expect(dataFiles).toContain("result-Export-0.json");
+  expect(dataFiles).toContain("suite-Export.json");
+  expect(dataFiles).toContain("eval-Export-0.json");
 
   // Verify files directory exists and has content
   const filesDir = path.join(exportDir, "files");
@@ -63,12 +64,15 @@ it("Should remap file paths to unique filenames", async () => {
   });
 
   // Read eval JSON
-  const evalJsonPath = path.join(exportDir, "data", "eval-Export.json");
-  const evalJson = JSON.parse(await readFile(evalJsonPath, "utf-8"));
+  const suiteJsonPath = path.join(exportDir, "data", "suite-Export.json");
+  const suiteJson: Evalite.SDK.GetSuiteByNameResult = JSON.parse(
+    await readFile(suiteJsonPath, "utf-8")
+  );
 
   // Check that file paths are remapped (should be UUID-style filenames)
-  const firstResult = evalJson.evaluation.results[0];
-  expect(firstResult.output).toMatchObject({
+  const firstEval = suiteJson.suite.evals[0];
+  assert(firstEval);
+  expect(firstEval.output).toMatchObject({
     __EvaliteFile: true,
     path: expect.stringMatching(/^[a-f0-9-]+\.png$/),
   });
@@ -76,19 +80,22 @@ it("Should remap file paths to unique filenames", async () => {
   // Verify the file exists in files directory
   const filesDir = path.join(exportDir, "files");
   const files = await readdir(filesDir);
-  expect(files).toContain(firstResult.output.path);
+  expect(files).toContain((firstEval.output as Evalite.File).path);
 
   // Check trace has remapped paths
-  const resultJsonPath = path.join(exportDir, "data", "result-Export-0.json");
-  const resultJson = JSON.parse(await readFile(resultJsonPath, "utf-8"));
-  const trace = resultJson.result.traces[0];
+  const evalJsonPath = path.join(exportDir, "data", "eval-Export-0.json");
+  const evalJson: Evalite.SDK.GetEvalResult = JSON.parse(
+    await readFile(evalJsonPath, "utf-8")
+  );
+  const trace = evalJson.eval.traces[0];
+  assert(trace);
   expect(trace.output).toMatchObject({
     __EvaliteFile: true,
     path: expect.stringMatching(/^[a-f0-9-]+\.png$/),
   });
 
   // Check columns have remapped paths
-  expect(firstResult.rendered_columns[0].value).toMatchObject({
+  expect((firstEval.rendered_columns as any)[0].value).toMatchObject({
     __EvaliteFile: true,
     path: expect.stringMatching(/^[a-f0-9-]+\.png$/),
   });
