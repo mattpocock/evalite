@@ -89,9 +89,7 @@ export async function loadEvaliteConfig(
  * @param cwd - Current working directory to search for config file
  * @returns Array of setupFiles from vitest config, or empty array if none found
  */
-export async function loadVitestSetupFiles(
-  cwd: string
-): Promise<string[]> {
+export async function loadVitestSetupFiles(cwd: string): Promise<string[]> {
   const jiti = createJiti(import.meta.url, {
     interopDefault: true,
     requireCache: false,
