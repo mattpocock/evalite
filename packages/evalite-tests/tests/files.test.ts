@@ -3,8 +3,7 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, it } from "vitest";
 import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
-
-const FILES_LOCATION = "./node_modules/.evalite/files";
+import { FILES_LOCATION } from "evalite/backend-only-constants";
 
 it("Should save files returned from task() in node_modules", async () => {
   await using fixture = await loadFixture("files");
