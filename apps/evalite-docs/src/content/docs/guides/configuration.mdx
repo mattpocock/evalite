@@ -68,36 +68,3 @@ export default defineConfig({
   testTimeout: 60000, // 60 seconds
 });
 ```
-
-### Running Evals Multiple Times
-
-Run each test case multiple times to measure variance in non-deterministic evaluations.
-
-Configure globally in `evalite.config.ts`:
-
-```ts
-// evalite.config.ts
-import { defineConfig } from "evalite/config";
-
-export default defineConfig({
-  trialCount: 3, // Run each test case 3 times
-});
-```
-
-Or override per-eval in the `evalite()` call:
-
-```ts
-evalite("Non-deterministic eval", {
-  data: () => [{ input: "Alice", expected: "Alice" }],
-  task: async (input) => {
-    // Non-deterministic task
-    return getRandomGreeting(input);
-  },
-  scorers: [
-    /* ... */
-  ],
-  trialCount: 5, // Override config: run 5 times
-});
-```
-
-Note: Per-eval `trialCount` overrides `evalite.config.ts` if both are present.
