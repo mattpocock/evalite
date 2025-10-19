@@ -183,7 +183,7 @@ export declare namespace Evalite {
   export type Task<TInput, TOutput, TVariant = undefined> = (
     input: TInput,
     variant: TVariant
-  ) => MaybePromise<TOutput | AsyncIterable<TOutput>>;
+  ) => MaybePromise<TOutput>;
 
   export type Scorer<TInput, TOutput, TExpected> = (
     opts: ScoreInput<TInput, TOutput, TExpected>

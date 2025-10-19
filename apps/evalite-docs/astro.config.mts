@@ -112,10 +112,6 @@ export default defineConfig({
               slug: "guides/configuration",
             },
             {
-              label: "Streams",
-              slug: "guides/streams",
-            },
-            {
               label: "CLI",
               slug: "guides/cli",
             },
