@@ -1,6 +1,8 @@
+import { getTests, hasFailed } from "@vitest/runner/utils";
 import { table } from "table";
 import c from "tinyrainbow";
 import { inspect } from "util";
+import type { RunnerTestFile } from "vitest";
 import type { Evalite } from "../types.js";
 import { average, EvaliteFile } from "../utils.js";
 
@@ -40,16 +42,24 @@ export function renderInitMessage(
 }
 
 export function renderWatcherStart(
-  logger: { log: (msg: string) => void },
+  logger: {
+    log: (msg: string) => void;
+    error: (msg: string) => void;
+    printError: (err: unknown, options?: any) => void;
+    printUnhandledErrors: (errors: unknown[]) => void;
+  },
   opts: {
-    hasErrors: boolean;
+    files: RunnerTestFile[];
+    errors: unknown[];
     failedDueToThreshold: boolean;
     scoreThreshold: number | undefined;
   }
 ) {
   logger.log("");
 
-  if (opts.hasErrors) {
+  const hasErrors = opts.errors.length > 0 || hasFailed(opts.files);
+
+  if (hasErrors) {
     logger.log(
       withLabel(
         "red",
@@ -57,6 +67,24 @@ export function renderWatcherStart(
         "Errors detected in evals. Watching for file changes..."
       )
     );
+
+    // Print unhandled errors
+    if (opts.errors.length > 0) {
+      logger.printUnhandledErrors(opts.errors);
+    }
+
+    // Print test failures
+    const tests = getTests(opts.files);
+    const failedTests = tests.filter((t) => t.result?.state === "fail");
+
+    if (failedTests.length > 0) {
+      for (const test of failedTests) {
+        const errors = test.result?.errors || [];
+        for (const error of errors) {
+          logger.printError(error, { task: test });
+        }
+      }
+    }
   } else if (opts.failedDueToThreshold) {
     logger.log(
       withLabel(
@@ -75,6 +103,37 @@ export function renderWatcherStart(
   ];
 
   logger.log(BADGE_PADDING + hints.join(c.dim(", ")));
+}
+
+export function renderErrorsSummary(
+  logger: {
+    error: (msg: string) => void;
+    printError: (err: unknown, options?: any) => void;
+    printUnhandledErrors: (errors: unknown[]) => void;
+  },
+  opts: {
+    files: RunnerTestFile[];
+    errors: unknown[];
+  }
+) {
+  const tests = getTests(opts.files);
+  const failedTests = tests.filter((t) => t.result?.state === "fail");
+
+  // Print unhandled errors first
+  if (opts.errors.length > 0) {
+    logger.printUnhandledErrors(opts.errors);
+    logger.error("");
+  }
+
+  // Print test failures
+  if (failedTests.length > 0) {
+    for (const test of failedTests) {
+      const errors = test.result?.errors || [];
+      for (const error of errors) {
+        logger.printError(error, { task: test });
+      }
+    }
+  }
 }
 
 export function displayScore(_score: number | null) {
