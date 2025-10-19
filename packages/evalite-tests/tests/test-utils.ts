@@ -1,4 +1,3 @@
-import { DB_LOCATION } from "evalite/backend-only-constants";
 import { randomUUID } from "crypto";
 import { cpSync, rmSync } from "fs";
 import path from "path";
