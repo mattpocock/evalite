@@ -1,14 +1,14 @@
 ---
-title: AI SDK
+title: Vercel AI SDK
 ---
 
-Vercel's [AI SDK](https://sdk.vercel.ai/docs/introduction) is a great way to get started with AI in your apps.
+import { Aside } from "@astrojs/starlight/components";
 
-It abstracts away the differences between different AI providers, so you can **switch between them easily**.
+Use Evalite with Vercel's [AI SDK](https://sdk.vercel.ai/docs/introduction) to trace LLM calls and test AI-powered features.
 
-## Tracing
+## Automatic Tracing with `traceAISDKModel`
 
-You can use the `traceAISDKModel` function to trace the calls to the AI SDK:
+Wrap your AI SDK model in `traceAISDKModel` to automatically track all LLM calls:
 
 ```ts
 // my-eval.eval.ts
@@ -47,6 +47,12 @@ evalite("Test Capitals", {
   scorers: [Factuality, Levenshtein],
 });
 ```
+
+<Aside>
+
+`traceAISDKModel` is a no-op in production, so you can leave it in your code without worrying about performance.
+
+</Aside>
 
 ## Testing Whole Conversations
 
