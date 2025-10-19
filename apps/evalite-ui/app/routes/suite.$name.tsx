@@ -23,7 +23,7 @@ import { cn } from "~/lib/utils";
 import { formatTime, isArrayOfRenderedColumns } from "~/utils";
 import { useServerStateUtils } from "~/hooks/use-server-state-utils";
 import {
-  getEvalByNameQueryOptions,
+  getSuiteByNameQueryOptions,
   getServerStateQueryOptions,
 } from "~/data/queries";
 import { useSuspenseQueries } from "@tanstack/react-query";
@@ -35,7 +35,7 @@ const searchSchema = z.object({
   timestamp: z.string().optional(),
 });
 
-export const Route = createFileRoute("/eval/$name")({
+export const Route = createFileRoute("/suite/$name")({
   validateSearch: zodValidator(searchSchema),
   loaderDeps: ({ search: { timestamp } }) => ({
     timestamp,
@@ -45,25 +45,25 @@ export const Route = createFileRoute("/eval/$name")({
 
     await Promise.all([
       queryClient.ensureQueryData(
-        getEvalByNameQueryOptions(params.name, deps.timestamp)
+        getSuiteByNameQueryOptions(params.name, deps.timestamp)
       ),
       queryClient.ensureQueryData(getServerStateQueryOptions),
     ]);
   },
-  component: EvalComponent,
+  component: SuiteComponent,
 });
 
-type ResultTableRowProps = {
-  result: Evalite.Storage.Entities.Result & {
+type EvalTableRowProps = {
+  eval: Evalite.Storage.Entities.Eval & {
     scores: Evalite.Storage.Entities.Score[];
   };
-  resultIndex: number;
+  evalIndex: number;
   name: string;
   timestamp: string | undefined;
   showExpectedColumn: boolean;
   isRunningEval: boolean;
   hasScores: boolean;
-  prevEvaluation: Evalite.SDK.GetEvalByNameResult["prevEvaluation"];
+  prevSuite: Evalite.SDK.GetSuiteByNameResult["prevSuite"];
   trialConfig?: {
     isFirstTrial: boolean;
     rowSpan: number;
@@ -72,18 +72,14 @@ type ResultTableRowProps = {
 };
 
 const makeWrapper =
-  (opts: {
-    resultIndex: number;
-    timestamp: string | undefined;
-    name: string;
-  }) =>
+  (opts: { evalIndex: number; timestamp: string | undefined; name: string }) =>
   (props: { children: React.ReactNode }) => (
     <Link
       preload="intent"
-      to={"/eval/$name/result/$resultIndex"}
+      to={"/suite/$name/eval/$evalIndex"}
       params={{
         name: opts.name,
-        resultIndex: opts.resultIndex.toString(),
+        evalIndex: opts.evalIndex.toString(),
       }}
       search={{
         timestamp: opts.timestamp,
@@ -98,26 +94,26 @@ const makeWrapper =
     </Link>
   );
 
-function ResultTableRow({
-  result,
-  resultIndex,
+function EvalTableRow({
+  eval: _eval,
+  evalIndex,
   name,
   timestamp,
   showExpectedColumn,
   isRunningEval,
   hasScores,
-  prevEvaluation,
+  prevSuite: prevEvaluation,
   trialConfig,
-}: ResultTableRowProps) {
+}: EvalTableRowProps) {
   const Wrapper = useMemo(
-    () => makeWrapper({ resultIndex, timestamp, name }),
-    [resultIndex, timestamp, name]
+    () => makeWrapper({ evalIndex, timestamp, name }),
+    [evalIndex, timestamp, name]
   );
   return (
     <TableRow className={cn("has-[.active]:bg-foreground/20!")}>
-      {isArrayOfRenderedColumns(result.rendered_columns) ? (
+      {isArrayOfRenderedColumns(_eval.rendered_columns) ? (
         <>
-          {result.rendered_columns.map((column) => (
+          {_eval.rendered_columns.map((column) => (
             <TableCell>
               <DisplayInput
                 className={cn(
@@ -148,7 +144,7 @@ function ResultTableRow({
                   isRunningEval && "opacity-25",
                   "transition-opacity"
                 )}
-                input={result.input}
+                input={_eval.input}
                 shouldTruncateText
                 Wrapper={Wrapper}
               />
@@ -160,7 +156,7 @@ function ResultTableRow({
                 isRunningEval && "opacity-25",
                 "transition-opacity"
               )}
-              input={result.output}
+              input={_eval.output}
               shouldTruncateText
               Wrapper={Wrapper}
             />
@@ -172,7 +168,7 @@ function ResultTableRow({
                   isRunningEval && "opacity-25",
                   "transition-opacity"
                 )}
-                input={result.expected}
+                input={_eval.expected}
                 shouldTruncateText
                 Wrapper={Wrapper}
               />
@@ -181,9 +177,9 @@ function ResultTableRow({
         </>
       )}
 
-      {result.scores.map((scorer, index) => {
-        const scoreInPreviousEvaluation = prevEvaluation?.results
-          .find((r) => r.input === result.input)
+      {_eval.scores.map((scorer, index) => {
+        const scoreInPreviousEvaluation = prevEvaluation?.evals
+          .find((r) => r.input === _eval.input)
           ?.scores.find((s) => s.name === scorer.name);
         return (
           <TableCell key={scorer.id} className={cn(index === 0 && "border-l")}>
@@ -194,7 +190,7 @@ function ResultTableRow({
                 state={getScoreState({
                   score: scorer.score,
                   prevScore: scoreInPreviousEvaluation?.score,
-                  status: result.status,
+                  status: _eval.status,
                 })}
               />
             </Wrapper>
@@ -205,19 +201,19 @@ function ResultTableRow({
   );
 }
 
-function EvalComponent() {
+function SuiteComponent() {
   const { name } = Route.useParams();
   const { timestamp } = Route.useSearch();
   const navigate = Route.useNavigate();
 
   const [
     {
-      data: { evaluation: possiblyRunningEvaluation, prevEvaluation, history },
+      data: { suite: possiblyRunningSuite, prevSuite, history },
     },
     { data: serverState },
   ] = useSuspenseQueries({
     queries: [
-      getEvalByNameQueryOptions(name, timestamp),
+      getSuiteByNameQueryOptions(name, timestamp),
       getServerStateQueryOptions,
     ],
   });
@@ -243,99 +239,99 @@ function EvalComponent() {
    * undefined - which will hide the table.
    */
   let evaluationWithoutLayoutShift:
-    | Evalite.SDK.GetEvalByNameResult["evaluation"]
+    | Evalite.SDK.GetSuiteByNameResult["suite"]
     | undefined;
 
   const mostRecentDate = history[history.length - 1]?.date;
   const isViewingLatest = !timestamp || timestamp === mostRecentDate;
 
-  if (possiblyRunningEvaluation.status === "running" && isViewingLatest) {
+  if (possiblyRunningSuite.status === "running" && isViewingLatest) {
     // If it's running, and there is a previous evaluation,
     // show the previous one
-    if (prevEvaluation) {
-      evaluationWithoutLayoutShift = prevEvaluation;
+    if (prevSuite) {
+      evaluationWithoutLayoutShift = prevSuite;
     } else {
       // Otherwise, show empty dataset
       evaluationWithoutLayoutShift = undefined;
     }
   } else {
-    evaluationWithoutLayoutShift = possiblyRunningEvaluation;
+    evaluationWithoutLayoutShift = possiblyRunningSuite;
   }
 
-  const isResultRoute = useMatches({
-    select: (matches) => matches.some((m) => m.routeId.includes("result")),
+  const isEvalRoute = useMatches({
+    select: (matches) => matches.some((m) => m.routeId.includes("eval")),
   });
 
   const showExpectedColumn =
-    evaluationWithoutLayoutShift?.results.every(
-      (result) => result.expected !== null
+    evaluationWithoutLayoutShift?.evals.every(
+      (_eval) => _eval.expected !== null
     ) ?? false;
 
   const hasTrials =
-    evaluationWithoutLayoutShift?.results.some(
-      (result) => typeof result.trial_index === "number"
+    evaluationWithoutLayoutShift?.evals.some(
+      (_eval) => typeof _eval.trial_index === "number"
     ) ?? false;
 
   // Group results by input/expected for trial grouping
-  type ResultGroup = {
+  type EvalGroup = {
     input: unknown;
     expected: unknown;
-    results: Evalite.SDK.GetEvalByNameResult["evaluation"]["results"];
+    evals: (Evalite.Storage.Entities.Eval & {
+      scores: Evalite.Storage.Entities.Score[];
+    })[];
     groupIndex: number;
   };
 
-  const resultGroups: ResultGroup[] = [];
+  const evalGroups: EvalGroup[] = [];
   if (evaluationWithoutLayoutShift && hasTrials) {
-    const groupMap = new Map<string, ResultGroup>();
+    const groupMap = new Map<string, EvalGroup>();
 
-    evaluationWithoutLayoutShift.results.forEach((result) => {
+    evaluationWithoutLayoutShift.evals.forEach((result) => {
       const key = JSON.stringify({
         input: result.input,
         expected: result.expected,
       });
 
       if (!groupMap.has(key)) {
-        const group: ResultGroup = {
+        const group: EvalGroup = {
           input: result.input,
           expected: result.expected,
-          results: [],
+          evals: [],
           groupIndex: groupMap.size,
         };
         groupMap.set(key, group);
-        resultGroups.push(group);
+        evalGroups.push(group);
       }
 
-      groupMap.get(key)!.results.push(result);
+      groupMap.get(key)!.evals.push(result);
     });
   }
 
-  const evalScore = average(possiblyRunningEvaluation.results || [], (r) =>
+  const evalScore = average(possiblyRunningSuite.evals || [], (r) =>
     average(r.scores, (s) => s.score)
   );
 
-  const prevScore = prevEvaluation
-    ? average(prevEvaluation.results, (r) => average(r.scores, (s) => s.score))
+  const prevScore = prevSuite
+    ? average(prevSuite.evals, (r) => average(r.scores, (s) => s.score))
     : undefined;
 
   const isRunningEval =
-    serverStateUtils.isRunningEvalName(name) &&
+    serverStateUtils.isRunningSuiteName(name) &&
     evaluationWithoutLayoutShift?.created_at === mostRecentDate;
 
   const evaluationWithoutLayoutShiftScores =
-    evaluationWithoutLayoutShift?.results[0]?.scores ?? [];
+    evaluationWithoutLayoutShift?.evals[0]?.scores ?? [];
 
   const hasScores =
-    possiblyRunningEvaluation.results.some((r) => r.scores.length > 0) ?? true;
+    possiblyRunningSuite.evals.some((r) => r.scores.length > 0) ?? true;
 
   return (
     <>
       <title>{`${name} | Evalite`}</title>
       <meta name="description" content={`Welcome to Evalite!`} />
       <InnerPageLayout
-        vscodeUrl={`vscode://file${possiblyRunningEvaluation.filepath}`}
-        filepath={
-          possiblyRunningEvaluation.filepath.split(/(\/|\\)/).slice(-1)[0]!
-        }
+        vscodeUrl={`vscode://file${possiblyRunningSuite.filepath}`}
+        filepath={possiblyRunningSuite.filepath.split(/(\/|\\)/).slice(-1)[0]!}
       >
         <div className="text-foreground/60 mb-10 text-sm">
           <h1 className="tracking-tight text-2xl mb-2 font-medium text-foreground/90">
@@ -347,22 +343,22 @@ function EvalComponent() {
               state={getScoreState({
                 score: evalScore,
                 prevScore,
-                status: possiblyRunningEvaluation.status,
+                status: possiblyRunningSuite.status,
               })}
               hasScores={hasScores}
             ></Score>
             <Separator orientation="vertical" className="h-4 mx-4" />
-            <span>{formatTime(possiblyRunningEvaluation.duration)}</span>
+            <span>{formatTime(possiblyRunningSuite.duration)}</span>
             <Separator orientation="vertical" className="h-4 mx-4" />
             <div className="flex items-center space-x-5">
               <LiveDate
-                date={possiblyRunningEvaluation.created_at}
+                date={possiblyRunningSuite.created_at}
                 className="block"
               />
               {!isViewingLatest && (
                 <>
                   <Link
-                    to={"/eval/$name"}
+                    to={"/suite/$name"}
                     params={{
                       name,
                     }}
@@ -403,7 +399,7 @@ function EvalComponent() {
           </div>
         )}
         {evaluationWithoutLayoutShift &&
-          evaluationWithoutLayoutShift.results.length > 0 &&
+          evaluationWithoutLayoutShift.evals.length > 0 &&
           evaluationWithoutLayoutShiftScores.length > 0 && (
             <div className="mb-10">
               <h2 className="mb-4 font-medium text-lg text-foreground/60">
@@ -413,15 +409,15 @@ function EvalComponent() {
                 {evaluationWithoutLayoutShiftScores.map((scorer) => {
                   const scorerName = scorer.name;
                   const scorerAverage = average(
-                    evaluationWithoutLayoutShift.results,
+                    evaluationWithoutLayoutShift.evals,
                     (r) => {
                       const score = r.scores.find((s) => s.name === scorerName);
                       return score?.score ?? 0;
                     }
                   );
 
-                  const prevScorerAverage = prevEvaluation
-                    ? average(prevEvaluation.results, (r) => {
+                  const prevScorerAverage = prevSuite
+                    ? average(prevSuite.evals, (r) => {
                         const score = r.scores.find(
                           (s) => s.name === scorerName
                         );
@@ -443,7 +439,7 @@ function EvalComponent() {
                           state={getScoreState({
                             score: scorerAverage,
                             prevScore: prevScorerAverage,
-                            status: possiblyRunningEvaluation.status,
+                            status: possiblyRunningSuite.status,
                           })}
                           iconClassName="size-4"
                           hasScores={hasScores}
@@ -478,10 +474,10 @@ function EvalComponent() {
               <TableHeader>
                 <TableRow>
                   {isArrayOfRenderedColumns(
-                    evaluationWithoutLayoutShift.results[0]?.rendered_columns
+                    evaluationWithoutLayoutShift.evals[0]?.rendered_columns
                   ) ? (
                     <>
-                      {evaluationWithoutLayoutShift.results[0].rendered_columns.map(
+                      {evaluationWithoutLayoutShift.evals[0].rendered_columns.map(
                         (column) => (
                           <TableHead key={column.label}>
                             {column.label}
@@ -496,7 +492,7 @@ function EvalComponent() {
                       {showExpectedColumn && <TableHead>Expected</TableHead>}
                     </>
                   )}
-                  {evaluationWithoutLayoutShift.results[0]?.scores.map(
+                  {evaluationWithoutLayoutShift.evals[0]?.scores.map(
                     (scorer, index) => (
                       <TableHead
                         key={scorer.name}
@@ -510,25 +506,25 @@ function EvalComponent() {
               </TableHeader>
               <TableBody>
                 {hasTrials
-                  ? // Render grouped trials with rowspan
-                    resultGroups.flatMap((group) =>
-                      group.results.map((result, trialIndex) => {
-                        const resultIndex =
-                          evaluationWithoutLayoutShift!.results.indexOf(result);
+                  ? // Render grouped evals with rowspan
+                    evalGroups.flatMap((group) =>
+                      group.evals.map((_eval, trialIndex) => {
+                        const evalIndex =
+                          evaluationWithoutLayoutShift!.evals.indexOf(_eval);
                         return (
-                          <ResultTableRow
-                            key={`${JSON.stringify(result.input)}-${result.trial_index}`}
-                            result={result}
-                            resultIndex={resultIndex}
+                          <EvalTableRow
+                            key={`${JSON.stringify(_eval.input)}-${_eval.trial_index}`}
+                            eval={_eval}
+                            evalIndex={evalIndex}
                             name={name}
                             timestamp={timestamp}
                             showExpectedColumn={showExpectedColumn}
                             isRunningEval={isRunningEval}
                             hasScores={hasScores}
-                            prevEvaluation={prevEvaluation}
+                            prevSuite={prevSuite}
                             trialConfig={{
                               isFirstTrial: trialIndex === 0,
-                              rowSpan: group.results.length,
+                              rowSpan: group.evals.length,
                               isOddGroup: group.groupIndex % 2 === 1,
                             }}
                           />
@@ -536,21 +532,19 @@ function EvalComponent() {
                       })
                     )
                   : // Original rendering for non-trial results
-                    evaluationWithoutLayoutShift.results.map(
-                      (result, index) => (
-                        <ResultTableRow
-                          key={JSON.stringify(result.input)}
-                          result={result}
-                          resultIndex={index}
-                          name={name}
-                          timestamp={timestamp}
-                          showExpectedColumn={showExpectedColumn}
-                          isRunningEval={isRunningEval}
-                          hasScores={hasScores}
-                          prevEvaluation={prevEvaluation}
-                        />
-                      )
-                    )}
+                    evaluationWithoutLayoutShift.evals.map((_eval, index) => (
+                      <EvalTableRow
+                        key={JSON.stringify(_eval.input)}
+                        eval={_eval}
+                        evalIndex={index}
+                        name={name}
+                        timestamp={timestamp}
+                        showExpectedColumn={showExpectedColumn}
+                        isRunningEval={isRunningEval}
+                        hasScores={hasScores}
+                        prevSuite={prevSuite}
+                      />
+                    ))}
               </TableBody>
             </Table>
           </>
@@ -561,8 +555,8 @@ function EvalComponent() {
           "fixed top-0 z-20 h-svh border-l p-2 bg-sidebar overflow-auto",
           "transition-[right] ease-linear shadow-lg duration-300",
           "hidden w-full sm:block sm:right-[-100%] sm:w-[500px] md:w-[600px] lg:w-[800px]",
-          isResultRoute && "block sm:right-0",
-          !isResultRoute && ""
+          isEvalRoute && "block sm:right-0",
+          !isEvalRoute && ""
         )}
       >
         <Outlet />

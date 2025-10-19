@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { loadFixture } from "./test-utils.js";
-import { getEvalsAsRecordViaStorage } from "./test-utils.js";
+import { getSuitesAsRecordViaStorage } from "./test-utils.js";
 
 it("Should report traces from reportTrace", async () => {
   await using fixture = await loadFixture("traces");
@@ -9,10 +9,10 @@ it("Should report traces from reportTrace", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+  const suites = await getSuitesAsRecordViaStorage(fixture.storage);
 
-  expect(evals.Traces![0]).toMatchObject({
-    results: [
+  expect(suites.Traces![0]).toMatchObject({
+    evals: [
       {
         traces: [
           {

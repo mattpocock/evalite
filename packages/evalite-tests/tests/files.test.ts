@@ -2,7 +2,7 @@ import { EvaliteFile } from "evalite";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, it } from "vitest";
-import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
+import { getSuitesAsRecordViaStorage, loadFixture } from "./test-utils.js";
 import { FILES_LOCATION } from "evalite/backend-only-constants";
 
 it("Should save files returned from task() in node_modules", async () => {
@@ -24,12 +24,12 @@ it("Should save files returned from task() in node_modules", async () => {
 
   expect(file).toBeTruthy();
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
 
   expect(evals).toMatchObject({
     Files: [
       {
-        results: [
+        evals: [
           {
             output: EvaliteFile.fromPath(filePath),
           },
@@ -54,12 +54,12 @@ it("Should save files reported in traces", async () => {
 
   const filePath = path.join(dir, files[0]!);
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
 
   expect(evals).toMatchObject({
     FilesWithTraces: [
       {
-        results: [
+        evals: [
           {
             traces: [
               {
@@ -104,10 +104,10 @@ it("Should let users add files to data().input and data().expected", async () =>
 
   expect(file).toBeTruthy();
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
 
   expect(evals.FilesInInput![0]).toMatchObject({
-    results: [
+    evals: [
       {
         input: EvaliteFile.fromPath(filePath),
         expected: EvaliteFile.fromPath(filePath),
@@ -135,10 +135,10 @@ it("Should let users add files to columns", async () => {
 
   expect(file).toBeTruthy();
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
 
   expect(evals.FilesWithColumns![0]).toMatchObject({
-    results: [
+    evals: [
       {
         rendered_columns: [
           {
@@ -170,10 +170,10 @@ it("Should let users add files to experimental_customColumns", async () => {
 
   expect(file).toBeTruthy();
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
 
   expect(evals.experimental_customColumns![0]).toMatchObject({
-    results: [
+    evals: [
       {
         rendered_columns: [
           {

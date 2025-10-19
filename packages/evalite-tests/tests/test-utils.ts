@@ -102,56 +102,57 @@ export const triggerWatchModeRerun = async (vitest: Vitest) => {
   await vitest.waitForTestRunEnd();
 };
 
-export interface EvalWithInlineResults extends Evalite.Storage.Entities.Eval {
-  results: ResultWithInlineScoresAndTraces[];
+export interface SuiteWithInlineResults extends Evalite.Storage.Entities.Suite {
+  evals: EvalWithInlineScoresAndTraces[];
 }
 
-export interface ResultWithInlineScoresAndTraces
-  extends Evalite.Storage.Entities.Result {
+export interface EvalWithInlineScoresAndTraces
+  extends Evalite.Storage.Entities.Eval {
   scores: Evalite.Storage.Entities.Score[];
   traces: Evalite.Storage.Entities.Trace[];
 }
 
 /**
- * Get evals as a record using the new storage API.
- * Replaces deprecated getEvalsAsRecord.
+ * Get suites as a record using the new storage API.
  */
-export const getEvalsAsRecordViaStorage = async (
+export const getSuitesAsRecordViaStorage = async (
   storage: Evalite.Storage
-): Promise<Record<string, EvalWithInlineResults[]>> => {
-  const evals = await storage.evals.getMany();
-  const evalIds = evals.map((e) => e.id);
+): Promise<Record<string, SuiteWithInlineResults[]>> => {
+  const suites = await storage.suites.getMany();
+  const suiteIds = suites.map((e) => e.id);
 
-  const results =
-    evalIds.length > 0 ? await storage.results.getMany({ evalIds }) : [];
-  const resultIds = results.map((r) => r.id);
+  const evals =
+    suiteIds.length > 0
+      ? await storage.evals.getMany({ suiteIds: suiteIds })
+      : [];
+  const evalIds = evals.map((r) => r.id);
 
   const scores =
-    resultIds.length > 0 ? await storage.scores.getMany({ resultIds }) : [];
+    evalIds.length > 0 ? await storage.scores.getMany({ evalIds }) : [];
   const traces =
-    resultIds.length > 0 ? await storage.traces.getMany({ resultIds }) : [];
+    evalIds.length > 0 ? await storage.traces.getMany({ evalIds }) : [];
 
-  const recordOfEvals: Record<string, EvalWithInlineResults[]> = {};
+  const recordOfSuites: Record<string, SuiteWithInlineResults[]> = {};
 
-  for (const evaluation of evals) {
-    const key = evaluation.name;
-    if (!recordOfEvals[key]) {
-      recordOfEvals[key] = [];
+  for (const suite of suites) {
+    const key = suite.name;
+    if (!recordOfSuites[key]) {
+      recordOfSuites[key] = [];
     }
 
-    const evalResults = results.filter((r) => r.eval_id === evaluation.id);
+    const evalResults = evals.filter((r) => r.suite_id === suite.id);
     const resultsWithScoresAndTraces = evalResults.map((r) => {
-      const resultScores = scores.filter((s) => s.result_id === r.id);
-      const resultTraces = traces.filter((t) => t.result_id === r.id);
+      const resultScores = scores.filter((s) => s.eval_id === r.id);
+      const resultTraces = traces.filter((t) => t.eval_id === r.id);
 
       return { ...r, scores: resultScores, traces: resultTraces };
     });
 
-    recordOfEvals[key].push({
-      ...evaluation,
-      results: resultsWithScoresAndTraces,
+    recordOfSuites[key].push({
+      ...suite,
+      evals: resultsWithScoresAndTraces,
     });
   }
 
-  return recordOfEvals;
+  return recordOfSuites;
 };
