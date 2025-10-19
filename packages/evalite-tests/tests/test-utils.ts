@@ -48,6 +48,7 @@ export const loadFixture = async (
       scoreThreshold?: number;
       outputPath?: string;
       hideTable?: boolean;
+      configDebugMode?: boolean;
     }) => {
       await runEvalite({
         ...opts,

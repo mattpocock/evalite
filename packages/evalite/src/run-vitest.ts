@@ -199,6 +199,7 @@ export const runEvalite = async (opts: {
   outputPath?: string;
   hideTable?: boolean;
   storage?: Evalite.Storage;
+  configDebugMode?: boolean;
 }) => {
   const cwd = opts.cwd ?? process.cwd();
   const filesLocation = path.join(cwd, FILES_LOCATION);
@@ -276,14 +277,35 @@ export const runEvalite = async (opts: {
       plugins: [
         {
           name: "evalite-config-plugin",
-          // Everything inside this config CAN be overridden
+          // Everything inside this config CAN be overridden by user's vite.config.ts
+          // EXCEPT when evalite.config.ts explicitly sets values - those override vite.config.ts
           config(config) {
             config.test ??= {};
-            config.test.testTimeout ??= testTimeout ?? 30_000;
-            config.test.maxConcurrency ??= maxConcurrency;
+            // If evalite.config.ts specifies these values, override user's vite.config.ts
+            // Otherwise use vite.config.ts value or fallback to default
+            if (testTimeout !== undefined) {
+              config.test.testTimeout = testTimeout;
+            } else {
+              config.test.testTimeout ??= 30_000;
+            }
+
+            if (maxConcurrency !== undefined) {
+              config.test.maxConcurrency = maxConcurrency;
+            }
+            // Note: no fallback for maxConcurrency - let Vitest use its own default
 
             config.test.sequence ??= {};
             config.test.sequence.concurrent ??= true;
+          },
+          configResolved(config) {
+            if (opts.configDebugMode) {
+              const debugMessage = `[Evalite Config Debug] testTimeout: ${config.test?.testTimeout}, maxConcurrency: ${config.test?.maxConcurrency}\n`;
+              if (opts.testOutputWritable) {
+                opts.testOutputWritable.write(debugMessage);
+              } else {
+                process.stdout.write(debugMessage);
+              }
+            }
           },
         },
       ],
