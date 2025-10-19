@@ -5,6 +5,8 @@ import { expect, it } from "vitest";
 import { getSuitesAsRecordViaStorage, loadFixture } from "./test-utils.js";
 import { FILES_LOCATION } from "evalite/backend-only-constants";
 
+const FILES_LOCATION = "./node_modules/.evalite/files";
+
 it("Should save files returned from task() in node_modules", async () => {
   await using fixture = await loadFixture("files");
 
