@@ -7,8 +7,9 @@ import {
 import { createRequire } from "node:module";
 import { exportStaticUI } from "./export-static.js";
 import { createSqliteStorage } from "./storage/sqlite.js";
+import { createInMemoryStorage } from "./storage/in-memory.js";
 import path from "node:path";
-import { DB_LOCATION } from "./backend-only-constants.js";
+import { loadEvaliteConfig } from "./config.js";
 
 const packageJson = createRequire(import.meta.url)(
   "../package.json"
@@ -216,18 +217,40 @@ export const program = createProgram({
   },
   export: async (opts) => {
     const cwd = process.cwd();
-    const dbPath = path.join(cwd, DB_LOCATION);
-    const storage = await createSqliteStorage(dbPath);
 
-    try {
-      await exportStaticUI({
-        storage,
-        outputPath: opts.output ?? "./evalite-export",
-        runId: opts.runId,
-        basePath: opts.basePath,
-      });
-    } finally {
-      await storage.close();
+    // Load config and determine storage (same logic as run-evalite.ts)
+    const config = await loadEvaliteConfig(cwd);
+    await using storage = config?.storage
+      ? await config.storage()
+      : createInMemoryStorage();
+
+    // Check if storage has any runs
+    const existingRuns = await storage.runs.getMany({ limit: 1 });
+    const isEmpty = existingRuns.length === 0;
+
+    // Error if runId specified but storage is empty
+    if (opts.runId && isEmpty) {
+      throw new Error(
+        "Cannot export with runId when storage is empty. Run evaluations first or omit runId to auto-run."
+      );
     }
+
+    // Auto-run if storage is empty
+    if (isEmpty) {
+      console.log("Storage is empty. Running evaluations first...");
+      await runEvalite({
+        path: undefined,
+        cwd,
+        mode: "run-once-and-exit",
+        storage,
+      });
+    }
+
+    await exportStaticUI({
+      storage,
+      outputPath: opts.output ?? "./evalite-export",
+      runId: opts.runId,
+      basePath: opts.basePath,
+    });
   },
 });
