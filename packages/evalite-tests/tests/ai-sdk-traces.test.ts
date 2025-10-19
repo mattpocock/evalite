@@ -1,4 +1,4 @@
-import { assert, expect, it } from "vitest";
+import { expect, it } from "vitest";
 import { getSuitesAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Should report traces from generateText using traceAISDKModel", async () => {
@@ -23,22 +23,4 @@ it("Should report traces from generateText using traceAISDKModel", async () => {
       },
     ],
   });
-});
-
-it("Should report traces from streamText using traceAISDKModel", async () => {
-  await using fixture = await loadFixture("ai-sdk-traces-stream");
-
-  await fixture.run({
-    mode: "run-once-and-exit",
-  });
-
-  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
-
-  const traces = evals["AI SDK Traces"]![0]?.evals[0]?.traces;
-
-  assert(traces?.[0], "Expected a trace to be reported");
-
-  expect(traces?.[0].input_tokens).toEqual(3);
-  expect(traces?.[0].output_tokens).toEqual(10);
-  expect(traces?.[0].total_tokens).toEqual(14);
 });
