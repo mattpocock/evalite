@@ -58,12 +58,12 @@ it("setupFiles in vitest.config.ts should be supported", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
 
   // Should complete successfully with env var loaded from vitest.config.ts
   expect(evals["Vitest Setup Test"]).toHaveLength(1);
   expect(evals["Vitest Setup Test"]?.[0]?.status).toBe("success");
-  expect(evals["Vitest Setup Test"]?.[0]?.results[0]?.output).toBe(
+  expect(evals["Vitest Setup Test"]?.[0]?.evals[0]?.output).toBe(
     "from_vitest_config"
   );
 });
@@ -75,10 +75,10 @@ it("setupFiles in evalite.config.ts should take precedence over vitest.config.ts
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
 
   // Should complete successfully with env var from evalite setup (which runs after vitest)
   expect(evals["Precedence Test"]).toHaveLength(1);
   expect(evals["Precedence Test"]?.[0]?.status).toBe("success");
-  expect(evals["Precedence Test"]?.[0]?.results[0]?.output).toBe("evalite");
+  expect(evals["Precedence Test"]?.[0]?.evals[0]?.output).toBe("evalite");
 });
