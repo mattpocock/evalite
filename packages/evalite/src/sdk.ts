@@ -31,7 +31,7 @@ export const getServerState = async (fetchOpts?: {
   );
 };
 
-export type GetMenuItemsResultEval = Evalite.SDK.GetMenuItemsResultEval;
+export type GetMenuItemsResultEval = Evalite.SDK.GetMenuItemsResultSuite;
 export type GetMenuItemsResult = Evalite.SDK.GetMenuItemsResult;
 
 export const getMenuItems = async (fetchOpts?: {
@@ -40,67 +40,67 @@ export const getMenuItems = async (fetchOpts?: {
   return safeFetch<GetMenuItemsResult>(`${BASE_URL}/api/menu-items`, fetchOpts);
 };
 
-export type GetEvalByNameResult = {
+export type GetSuiteByNameResult = {
   history: {
     score: number;
     date: string;
   }[];
-  evaluation: Evalite.Storage.Entities.Eval & {
-    results: (Evalite.Storage.Entities.Result & {
+  suite: Evalite.Storage.Entities.Suite & {
+    evals: (Evalite.Storage.Entities.Eval & {
       scores: Evalite.Storage.Entities.Score[];
     })[];
   };
-  prevEvaluation:
-    | (Evalite.Storage.Entities.Eval & {
-        results: (Evalite.Storage.Entities.Result & {
+  prevSuite:
+    | (Evalite.Storage.Entities.Suite & {
+        evals: (Evalite.Storage.Entities.Eval & {
           scores: Evalite.Storage.Entities.Score[];
         })[];
       })
     | undefined;
 };
 
-export const getEvalByName = async (
+export const getSuiteByName = async (
   name: string,
   timestamp: string | null | undefined,
   fetchOpts?: { signal?: AbortSignal }
-): Promise<GetEvalByNameResult> => {
+): Promise<GetSuiteByNameResult> => {
   const params = new URLSearchParams({ name, timestamp: timestamp || "" });
-  return safeFetch<GetEvalByNameResult>(
-    `${BASE_URL}/api/eval?${params.toString()}`,
+  return safeFetch<GetSuiteByNameResult>(
+    `${BASE_URL}/api/suite?${params.toString()}`,
     fetchOpts
   );
 };
 
-export type GetResultResult = {
-  result: Evalite.Storage.Entities.Result & {
+export type GetEvalResult = {
+  eval: Evalite.Storage.Entities.Eval & {
     traces: Evalite.Storage.Entities.Trace[];
     score: number;
     scores: Evalite.Storage.Entities.Score[];
   };
-  prevResult:
-    | (Evalite.Storage.Entities.Result & {
+  prevEval:
+    | (Evalite.Storage.Entities.Eval & {
         score: number;
         scores: Evalite.Storage.Entities.Score[];
       })
     | undefined;
-  evaluation: Evalite.Storage.Entities.Eval;
+  suite: Evalite.Storage.Entities.Suite;
 };
 
-export const getResult = async (
+export const getEval = async (
   opts: {
-    evalName: string;
-    evalTimestamp: string | null | undefined;
-    resultIndex: string;
+    suiteName: string;
+    suiteTimestamp: string | null | undefined;
+    evalIndex: string;
   },
   fetchOpts?: { signal?: AbortSignal }
-): Promise<GetResultResult> => {
+): Promise<GetEvalResult> => {
   const params = new URLSearchParams({
-    name: opts.evalName,
-    index: opts.resultIndex,
-    timestamp: opts.evalTimestamp || "",
+    name: opts.suiteName,
+    index: opts.evalIndex,
+    timestamp: opts.suiteTimestamp || "",
   });
-  return safeFetch<GetResultResult>(
-    `${BASE_URL}/api/eval/result?${params.toString()}`,
+  return safeFetch<GetEvalResult>(
+    `${BASE_URL}/api/suite/eval?${params.toString()}`,
     fetchOpts
   );
 };
