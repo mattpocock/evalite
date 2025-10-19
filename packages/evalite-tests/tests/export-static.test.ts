@@ -3,6 +3,9 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, it } from "vitest";
 import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
+import { createInMemoryStorage } from "evalite/in-memory-storage";
+import { createSqliteStorage } from "evalite/sqlite-storage";
+import { runEvalite } from "evalite/runner";
 
 it("Should export all required files and directory structure", async () => {
   await using fixture = await loadFixture("export");
@@ -88,5 +91,61 @@ it("Should remap file paths to unique filenames", async () => {
   expect(firstResult.rendered_columns[0].value).toMatchObject({
     __EvaliteFile: true,
     path: expect.stringMatching(/^[a-f0-9-]+\.png$/),
+  });
+});
+
+it("Should error when runId specified but run not found", async () => {
+  const storage = createInMemoryStorage();
+  const exportDir = "./test-export";
+
+  await expect(
+    exportStaticUI({
+      storage,
+      outputPath: exportDir,
+      runId: 999,
+    })
+  ).rejects.toThrow("Run with ID 999 not found");
+
+  await storage.close();
+});
+
+it("Should error when no runs found in storage", async () => {
+  const storage = createInMemoryStorage();
+  const exportDir = "./test-export";
+
+  // Empty storage should error when trying to export
+  await expect(
+    exportStaticUI({
+      storage,
+      outputPath: exportDir,
+    })
+  ).rejects.toThrow("No runs found");
+
+  await storage.close();
+});
+
+it("Should export existing data from SQLite storage", async () => {
+  await using fixture = await loadFixture("export");
+
+  // Create SQLite storage and run evals with it
+  const dbPath = path.join(
+    fixture.dir,
+    "node_modules",
+    ".evalite",
+    "cache.sqlite"
+  );
+  await using sqliteStorage = await createSqliteStorage(dbPath);
+
+  await runEvalite({
+    cwd: fixture.dir,
+    mode: "run-once-and-exit",
+    storage: sqliteStorage,
+  });
+
+  const exportDir = path.join(fixture.dir, "sqlite-export");
+
+  await exportStaticUI({
+    storage: sqliteStorage,
+    outputPath: exportDir,
   });
 });
