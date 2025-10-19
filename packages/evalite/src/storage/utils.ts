@@ -35,16 +35,16 @@ export const jsonParseFieldsArray = <T extends object, K extends keyof T>(
 
 export const computeAverageScores = (
   scores: Evalite.Storage.Entities.Score[]
-): Array<{ result_id: number; average: number }> => {
+): Array<{ eval_id: number; average: number }> => {
   const grouped = new Map<number, number[]>();
   for (const score of scores) {
-    if (!grouped.has(score.result_id)) {
-      grouped.set(score.result_id, []);
+    if (!grouped.has(score.eval_id)) {
+      grouped.set(score.eval_id, []);
     }
-    grouped.get(score.result_id)!.push(score.score);
+    grouped.get(score.eval_id)!.push(score.score);
   }
-  return Array.from(grouped.entries()).map(([result_id, scoreVals]) => ({
-    result_id,
+  return Array.from(grouped.entries()).map(([eval_id, scoreVals]) => ({
+    eval_id,
     average: scoreVals.reduce((sum, val) => sum + val, 0) / scoreVals.length,
   }));
 };

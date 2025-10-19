@@ -1,5 +1,5 @@
 import { expect, it, vitest } from "vitest";
-import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
+import { getSuitesAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Should set exitCode to 1 if there is a timeout", async () => {
   await using fixture = await loadFixture("timeout");
@@ -37,11 +37,11 @@ it("Should record timeout information in the database", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
 
   expect(evals.Timeout?.[0]).toMatchObject({
     name: "Timeout",
-    results: [
+    evals: [
       {
         status: "fail",
       },

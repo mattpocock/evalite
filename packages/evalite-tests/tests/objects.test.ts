@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
+import { getSuitesAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Should handle objects as inputs and outputs", async () => {
   await using fixture = await loadFixture("objects");
@@ -8,12 +8,12 @@ it("Should handle objects as inputs and outputs", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
 
   expect(evals).toMatchObject({
     Basics: [
       {
-        results: [
+        evals: [
           {
             input: [
               {
