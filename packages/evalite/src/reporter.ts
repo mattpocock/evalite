@@ -11,6 +11,7 @@ import { BasicReporter } from "vitest/reporters";
 import { EvaliteRunner } from "./reporter/EvaliteRunner.js";
 import {
   renderDetailedTable,
+  renderErrorsSummary,
   renderInitMessage,
   renderScoreDisplay,
   renderServeModeFinalMessage,
@@ -69,12 +70,12 @@ export default class EvaliteReporter extends BasicReporter implements Reporter {
     files: RunnerTestFile[] = [],
     errors: unknown[] = []
   ): void {
-    const hasErrors = (errors?.length ?? 0) > 0 || hasFailed(files);
     const failedDueToThreshold =
       this.runner.getDidLastRunFailThreshold() === "yes";
 
     renderWatcherStart(this.ctx.logger, {
-      hasErrors,
+      files,
+      errors,
       failedDueToThreshold,
       scoreThreshold: this.opts.scoreThreshold,
     });
@@ -99,7 +100,10 @@ export default class EvaliteReporter extends BasicReporter implements Reporter {
     // Wait for all queued events to complete
     await this.runner.waitForCompletion();
 
-    // Call reportTestSummary manually since BasicReporter's onFinished doesn't
+    // Print errors first (mimicking DefaultReporter's reportSummary -> printErrorsSummary flow)
+    renderErrorsSummary(this.ctx.logger, { files, errors });
+
+    // Then print test summary
     this.reportTestSummary(files);
   };
 
