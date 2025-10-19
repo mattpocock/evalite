@@ -1,4 +1,4 @@
-import { runEvalite } from "./run-vitest.js";
+import { runEvalite } from "./run-evalite.js";
 import { buildApplication, buildCommand, buildRouteMap } from "@stricli/core";
 import {
   buildInstallCommand,

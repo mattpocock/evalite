@@ -42,7 +42,7 @@
     "./reporter": "./dist/reporter.js",
     "./traces": "./dist/traces.js",
     "./ai-sdk": "./dist/ai-sdk.js",
-    "./runner": "./dist/run-vitest.js",
+    "./runner": "./dist/run-evalite.js",
     "./export-static": "./dist/export-static.js",
     "./sqlite-storage": "./dist/storage/sqlite.js",
     "./in-memory-storage": "./dist/storage/in-memory.js"
