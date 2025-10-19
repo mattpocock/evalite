@@ -296,32 +296,32 @@ export function renderSummaryStats(
 
 export function renderDetailedTable(
   logger: { log: (msg: string) => void },
-  results: Evalite.Result[],
+  evals: Evalite.Eval[],
   failedCount: number
 ) {
   renderTable(
     logger,
-    results.map((result) => ({
+    evals.map((_eval) => ({
       columns:
-        result.renderedColumns.length > 0
-          ? result.renderedColumns.map((col) => ({
+        _eval.renderedColumns.length > 0
+          ? _eval.renderedColumns.map((col) => ({
               label: col.label,
               value: renderMaybeEvaliteFile(col.value),
             }))
           : [
               {
                 label: "Input",
-                value: renderMaybeEvaliteFile(result.input),
+                value: renderMaybeEvaliteFile(_eval.input),
               },
               {
                 label: "Output",
-                value: renderMaybeEvaliteFile(result.output),
+                value: renderMaybeEvaliteFile(_eval.output),
               },
             ],
       score:
-        result.scores.length === 0
+        _eval.scores.length === 0
           ? null
-          : average(result.scores, (s) => s.score ?? 0),
+          : average(_eval.scores, (s) => s.score ?? 0),
     }))
   );
 
@@ -339,37 +339,37 @@ export function renderDetailedTable(
 
 export function renderTask(opts: {
   logger: { log: (msg: string) => void };
-  result: {
+  eval: {
     filePath: string;
-    status: Evalite.ResultStatus;
+    status: Evalite.EvalStatus;
     scores: Evalite.Score[];
     numberOfEvals: number | string;
   };
 }) {
-  const scores = opts.result.scores.map((s) => s.score ?? 0);
+  const scores = opts.eval.scores.map((s) => s.score ?? 0);
 
   const totalScore = scores.reduce((a, b) => a + b, 0);
   const averageScore = scores.length === 0 ? null : totalScore / scores.length;
 
   const prefix =
-    opts.result.status === "fail"
+    opts.eval.status === "fail"
       ? c.red("✖")
-      : opts.result.status === "running"
+      : opts.eval.status === "running"
         ? c.yellow("⏳")
         : displayScore(averageScore);
 
   const text =
-    opts.result.status === "running"
-      ? c.dim(opts.result.filePath)
-      : opts.result.filePath;
+    opts.eval.status === "running"
+      ? c.dim(opts.eval.filePath)
+      : opts.eval.filePath;
 
   const toLog = [
     ` ${prefix} `,
     `${text}  `,
     c.dim(
-      opts.result.numberOfEvals === 1
-        ? `(${opts.result.numberOfEvals} eval)`
-        : `(${opts.result.numberOfEvals} evals)`
+      opts.eval.numberOfEvals === 1
+        ? `(${opts.eval.numberOfEvals} eval)`
+        : `(${opts.eval.numberOfEvals} evals)`
     ),
   ];
 

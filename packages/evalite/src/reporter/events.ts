@@ -10,12 +10,12 @@ export type ReporterEvent =
       type: "RUN_ENDED";
     }
   | {
-      type: "RESULT_SUBMITTED";
-      result: Evalite.Result;
+      type: "EVAL_SUBMITTED";
+      eval: Evalite.Eval;
     }
   | {
-      type: "RESULT_STARTED";
-      initialResult: Evalite.InitialResult;
+      type: "EVAL_STARTED";
+      initialEval: Evalite.InitialEvalResult;
     };
 
 /**
@@ -23,12 +23,12 @@ export type ReporterEvent =
  */
 export type EvaliteAnnotation =
   | {
-      type: "RESULT_STARTED";
-      initialResult: Evalite.InitialResult;
+      type: "EVAL_STARTED";
+      initialEval: Evalite.InitialEvalResult;
     }
   | {
-      type: "RESULT_SUBMITTED";
-      result: Evalite.Result;
+      type: "EVAL_SUBMITTED";
+      eval: Evalite.Eval;
     };
 
 /**

@@ -286,12 +286,12 @@ function registerEvalite<TInput, TOutput, TExpected>(
 
         const rootDir = path.join(cwd, FILES_LOCATION);
 
-        // Send RESULT_STARTED annotation immediately
+        // Send EVAL_STARTED annotation immediately
         await annotate(
           serializeAnnotation({
-            type: "RESULT_STARTED",
-            initialResult: {
-              evalName: fullEvalName,
+            type: "EVAL_STARTED",
+            initialEval: {
+              suiteName: fullEvalName,
               filepath: task.file.filepath,
               order: data.index,
               variantName: vitestOpts.variantName,
@@ -353,12 +353,12 @@ function registerEvalite<TInput, TOutput, TExpected>(
 
           const serializableOutput = makeSerializable(outputWithFiles);
 
-          // Send RESULT_SUBMITTED annotation
+          // Send EVAL_SUBMITTED annotation
           await annotate(
             serializeAnnotation({
-              type: "RESULT_SUBMITTED",
-              result: {
-                evalName: fullEvalName,
+              type: "EVAL_SUBMITTED",
+              eval: {
+                suiteName: fullEvalName,
                 filepath: task.file.filepath,
                 order: data.index,
                 duration: Math.round(performance.now() - start),
@@ -388,12 +388,12 @@ function registerEvalite<TInput, TOutput, TExpected>(
                 }
               : e;
 
-          // Send RESULT_SUBMITTED annotation for failure
+          // Send EVAL_SUBMITTED annotation for failure
           await annotate(
             serializeAnnotation({
-              type: "RESULT_SUBMITTED",
-              result: {
-                evalName: fullEvalName,
+              type: "EVAL_SUBMITTED",
+              eval: {
+                suiteName: fullEvalName,
                 filepath: task.file.filepath,
                 order: data.index,
                 duration,

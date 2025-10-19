@@ -22,7 +22,7 @@ import type { Evalite } from "evalite/types";
 import { sum } from "evalite/utils";
 import { z } from "zod";
 import {
-  getResultQueryOptions,
+  getEvalQueryOptions,
   getServerStateQueryOptions,
 } from "~/data/queries";
 import { useServerStateUtils } from "~/hooks/use-server-state-utils";
@@ -31,7 +31,7 @@ const searchSchema = z.object({
   trace: z.number().optional(),
 });
 
-export const Route = createFileRoute("/eval/$name/result/$resultIndex")({
+export const Route = createFileRoute("/suite/$name/eval/$evalIndex")({
   validateSearch: zodValidator(searchSchema),
   loaderDeps: ({ search }) => ({
     timestamp: search.timestamp,
@@ -41,10 +41,10 @@ export const Route = createFileRoute("/eval/$name/result/$resultIndex")({
 
     await Promise.all([
       queryClient.ensureQueryData(
-        getResultQueryOptions({
-          evalName: params.name!,
-          resultIndex: params.resultIndex!,
-          evalTimestamp: deps.timestamp ?? null,
+        getEvalQueryOptions({
+          suiteName: params.name!,
+          evalIndex: params.evalIndex!,
+          suiteTimestamp: deps.timestamp ?? null,
         })
       ),
       queryClient.ensureQueryData(getServerStateQueryOptions),
@@ -85,19 +85,19 @@ const MainBodySection = ({
 );
 
 function ResultComponent() {
-  const { name, resultIndex } = Route.useParams();
+  const { name, evalIndex } = Route.useParams();
   const { timestamp, trace: traceIndex } = Route.useSearch();
   const [
     {
-      data: { result, prevResult, evaluation },
+      data: { eval: _eval, prevEval, suite },
     },
     { data: serverState },
   ] = useSuspenseQueries({
     queries: [
-      getResultQueryOptions({
-        evalName: name!,
-        resultIndex: resultIndex!,
-        evalTimestamp: timestamp ?? null,
+      getEvalQueryOptions({
+        suiteName: name!,
+        evalIndex: evalIndex!,
+        suiteTimestamp: timestamp ?? null,
       }),
       getServerStateQueryOptions,
     ],
@@ -105,60 +105,56 @@ function ResultComponent() {
   const serverStateUtils = useServerStateUtils(serverState);
 
   const isRunning =
-    serverStateUtils.isRunningEvalName(name) &&
-    evaluation.created_at === timestamp;
+    serverStateUtils.isRunningSuiteName(name) && suite.created_at === timestamp;
 
-  const startTime = result.traces[0]?.start_time ?? 0;
-  const endTime = result.traces[result.traces.length - 1]?.end_time ?? 0;
+  const startTime = _eval.traces[0]?.start_time ?? 0;
+  const endTime = _eval.traces[_eval.traces.length - 1]?.end_time ?? 0;
   const totalTraceDuration = endTime - startTime;
 
-  const traceBeingViewed =
-    traceIndex != null ? result.traces[traceIndex] : null;
+  const traceBeingViewed = traceIndex != null ? _eval.traces[traceIndex] : null;
 
   const wholeEvalUsage =
-    result.traces.length > 0 &&
-    result.traces.every(
+    _eval.traces.length > 0 &&
+    _eval.traces.every(
       (t) =>
         typeof t.input_tokens === "number" &&
         typeof t.output_tokens === "number" &&
         typeof t.total_tokens === "number"
     )
       ? {
-          input_tokens: sum(result.traces, (t) => t.input_tokens),
-          output_tokens: sum(result.traces, (t) => t.output_tokens),
-          total_tokens: sum(result.traces, (t) => t.total_tokens),
+          input_tokens: sum(_eval.traces, (t) => t.input_tokens),
+          output_tokens: sum(_eval.traces, (t) => t.output_tokens),
+          total_tokens: sum(_eval.traces, (t) => t.total_tokens),
         }
       : undefined;
 
-  const hasCustomColumns = isArrayOfRenderedColumns(result.rendered_columns);
+  const hasCustomColumns = isArrayOfRenderedColumns(_eval.rendered_columns);
 
   const inputOutputSection = (
     <>
       <MainBodySection
         title="Input"
         description={`The input passed to the task.`}
-        copyableText={
-          typeof result.input === "string" ? result.input : undefined
-        }
+        copyableText={typeof _eval.input === "string" ? _eval.input : undefined}
       >
         <DisplayInput
           shouldTruncateText={false}
-          input={result.input}
+          input={_eval.input}
         ></DisplayInput>
       </MainBodySection>
       <MainBodySeparator />
-      {result.expected ? (
+      {_eval.expected ? (
         <>
           <MainBodySection
             title="Expected"
             description={`A description of the expected output of the task.`}
             copyableText={
-              typeof result.expected === "string" ? result.expected : undefined
+              typeof _eval.expected === "string" ? _eval.expected : undefined
             }
           >
             <DisplayInput
               shouldTruncateText={false}
-              input={result.expected}
+              input={_eval.expected}
             ></DisplayInput>
           </MainBodySection>
           <MainBodySeparator />
@@ -168,12 +164,12 @@ function ResultComponent() {
         title="Output"
         description="The output of the task."
         copyableText={
-          typeof result.output === "string" ? result.output : undefined
+          typeof _eval.output === "string" ? _eval.output : undefined
         }
       >
         <DisplayInput
           shouldTruncateText={false}
-          input={result.output}
+          input={_eval.output}
         ></DisplayInput>
       </MainBodySection>
     </>
@@ -184,7 +180,7 @@ function ResultComponent() {
         <div className="p-2 flex items-center gap-3">
           <Button size={"icon"} variant="ghost" asChild>
             <Link
-              to={"/eval/$name"}
+              to={"/suite/$name"}
               params={{
                 name,
               }}
@@ -203,20 +199,20 @@ function ResultComponent() {
               <BreadcrumbList>
                 <BreadcrumbItem>
                   <Score
-                    score={result.score}
-                    hasScores={result.scores.length > 0}
+                    score={_eval.score}
+                    hasScores={_eval.scores.length > 0}
                     state={getScoreState({
-                      score: result.score,
-                      prevScore: prevResult?.score,
-                      status: evaluation.status,
+                      score: _eval.score,
+                      prevScore: prevEval?.score,
+                      status: suite.status,
                     })}
                   />
                 </BreadcrumbItem>
                 <Separator orientation="vertical" className="mx-1 h-4" />
-                <BreadcrumbItem>{formatTime(result.duration)}</BreadcrumbItem>
+                <BreadcrumbItem>{formatTime(_eval.duration)}</BreadcrumbItem>
                 <Separator orientation="vertical" className="mx-1 h-4" />
                 <BreadcrumbItem>
-                  <LiveDate date={evaluation.created_at} />
+                  <LiveDate date={suite.created_at} />
                 </BreadcrumbItem>
                 {wholeEvalUsage && (
                   <>
@@ -243,9 +239,9 @@ function ResultComponent() {
               startPercent={0}
               endPercent={100}
               name={name}
-              resultIndex={resultIndex}
+              evalIndex={evalIndex}
             />
-            {result.traces.map((trace, index) => {
+            {_eval.traces.map((trace, index) => {
               const startTimeWithinTrace = trace.start_time - startTime;
               const endTimeWithinTrace = trace.end_time - startTime;
 
@@ -259,14 +255,14 @@ function ResultComponent() {
                   duration={trace.end_time - trace.start_time}
                   title={`Trace ${index + 1}`}
                   name={name}
-                  resultIndex={resultIndex}
+                  evalIndex={evalIndex}
                   traceIndex={index}
                   endPercent={endPercent}
                   startPercent={startPercent}
                 />
               );
             })}
-            {result.traces.length === 0 && (
+            {_eval.traces.length === 0 && (
               <span className="text-xs block text-foreground/50 text-center text-balance">
                 Use <code>reportTrace</code> to capture traces.
               </span>
@@ -293,7 +289,7 @@ function ResultComponent() {
                 )}
                 {!hasCustomColumns && inputOutputSection}
                 {hasCustomColumns &&
-                  (result.rendered_columns as Evalite.RenderedColumn[]).map(
+                  (_eval.rendered_columns as Evalite.RenderedColumn[]).map(
                     (column, index) => (
                       <Fragment key={column.label}>
                         {index > 0 && <MainBodySeparator />}
@@ -315,7 +311,7 @@ function ResultComponent() {
                     )
                   )}
 
-                {result.scores.map((score) => (
+                {_eval.scores.map((score) => (
                   <Fragment key={score.name}>
                     <MainBodySeparator />
                     <MainBodySection
@@ -324,14 +320,14 @@ function ResultComponent() {
                       description={score.description}
                     >
                       <Score
-                        hasScores={result.scores.length > 0}
+                        hasScores={_eval.scores.length > 0}
                         score={score.score ?? 0}
                         state={getScoreState({
                           score: score.score ?? 0,
-                          prevScore: prevResult?.scores.find(
+                          prevScore: prevEval?.scores.find(
                             (prevScore) => prevScore.name === score.name
                           )?.score,
-                          status: result.status,
+                          status: _eval.status,
                         })}
                       />
                     </MainBodySection>
@@ -405,20 +401,17 @@ const TraceMenuItem = (props: {
    */
   endPercent: number;
   name: string;
-  resultIndex: string;
+  evalIndex: string;
   traceIndex?: number;
 }) => {
   const length = props.endPercent - props.startPercent;
 
   return (
     <Link
-      to={"/eval/$name/result/$resultIndex"}
+      to={"/suite/$name/eval/$evalIndex"}
       params={{
         name: props.name,
-        resultIndex: props.resultIndex,
-      }}
-      search={{
-        trace: props.traceIndex,
+        evalIndex: props.evalIndex,
       }}
       className={"px-2 py-2 hover:bg-foreground/10 transition-colors"}
       activeProps={{
