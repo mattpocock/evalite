@@ -8,6 +8,8 @@ To call your LLM from a third-party service, you'll likely need some environment
 
 ## Setting Up Env Variables
 
+Evalite automatically loads environment variables from `.env` files in your project root. No configuration needed!
+
 <Steps>
 
 1. Create a `.env` file in the root of your project:
@@ -24,24 +26,17 @@ To call your LLM from a third-party service, you'll likely need some environment
    .env
    ```
 
-3. Install `dotenv`:
-
-   ```bash
-   pnpm add -D dotenv
-   ```
-
-4. Add an `evalite.config.ts` file:
-
-   ```ts
-   // evalite.config.ts
-
-   import { defineConfig } from "evalite/config";
-
-   export default defineConfig({
-     setupFiles: ["dotenv/config"],
-   });
-   ```
-
 </Steps>
 
 Now, your environment variables will be available in your evals.
+
+## How It Works
+
+Evalite uses [dotenv](https://www.npmjs.com/package/dotenv) under the hood to automatically load environment variables from `.env` files. The following files are supported (in order of precedence):
+
+- `.env.local`
+- `.env.[mode].local`
+- `.env.[mode]`
+- `.env`
+
+This happens automatically—no setup required!
