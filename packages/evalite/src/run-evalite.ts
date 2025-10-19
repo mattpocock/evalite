@@ -4,7 +4,7 @@ import { Writable } from "stream";
 import { createVitest, registerConsoleShortcuts } from "vitest/node";
 import { createInMemoryStorage } from "./storage/in-memory.js";
 import { computeAverageScores } from "./storage/utils.js";
-import { DB_LOCATION, FILES_LOCATION } from "./backend-only-constants.js";
+import { FILES_LOCATION } from "./backend-only-constants.js";
 import { DEFAULT_SERVER_PORT } from "./constants.js";
 import EvaliteReporter from "./reporter.js";
 import { createServer } from "./server.js";
@@ -218,8 +218,7 @@ export const runEvalite = async (opts: {
   }
 
   if (!storage) {
-    const dbLocation = path.join(cwd, DB_LOCATION);
-    storage = await createSqliteStorage(dbLocation);
+    storage = createInMemoryStorage();
   }
 
   const scoreThreshold = opts.scoreThreshold ?? config?.scoreThreshold;
