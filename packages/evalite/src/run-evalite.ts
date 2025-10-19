@@ -10,7 +10,7 @@ import EvaliteReporter from "./reporter.js";
 import { createServer } from "./server.js";
 import type { Evalite } from "./types.js";
 import { createSqliteStorage } from "./storage/sqlite.js";
-import { loadEvaliteConfig } from "./config.js";
+import { loadEvaliteConfig, loadVitestSetupFiles } from "./config.js";
 
 declare module "vitest" {
   export interface ProvidedContext {
@@ -208,6 +208,9 @@ export const runEvalite = async (opts: {
   // Load config file if present
   const config = await loadEvaliteConfig(cwd);
 
+  // Load setupFiles from vitest.config.ts
+  const vitestSetupFiles = await loadVitestSetupFiles(cwd);
+
   // Merge options: opts (highest priority) > config > defaults
   let storage = opts.storage;
 
@@ -226,9 +229,14 @@ export const runEvalite = async (opts: {
   const serverPort = config?.server?.port ?? DEFAULT_SERVER_PORT;
   const testTimeout = config?.testTimeout;
   const maxConcurrency = config?.maxConcurrency;
-  // Always include the env-setup-file to load .env files, then add any user-specified setup files
+
+  // Merge setupFiles:
+  // 1. Always include env-setup-file first to load .env files
+  // 2. Add setupFiles from vitest.config.ts
+  // 3. Add setupFiles from evalite.config.ts (takes precedence)
   const setupFiles = [
     "evalite/env-setup-file",
+    ...vitestSetupFiles,
     ...(config?.setupFiles || []),
   ];
 
