@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { loadFixture } from "./test-utils.js";
 import { createScorer } from "evalite";
-import { getEvalsAsRecordViaStorage } from "./test-utils.js";
+import { getSuitesAsRecordViaStorage } from "./test-utils.js";
 
 it("Should let users create custom scorers", async () => {
   await using fixture = await loadFixture("custom-scorer");
@@ -10,10 +10,10 @@ it("Should let users create custom scorers", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
 
-  expect(evals.Index![0]?.results[0]?.scores[0]?.name).toBe("Is Same");
-  expect(evals.Index![0]?.results[0]?.scores[0]?.score).toBe(1);
+  expect(evals.Index![0]?.evals[0]?.scores[0]?.name).toBe("Is Same");
+  expect(evals.Index![0]?.evals[0]?.scores[0]?.eval_id).toBe(1);
 });
 
 it("Should fail if the custom scorer does not return a number", async () => {
