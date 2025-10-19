@@ -138,6 +138,7 @@ export class EvaliteRunner {
                 duration: 0,
                 status: "running",
                 renderedColumns: [],
+                trialIndex: event.initialResult.trialIndex,
               });
 
               this.updateState({
@@ -202,6 +203,7 @@ export class EvaliteRunner {
                   renderedColumns: event.result.renderedColumns,
                   input: event.result.input,
                   expected: event.result.expected,
+                  trialIndex: event.result.trialIndex,
                 });
                 resultId = updated.id;
               } else {
@@ -214,6 +216,7 @@ export class EvaliteRunner {
                   duration: event.result.duration,
                   status: event.result.status,
                   renderedColumns: event.result.renderedColumns,
+                  trialIndex: event.result.trialIndex,
                 });
                 resultId = created.id;
               }
