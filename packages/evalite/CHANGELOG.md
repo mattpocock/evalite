@@ -1,5 +1,13 @@
 # evalite
 
+## 0.16.0
+
+### Minor Changes
+
+- edfc4b9: Added setupFiles option to evalite.config.ts for loading environment variables and other setup files before tests run.
+- 88db673: Added `evalite.config.ts` file to configure Evalite. Added `testTimeout` and `maxConcurrency` options.
+- 7cc0d24: `trialCount` option for running each test case multiple times. Set in `evalite.config.ts` or per-eval in `evalite()` call to measure variance in non-deterministic evaluations. Each trial stored as separate result with unique `trial_index`.
+
 ## 0.15.0
 
 ### Minor Changes
