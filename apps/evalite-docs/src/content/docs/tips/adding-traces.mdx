@@ -1,14 +1,14 @@
 ---
-title: Traces
+title: Adding Traces
 ---
 
 import { Aside } from "@astrojs/starlight/components";
 
-Traces are used to track the behaviour of each individual call to an LLM inside your task.
+Track timing, token usage, and input/output for each LLM call within your task using traces.
 
 ## `reportTrace`
 
-You can report a trace by calling `reportTrace` inside an `evalite` eval:
+Report a trace by calling `reportTrace` inside an `evalite` eval:
 
 ```ts
 import { evalite, type Evalite } from "evalite";
@@ -54,27 +54,4 @@ evalite("My Eval", {
 
 </Aside>
 
-## `traceAISDKModel`
-
-If you're using the [Vercel AI SDK](https://sdk.vercel.ai/docs/introduction), you can automatically report traces by wrapping your model in `traceAISDKModel` function:
-
-```ts
-import { traceAISDKModel } from "evalite/ai-sdk";
-import { generateText } from "ai";
-import { openai } from "@ai-sdk/openai";
-
-// All calls to this model will be recorded in evalite!
-const tracedModel = traceAISDKModel(openai("gpt-4o-mini"));
-
-const result = await generateText({
-  model: tracedModel,
-  system: `Answer the question concisely.`,
-  prompt: `What is the capital of France?`,
-});
-```
-
-<Aside>
-
-`traceAISDKModel`, like `reportTrace`, is a no-op in production.
-
-</Aside>
+If you're using the Vercel AI SDK, see the [Vercel AI SDK](/tips/vercel-ai-sdk) tip for automatic tracing with `traceAISDKModel`.
