@@ -149,6 +149,16 @@ export declare namespace Evalite {
     path: string;
   };
 
+  export namespace Adapter {
+    export namespace Evals {
+      export interface UpdateOpts {
+        id: number;
+        status: Db.EvalStatus;
+        duration?: number;
+      }
+    }
+  }
+
   export namespace SDK {
     export type GetEvalByNameResult = {
       history: {

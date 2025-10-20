@@ -24,6 +24,7 @@ import {
 import type { Evalite } from "./types.js";
 import { average, max } from "./utils.js";
 import path from "node:path";
+import { performance } from "node:perf_hooks";
 import { deserializeAnnotation } from "./reporter/events.js";
 
 export interface EvaliteReporterOptions {
@@ -174,11 +175,13 @@ export default class EvaliteReporter
       this.runner.sendEvent({
         type: "RESULT_STARTED",
         initialResult: data.initialResult,
+        emittedAt: data.emittedAt,
       });
     } else if (data.type === "RESULT_SUBMITTED") {
       this.runner.sendEvent({
         type: "RESULT_SUBMITTED",
         result: data.result,
+        emittedAt: data.emittedAt,
       });
     }
   }
@@ -230,6 +233,7 @@ export default class EvaliteReporter
     if (data && data.type === "RESULT_STARTED") {
       this.runner.sendEvent({
         type: "RESULT_SUBMITTED",
+        emittedAt: performance.now(),
         result: {
           evalName: data.initialResult.evalName,
           filepath: data.initialResult.filepath,

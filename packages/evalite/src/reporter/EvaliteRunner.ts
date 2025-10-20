@@ -1,3 +1,4 @@
+import { performance } from "node:perf_hooks";
 import {
   createEvalIfNotExists,
   createRun,
@@ -25,6 +26,7 @@ export class EvaliteRunner {
   private state: Evalite.ServerState = { type: "idle" };
   private didLastRunFailThreshold: "yes" | "no" | "unknown" = "unknown";
   private collectedResults: Map<string, Evalite.Result> = new Map();
+  private evalStartTimes: Map<number | bigint, number> = new Map();
 
   constructor(opts: EvaliteRunnerOptions) {
     this.opts = opts;
@@ -116,6 +118,13 @@ export class EvaliteRunner {
                 variantGroup: event.initialResult.variantGroup,
               });
 
+              if (!this.evalStartTimes.has(evalId)) {
+                this.evalStartTimes.set(
+                  evalId,
+                  event.emittedAt ?? performance.now()
+                );
+              }
+
               const resultId = insertResult({
                 db: this.opts.db,
                 evalId,
@@ -161,6 +170,8 @@ export class EvaliteRunner {
                 variantName: event.result.variantName,
                 variantGroup: event.result.variantGroup,
               });
+
+              const completionTimestamp = event.emittedAt ?? performance.now();
 
               let existingResultId: number | bigint | undefined =
                 findResultByEvalIdAndOrder({
@@ -241,13 +252,26 @@ export class EvaliteRunner {
 
               // Update the eval status and duration
               if (isEvalComplete) {
+                const evalStatus = allResults.some((r) => r.status === "fail")
+                  ? "fail"
+                  : "success";
+                const startTime = this.evalStartTimes.get(evalId);
+                const measuredDuration =
+                  startTime !== undefined
+                    ? Math.max(
+                        0,
+                        Math.round(completionTimestamp - startTime)
+                      )
+                    : undefined;
+
                 updateEvalStatusAndDuration({
                   db: this.opts.db,
                   evalId,
-                  status: allResults.some((r) => r.status === "fail")
-                    ? "fail"
-                    : "success",
+                  status: evalStatus,
+                  duration: measuredDuration,
                 });
+
+                this.evalStartTimes.delete(evalId);
               }
 
               this.updateState({
@@ -272,6 +296,7 @@ export class EvaliteRunner {
           case "RUN_BEGUN":
             // Clear collected results for new run
             this.collectedResults.clear();
+            this.evalStartTimes.clear();
 
             this.updateState({
               filepaths: event.filepaths,

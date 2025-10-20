@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from "fs/promises";
-import path from "path";
+import * as path from "path";
 import { describe, inject, it } from "vitest";
 import { reportTraceLocalStorage } from "./traces.js";
 import { writeFileQueueLocalStorage } from "./write-file-queue-local-storage.js";
@@ -199,10 +199,13 @@ function registerEvalite<TInput, TOutput, TExpected>(
 
         const rootDir = path.join(cwd, FILES_LOCATION);
 
+        const start = performance.now();
+
         // Send RESULT_STARTED annotation immediately
         await annotate(
           serializeAnnotation({
             type: "RESULT_STARTED",
+            emittedAt: start,
             initialResult: {
               evalName: fullEvalName,
               filepath: task.file.filepath,
@@ -213,8 +216,6 @@ function registerEvalite<TInput, TOutput, TExpected>(
             },
           })
         );
-
-        const start = performance.now();
 
         const filePromises: Promise<void>[] = [];
 
@@ -264,15 +265,18 @@ function registerEvalite<TInput, TOutput, TExpected>(
 
           const serializableOutput = makeSerializable(outputWithFiles);
 
+          const submittedAt = performance.now();
+
           // Send RESULT_SUBMITTED annotation
           await annotate(
             serializeAnnotation({
               type: "RESULT_SUBMITTED",
+              emittedAt: submittedAt,
               result: {
                 evalName: fullEvalName,
                 filepath: task.file.filepath,
                 order: data.index,
-                duration: Math.round(performance.now() - start),
+                duration: Math.round(submittedAt - start),
                 expected: serializableExpected,
                 input: serializableInput,
                 output: serializableOutput,
@@ -286,7 +290,8 @@ function registerEvalite<TInput, TOutput, TExpected>(
             })
           );
         } catch (e) {
-          const duration = Math.round(performance.now() - start);
+          const failedAt = performance.now();
+          const duration = Math.round(failedAt - start);
 
           // Serialize error for better display in UI
           const serializedError =
@@ -302,6 +307,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
           await annotate(
             serializeAnnotation({
               type: "RESULT_SUBMITTED",
+              emittedAt: failedAt,
               result: {
                 evalName: fullEvalName,
                 filepath: task.file.filepath,

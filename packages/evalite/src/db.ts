@@ -625,19 +625,28 @@ export const updateEvalStatusAndDuration = ({
   db,
   evalId,
   status,
+  duration,
 }: {
   db: SQLiteDatabase;
   evalId: number | bigint;
   status: Db.EvalStatus;
+  duration?: number;
 }) => {
+  const normalizedDuration =
+    typeof duration === "number" ? Math.max(0, Math.round(duration)) : undefined;
+
   db.prepare(
     `UPDATE evals
      SET status = @status,
-     duration = (SELECT MAX(duration) FROM results WHERE eval_id = @id)
+     duration = COALESCE(
+       @duration,
+       (SELECT MAX(duration) FROM results WHERE eval_id = @id)
+     )
      WHERE id = @id`
   ).run({
     id: evalId,
     status,
+    duration: normalizedDuration ?? null,
   });
 };
 

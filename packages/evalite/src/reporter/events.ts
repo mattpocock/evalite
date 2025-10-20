@@ -12,10 +12,12 @@ export type ReporterEvent =
   | {
       type: "RESULT_SUBMITTED";
       result: Evalite.Result;
+      emittedAt?: number;
     }
   | {
       type: "RESULT_STARTED";
       initialResult: Evalite.InitialResult;
+      emittedAt?: number;
     };
 
 /**
@@ -25,10 +27,12 @@ export type EvaliteAnnotation =
   | {
       type: "RESULT_STARTED";
       initialResult: Evalite.InitialResult;
+      emittedAt?: number;
     }
   | {
       type: "RESULT_SUBMITTED";
       result: Evalite.Result;
+      emittedAt?: number;
     };
 
 /**
@@ -55,6 +59,14 @@ export function deserializeAnnotation(
       "type" in data &&
       typeof data.type === "string"
     ) {
+      if (
+        "emittedAt" in data &&
+        data.emittedAt !== undefined &&
+        typeof data.emittedAt !== "number"
+      ) {
+        return null;
+      }
+
       return data as EvaliteAnnotation;
     }
 
