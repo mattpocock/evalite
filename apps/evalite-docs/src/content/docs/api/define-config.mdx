@@ -1,0 +1,219 @@
+---
+title: defineConfig()
+---
+
+Type-safe helper for defining Evalite configuration in `evalite.config.ts`.
+
+## Signature
+
+```typescript
+defineConfig(config: {
+  storage?: () => Evalite.Storage | Promise<Evalite.Storage>;
+  server?: {
+    port?: number;
+  };
+  scoreThreshold?: number;
+  hideTable?: boolean;
+  testTimeout?: number;
+  maxConcurrency?: number;
+  trialCount?: number;
+  setupFiles?: string[];
+}): Evalite.Config
+```
+
+## Usage
+
+Create an `evalite.config.ts` file in your project root:
+
+```typescript
+// evalite.config.ts
+import { defineConfig } from "evalite/config";
+
+export default defineConfig({
+  testTimeout: 60000,
+  maxConcurrency: 100,
+  scoreThreshold: 80,
+});
+```
+
+## Options
+
+### `storage`
+
+**Type:** `() => Evalite.Storage | Promise<Evalite.Storage>`
+
+**Default:** In-memory storage (data lost after process exits)
+
+Factory function to create a custom storage backend. Use `createSqliteStorage()` for persistent storage.
+
+```typescript
+import { defineConfig } from "evalite/config";
+import { createSqliteStorage } from "evalite/sqlite-storage";
+
+export default defineConfig({
+  storage: () => createSqliteStorage("./custom.db"),
+});
+```
+
+See [Storage](/api/storage) for more details.
+
+### `server.port`
+
+**Type:** `number`
+
+**Default:** `3006`
+
+Port for the Evalite UI server.
+
+```typescript
+export default defineConfig({
+  server: {
+    port: 8080,
+  },
+});
+```
+
+### `scoreThreshold`
+
+**Type:** `number` (0-100)
+
+**Default:** `100`
+
+Minimum average score threshold. If the average score falls below this threshold, the process will exit with code 1.
+
+```typescript
+export default defineConfig({
+  scoreThreshold: 80, // Fail if average score < 80
+});
+```
+
+Useful for CI/CD pipelines where you want to fail the build if evals don't meet a quality threshold.
+
+### `hideTable`
+
+**Type:** `boolean`
+
+**Default:** `false`
+
+Hide the detailed results table in terminal output. Keeps the score summary but removes the detailed table.
+
+```typescript
+export default defineConfig({
+  hideTable: true,
+});
+```
+
+Useful when debugging with `console.log` to see logs more clearly.
+
+### `testTimeout`
+
+**Type:** `number` (milliseconds)
+
+**Default:** `30000` (30 seconds)
+
+Maximum time a test can run before timing out.
+
+```typescript
+export default defineConfig({
+  testTimeout: 60000, // 60 seconds
+});
+```
+
+### `maxConcurrency`
+
+**Type:** `number`
+
+**Default:** `5`
+
+Maximum number of test cases to run in parallel.
+
+```typescript
+export default defineConfig({
+  maxConcurrency: 100, // Run up to 100 tests in parallel
+});
+```
+
+Useful for optimizing performance and managing API rate limits.
+
+### `trialCount`
+
+**Type:** `number`
+
+**Default:** `1`
+
+Number of times to run each test case. Useful for measuring variance in non-deterministic evaluations.
+
+```typescript
+export default defineConfig({
+  trialCount: 3, // Run each test case 3 times
+});
+```
+
+Can also be set per-eval in the [evalite()](/api/evalite) function.
+
+### `setupFiles`
+
+**Type:** `string[]`
+
+**Default:** `[]`
+
+Array of file paths to run before tests. Useful for loading custom environment setup.
+
+```typescript
+export default defineConfig({
+  setupFiles: ["./custom-setup.ts"],
+});
+```
+
+**Note:** `.env` files are loaded automatically via `dotenv/config` - no need to configure them here.
+
+## Complete Example
+
+```typescript
+// evalite.config.ts
+import { defineConfig } from "evalite/config";
+import { createSqliteStorage } from "evalite/sqlite-storage";
+
+export default defineConfig({
+  // Persistent storage
+  storage: () => createSqliteStorage("./evalite.db"),
+
+  // Server configuration
+  server: {
+    port: 3006,
+  },
+
+  // Quality threshold
+  scoreThreshold: 75,
+
+  // Test execution
+  testTimeout: 60000,
+  maxConcurrency: 50,
+  trialCount: 1,
+
+  // UI preferences
+  hideTable: false,
+
+  // Setup
+  setupFiles: ["./test-setup.ts"],
+});
+```
+
+## Supported File Names
+
+Evalite will look for configuration in these files (in order):
+
+- `evalite.config.ts`
+- `evalite.config.mts`
+- `evalite.config.js`
+- `evalite.config.mjs`
+
+## Vitest Integration
+
+Since Evalite is built on Vitest, you can also use `vitest.config.ts` for backward compatibility. However, `evalite.config.ts` is the recommended approach and takes precedence when both files exist.
+
+## See Also
+
+- [Configuration Guide](/guides/configuration) - Overview of configuration options
+- [Storage](/api/storage) - Custom storage backends
+- [CLI](/api/cli) - Command-line flags that override config
