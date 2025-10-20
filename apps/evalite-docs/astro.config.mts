@@ -162,6 +162,43 @@ export default defineConfig({
             },
           ],
         },
+        {
+          label: "Reference",
+          items: [
+            {
+              label: "evalite()",
+              slug: "api/evalite",
+            },
+            {
+              label: "CLI",
+              slug: "api/cli",
+            },
+            {
+              label: "defineConfig()",
+              slug: "api/define-config",
+            },
+            {
+              label: "createScorer()",
+              slug: "api/create-scorer",
+            },
+            {
+              label: "EvaliteFile",
+              slug: "api/evalite-file",
+            },
+            {
+              label: "Traces",
+              slug: "api/traces",
+            },
+            {
+              label: "runEvalite()",
+              slug: "api/run-evalite",
+            },
+            {
+              label: "Storage",
+              slug: "api/storage",
+            },
+          ],
+        },
       ],
     }),
   ],
