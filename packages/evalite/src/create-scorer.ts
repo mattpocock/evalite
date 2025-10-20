@@ -1,9 +1,16 @@
 import type { Evalite } from "./types.js";
 
-export const createScorer = <TInput, TOutput, TExpected = TOutput>(
-  opts: Evalite.ScorerOpts<TInput, TOutput, TExpected>
-): Evalite.Scorer<TInput, TOutput, TExpected> => {
-  return async (input: Evalite.ScoreInput<TInput, TOutput, TExpected>) => {
+export const createScorer = <
+  TInput,
+  TOutput,
+  TExpected = TOutput,
+  TMetadata = unknown,
+>(
+  opts: Evalite.ScorerOpts<TInput, TOutput, TExpected, TMetadata>
+): Evalite.Scorer<TInput, TOutput, TExpected, TMetadata> => {
+  return async (
+    input: Evalite.ScoreInput<TInput, TOutput, TExpected, TMetadata>
+  ) => {
     const score = await opts.scorer(input);
 
     if (typeof score === "object") {

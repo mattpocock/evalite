@@ -175,10 +175,11 @@ export declare namespace Evalite {
     metadata?: unknown;
   };
 
-  export type ScoreInput<TInput, TOutput, TExpected> = {
+  export type ScoreInput<TInput, TOutput, TExpected, TMetadata = unknown> = {
     input: TInput;
     output: TOutput;
     expected?: TExpected;
+    metadata?: TMetadata;
   };
 
   export type Task<TInput, TOutput, TVariant = undefined> = (
@@ -186,29 +187,45 @@ export declare namespace Evalite {
     variant: TVariant
   ) => MaybePromise<TOutput>;
 
-  export type Scorer<TInput, TOutput, TExpected> = (
-    opts: ScoreInput<TInput, TOutput, TExpected>
+  export type Scorer<TInput, TOutput, TExpected, TMetadata = unknown> = (
+    opts: ScoreInput<TInput, TOutput, TExpected, TMetadata>
   ) => MaybePromise<Score>;
 
-  export type RunnerOpts<TInput, TOutput, TExpected, TVariant = undefined> = {
+  export type RunnerOpts<
+    TInput,
+    TOutput,
+    TExpected,
+    TVariant = undefined,
+    TMetadata = unknown,
+  > = {
     data:
-      | { input: TInput; expected?: TExpected; only?: boolean }[]
+      | {
+          input: TInput;
+          expected?: TExpected;
+          only?: boolean;
+          metadata?: TMetadata;
+        }[]
       | (() => MaybePromise<
-          { input: TInput; expected?: TExpected; only?: boolean }[]
+          {
+            input: TInput;
+            expected?: TExpected;
+            only?: boolean;
+            metadata?: TMetadata;
+          }[]
         >);
     task: Task<TInput, TOutput, TVariant>;
     scorers?: Array<
-      | Scorer<TInput, TOutput, TExpected>
-      | ScorerOpts<TInput, TOutput, TExpected>
+      | Scorer<TInput, TOutput, TExpected, TMetadata>
+      | ScorerOpts<TInput, TOutput, TExpected, TMetadata>
     >;
     /**
      * @deprecated Use `columns` instead.
      */
     experimental_customColumns?: (
-      opts: ScoreInput<TInput, TOutput, TExpected>
+      opts: ScoreInput<TInput, TOutput, TExpected, TMetadata>
     ) => MaybePromise<RenderedColumn[]>;
     columns?: (
-      opts: ScoreInput<TInput, TOutput, TExpected>
+      opts: ScoreInput<TInput, TOutput, TExpected, TMetadata>
     ) => MaybePromise<RenderedColumn[]>;
     /**
      * Number of times to run each test case for non-deterministic evaluations
@@ -225,11 +242,11 @@ export declare namespace Evalite {
     trialCount?: number;
   };
 
-  export type ScorerOpts<TInput, TOutput, TExpected> = {
+  export type ScorerOpts<TInput, TOutput, TExpected, TMetadata = unknown> = {
     name: string;
     description?: string;
     scorer: (
-      input: Evalite.ScoreInput<TInput, TOutput, TExpected>
+      input: Evalite.ScoreInput<TInput, TOutput, TExpected, TMetadata>
     ) => Evalite.MaybePromise<number | Evalite.UserProvidedScoreWithMetadata>;
   };
 

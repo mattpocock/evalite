@@ -52,13 +52,20 @@ const executeTask = async <TInput, TOutput, TVariant = undefined>(
   return taskResult;
 };
 
-const runTask = async <TInput, TOutput, TExpected, TVariant = undefined>(
+const runTask = async <
+  TInput,
+  TOutput,
+  TExpected,
+  TVariant = undefined,
+  TMetadata = unknown,
+>(
   opts: {
     input: TInput;
     expected: TExpected | undefined;
     variant: TVariant;
+    metadata: TMetadata | undefined;
   } & Omit<
-    Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant>,
+    Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant, TMetadata>,
     "data" | "experimental_customColumns"
   >
 ) => {
@@ -71,6 +78,7 @@ const runTask = async <TInput, TOutput, TExpected, TVariant = undefined>(
       input: opts.input,
       output,
       expected: opts.expected,
+      metadata: opts.metadata,
     })) || [];
 
   const scores = await Promise.all(
@@ -80,12 +88,14 @@ const runTask = async <TInput, TOutput, TExpected, TVariant = undefined>(
           input: opts.input,
           output,
           expected: opts.expected,
+          metadata: opts.metadata,
         });
       } else {
         return createScorer(scorerOrOpts)({
           input: opts.input,
           output,
           expected: opts.expected,
+          metadata: opts.metadata,
         });
       }
     })
@@ -99,14 +109,19 @@ const runTask = async <TInput, TOutput, TExpected, TVariant = undefined>(
   };
 };
 
-export const evalite = <TInput, TOutput, TExpected = TOutput>(
+export const evalite = <
+  TInput,
+  TOutput,
+  TExpected = TOutput,
+  TMetadata = unknown,
+>(
   evalName: string,
-  opts: Evalite.RunnerOpts<TInput, TOutput, TExpected>
+  opts: Evalite.RunnerOpts<TInput, TOutput, TExpected, undefined, TMetadata>
 ) => registerEvalite(evalName, opts);
 
-evalite.skip = <TInput, TOutput, TExpected>(
+evalite.skip = <TInput, TOutput, TExpected, TMetadata = unknown>(
   evalName: string,
-  opts: Evalite.RunnerOpts<TInput, TOutput, TExpected>
+  opts: Evalite.RunnerOpts<TInput, TOutput, TExpected, undefined, TMetadata>
 ) => registerEvalite(evalName, opts, { modifier: "skip" });
 
 /**
@@ -117,9 +132,9 @@ evalite.experimental_skip = evalite.skip;
 evalite.each = <TVariant>(
   variants: Array<{ name: string; input: TVariant }>
 ) => {
-  return <TInput, TOutput, TExpected = TOutput>(
+  return <TInput, TOutput, TExpected = TOutput, TMetadata = unknown>(
     evalName: string,
-    opts: Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant>
+    opts: Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant, TMetadata>
   ) => {
     for (const variant of variants) {
       registerEvalite(
@@ -134,9 +149,9 @@ evalite.each = <TVariant>(
   };
 };
 
-function registerEvalite<TInput, TOutput, TExpected>(
+function registerEvalite<TInput, TOutput, TExpected, TMetadata = unknown>(
   evalName: string,
-  opts: Evalite.RunnerOpts<TInput, TOutput, TExpected>,
+  opts: Evalite.RunnerOpts<TInput, TOutput, TExpected, undefined, TMetadata>,
   vitestOpts: {
     modifier?: "only" | "skip";
     variantName?: string;
@@ -172,6 +187,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
     const expandedDataset: Array<{
       input: TInput;
       expected?: TExpected;
+      metadata?: TMetadata;
       dataIndex: number;
       trialIndex?: number;
       index: number;
@@ -184,6 +200,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
         expandedDataset.push({
           input: dataPoint.input,
           expected: dataPoint.expected,
+          metadata: dataPoint.metadata,
           dataIndex,
           trialIndex: trialCount > 1 ? trialIndex : undefined,
           index: expandedDataset.length,
@@ -253,6 +270,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
           const { output, scores, duration, columns } = await runTask({
             expected: data.expected,
             input: data.input,
+            metadata: data.metadata,
             variant: undefined,
             scorers: opts.scorers,
             task: opts.task,
