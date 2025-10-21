@@ -244,6 +244,9 @@ importers:
       tinyrainbow:
         specifier: ^3.0.3
         version: 3.0.3
+      zod:
+        specifier: ^4.1.12
+        version: 4.1.12
     devDependencies:
       '@types/better-sqlite3':
         specifier: ^7.6.13
@@ -253,7 +256,7 @@ importers:
         version: 8.18.1
       ai:
         specifier: ^5.0.59
-        version: 5.0.59(zod@3.25.76)
+        version: 5.0.59(zod@4.1.12)
       autoevals:
         specifier: ^0.0.131
         version: 0.0.131(ws@8.18.0)
