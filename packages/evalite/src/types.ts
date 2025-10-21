@@ -116,6 +116,14 @@ export declare namespace Evalite {
 
   export type MaybePromise<T> = T | Promise<T>;
 
+  export interface SingleTurnSample {
+    query: string;
+    retrievedContexts?: string[];
+    reference?: string;
+  }
+
+  export type EvaluationSample = SingleTurnSample;
+
   export interface InitialEvalResult {
     suiteName: string;
     filepath: string;
