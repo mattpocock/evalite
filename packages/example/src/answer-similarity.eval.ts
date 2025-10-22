@@ -16,7 +16,7 @@ evalite("Answer Similarity", {
   },
   scorers: [
     answerSimilarity({
-      embedding: openai.embedding("text-embedding-3-small"),
+      embeddingModel: openai.embedding("text-embedding-3-small"),
     }),
   ],
 });
