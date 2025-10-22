@@ -1,29 +1,63 @@
 import { createScorer } from "../create-scorer.js";
 import { createLLMBasedScorer } from "./base.js";
-import { generateObject } from "ai";
-import { z } from "zod";
+import { generateObject, jsonSchema } from "ai";
 import { isSingleTurnSample } from "./utils.js";
 
-const StatementGeneratorOutputSchema = z.object({
-  statements: z.array(z.string()).describe("The generated statements"),
+type StatementFaithfulnessAnswer = {
+  statement: string;
+  reason: string;
+  verdict: number;
+};
+
+type NLIStatementOutput = {
+  statements: StatementFaithfulnessAnswer[];
+};
+
+const StatementGeneratorOutputSchema = jsonSchema<{
+  statements: string[];
+}>({
+  type: "object",
+  properties: {
+    statements: {
+      type: "array",
+      items: {
+        type: "string",
+      },
+      description: "The generated statements",
+    },
+  },
+  required: ["statements"],
 });
 
-const StatementFaithfulnessAnswerSchema = z.object({
-  statement: z.string().describe("the original statement, word-by-word"),
-  reason: z.string().describe("the reason of the verdict"),
-  verdict: z
-    .number()
-    .int()
-    .min(0)
-    .max(1)
-    .describe("the verdict (0/1) of the faithfulness"),
+const NLIStatementOutputSchema = jsonSchema<NLIStatementOutput>({
+  type: "object",
+  properties: {
+    statements: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          statement: {
+            type: "string",
+            description: "the original statement, word-by-word",
+          },
+          reason: {
+            type: "string",
+            description: "the reason of the verdict",
+          },
+          verdict: {
+            type: "integer",
+            minimum: 0,
+            maximum: 1,
+            description: "the verdict (0/1) of the faithfulness",
+          },
+        },
+        required: ["statement", "reason", "verdict"],
+      },
+    },
+  },
+  required: ["statements"],
 });
-
-const NLIStatementOutputSchema = z.object({
-  statements: z.array(StatementFaithfulnessAnswerSchema),
-});
-
-type NLIStatementOutput = z.infer<typeof NLIStatementOutputSchema>;
 
 /**
  * Faithfulness metric evaluates how grounded the model's response is in the provided context.
