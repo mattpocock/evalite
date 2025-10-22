@@ -116,13 +116,6 @@ export declare namespace Evalite {
 
   export type MaybePromise<T> = T | Promise<T>;
 
-  export interface SingleTurnSample {
-    query: string;
-    retrievedContexts?: string[];
-  }
-
-  export type EvaluationSample = SingleTurnSample;
-
   export interface InitialEvalResult {
     suiteName: string;
     filepath: string;
@@ -763,11 +756,14 @@ export declare namespace Evalite {
    * Types for scorers and scorer-related functionality.
    */
   export namespace Scorers {
-    export type Scorer = Evalite.Scorer<
-      Evalite.EvaluationSample,
-      string,
-      string
-    >;
+    export interface SingleTurnSample {
+      query: string;
+      retrievedContexts?: string[];
+    }
+
+    export type EvaluationSample = SingleTurnSample;
+
+    export type Scorer = Evalite.Scorer<EvaluationSample, string, string>;
 
     /**
      * Type for LLM-based scorer factory functions.
@@ -775,7 +771,7 @@ export declare namespace Evalite {
      */
     export type LLMBased<TInput extends object = {}> = (
       opts: { model: import("ai").LanguageModel } & TInput
-    ) => Evalite.Scorer<Evalite.EvaluationSample, string, string>;
+    ) => Scorer;
 
     /**
      * Type for embedding-based scorer factory functions.
@@ -785,7 +781,7 @@ export declare namespace Evalite {
       opts: {
         embeddingModel: import("ai").EmbeddingModel;
       } & TInput
-    ) => Evalite.Scorer<Evalite.EvaluationSample, string, string>;
+    ) => Scorer;
 
     /**
      * Classification result for a single statement in context recall scoring.
