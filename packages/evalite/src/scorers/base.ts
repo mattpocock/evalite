@@ -3,23 +3,27 @@ import type { EmbeddingModel, LanguageModel } from "ai";
 
 type Scorer = Evalite.Scorer<Evalite.EvaluationSample, string, unknown>;
 
-export type LLMBasedScorer = (opts: { model: LanguageModel }) => Scorer;
+export type LLMBasedScorer<TInput extends object = {}> = (
+  opts: { model: LanguageModel } & TInput
+) => Scorer;
 
-export type EmbeddingBasedScorer = (opts: {
-  embedding: EmbeddingModel;
-}) => Scorer;
+export type EmbeddingBasedScorer<TInput extends object = {}> = (
+  opts: {
+    embedding: EmbeddingModel;
+  } & TInput
+) => Scorer;
 
-export function createLLMBasedScorer(
-  fn: (opts: { model: LanguageModel }) => Scorer
-): LLMBasedScorer {
+export function createLLMBasedScorer<TInput extends object = {}>(
+  fn: (opts: { model: LanguageModel } & TInput) => Scorer
+): LLMBasedScorer<TInput> {
   return (opts) => {
     return fn(opts);
   };
 }
 
-export function createEmbeddingBasedScorer(
-  fn: (opts: { embedding: EmbeddingModel }) => Scorer
-): EmbeddingBasedScorer {
+export function createEmbeddingBasedScorer<TInput extends object = {}>(
+  fn: (opts: { embedding: EmbeddingModel } & TInput) => Scorer
+): EmbeddingBasedScorer<TInput> {
   return (opts) => {
     return fn(opts);
   };
