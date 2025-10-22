@@ -48,15 +48,15 @@ export const contextRecall = createLLMBasedScorer(({ model }) => {
           "Context Recall scorer only supports single turn samples"
         );
 
-      if (!input.retrievedContexts || input.retrievedContexts.length === 0)
+      if (!input.groundTruth || input.groundTruth.length === 0)
         throw new Error(
-          "No retrieved contexts provided or the retrieved contexts are empty"
+          "No ground truth provided or the ground truth is empty"
         );
 
       const classifications = await classifyStatements(
         messageContent(input.userInput),
         output,
-        input.retrievedContexts
+        input.groundTruth
       );
 
       if (classifications.length === 0)
@@ -92,9 +92,9 @@ export const contextRecall = createLLMBasedScorer(({ model }) => {
   async function classifyStatements(
     question: string,
     answer: string,
-    contexts: string[]
+    groundTruth: string[]
   ) {
-    const context = contexts.join("\n");
+    const context = groundTruth.join("\n");
 
     const result = await generateObject({
       model: model,

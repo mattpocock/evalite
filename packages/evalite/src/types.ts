@@ -760,7 +760,7 @@ export declare namespace Evalite {
   export namespace Scorers {
     export interface SingleTurnSample {
       userInput: UserModelMessage;
-      retrievedContexts?: string[];
+      groundTruth?: string[];
     }
 
     export interface MultiTurnSample {
