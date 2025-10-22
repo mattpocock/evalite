@@ -1,29 +1,19 @@
 import type { Evalite } from "../types.js";
 import type { EmbeddingModel, LanguageModel } from "ai";
 
-type Scorer = Evalite.Scorer<Evalite.EvaluationSample, string, string>;
-
-export type LLMBasedScorer<TInput extends object = {}> = (
-  opts: { model: LanguageModel } & TInput
-) => Scorer;
-
-export type EmbeddingBasedScorer<TInput extends object = {}> = (
-  opts: {
-    embeddingModel: EmbeddingModel;
-  } & TInput
-) => Scorer;
-
 export function createLLMBasedScorer<TInput extends object = {}>(
-  fn: (opts: { model: LanguageModel } & TInput) => Scorer
-): LLMBasedScorer<TInput> {
+  fn: (opts: { model: LanguageModel } & TInput) => Evalite.Scorers.Scorer
+): Evalite.Scorers.LLMBased<TInput> {
   return (opts) => {
     return fn(opts);
   };
 }
 
 export function createEmbeddingBasedScorer<TInput extends object = {}>(
-  fn: (opts: { embeddingModel: EmbeddingModel } & TInput) => Scorer
-): EmbeddingBasedScorer<TInput> {
+  fn: (
+    opts: { embeddingModel: EmbeddingModel } & TInput
+  ) => Evalite.Scorers.Scorer
+): Evalite.Scorers.EmbeddingBased<TInput> {
   return (opts) => {
     return fn(opts);
   };
