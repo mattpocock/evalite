@@ -1,7 +1,7 @@
 import { createScorer } from "../create-scorer.js";
 import { createLLMBasedScorer } from "./base.js";
 import { generateObject, jsonSchema } from "ai";
-import { isSingleTurnSample } from "./utils.js";
+import { isSingleTurnSample, messageContent } from "./utils.js";
 import type { Evalite } from "../types.js";
 
 const StatementGeneratorOutputSchema = jsonSchema<{
@@ -76,7 +76,10 @@ export const faithfulness = createLLMBasedScorer(({ model }) => {
       if (!input.retrievedContexts)
         throw new Error("No retrieved contexts provided");
 
-      const statements = await generateStatements(input.query, output);
+      const statements = await generateStatements(
+        messageContent(input.userInput),
+        output
+      );
       if (statements.statements.length === 0)
         throw new Error("No statements were generated from the answer");
 
