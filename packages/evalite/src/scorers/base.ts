@@ -1,7 +1,7 @@
 import type { Evalite } from "../types.js";
 import type { EmbeddingModel, LanguageModel } from "ai";
 
-type Scorer = Evalite.Scorer<Evalite.EvaluationSample, string, unknown>;
+type Scorer = Evalite.Scorer<Evalite.EvaluationSample, string, string>;
 
 export type LLMBasedScorer<TInput extends object = {}> = (
   opts: { model: LanguageModel } & TInput
