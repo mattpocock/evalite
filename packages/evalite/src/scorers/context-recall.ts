@@ -1,29 +1,48 @@
-import { generateObject } from "ai";
+import { generateObject, jsonSchema } from "ai";
 import { createScorer } from "../create-scorer.js";
 import { createLLMBasedScorer } from "./base.js";
 import { isSingleTurnSample } from "./utils.js";
-import { z } from "zod";
 
-const ContextRecallClassificationSchema = z.object({
-  statement: z.string().describe("The statement from the answer"),
-  reason: z.string().describe("The reason for the attribution decision"),
-  attributed: z
-    .number()
-    .int()
-    .min(0)
-    .max(1)
-    .describe(
-      "Whether the statement can be attributed to the context (0 or 1)"
-    ),
+type ContextRecallClassification = {
+  statement: string;
+  reason: string;
+  attributed: number;
+};
+
+type ContextRecallClassifications = ContextRecallClassification[];
+
+const ContextRecallClassificationsSchema = jsonSchema<{
+  classifications: ContextRecallClassifications;
+}>({
+  type: "object",
+  properties: {
+    classifications: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          statement: {
+            type: "string",
+            description: "The statement from the answer",
+          },
+          reason: {
+            type: "string",
+            description: "The reason for the attribution decision",
+          },
+          attributed: {
+            type: "integer",
+            minimum: 0,
+            maximum: 1,
+            description:
+              "Whether the statement can be attributed to the context (0 or 1)",
+          },
+        },
+        required: ["statement", "reason", "attributed"],
+      },
+    },
+  },
+  required: ["classifications"],
 });
-
-const ContextRecallClassificationsSchema = z.object({
-  classifications: z.array(ContextRecallClassificationSchema),
-});
-
-type ContextRecallClassifications = z.infer<
-  typeof ContextRecallClassificationsSchema.shape.classifications
->;
 
 export const contextRecall = createLLMBasedScorer(({ model }) => {
   return createScorer({
