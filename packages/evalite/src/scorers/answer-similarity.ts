@@ -11,13 +11,10 @@ import { isSingleTurnSample } from "./utils.js";
  * 1. Embedding both the ground truth answer and the generated answer using the provided embedding model
  * 2. Normalizing the embeddings to unit vectors
  * 3. Computing cosine similarity between the normalized embeddings
- * 4. Optionally applying a threshold for binary output
  *
  * Based on the SAS paper: https://arxiv.org/pdf/2108.06130.pdf
  */
-export const answerSimilarity = createEmbeddingBasedScorer<{
-  threshold?: number;
-}>(({ embedding, threshold }) => {
+export const answerSimilarity = createEmbeddingBasedScorer(({ embedding }) => {
   return createScorer({
     name: "Answer Similarity",
     description:
@@ -33,16 +30,10 @@ export const answerSimilarity = createEmbeddingBasedScorer<{
       const score = await computeScore(expected, output);
       return {
         score,
-        metadata: reason(score),
+        metadata: `Answer similarity score: ${score.toFixed(2)}`,
       };
     },
   });
-
-  function reason(score: number) {
-    if (threshold === undefined)
-      return `Answer similarity score: ${score.toFixed(2)}`;
-    return `Answer similarity ${score >= threshold ? "meets" : "does not meet"} the threshold of ${threshold.toFixed(2)}`;
-  }
 
   async function computeScore(reference: string, response: string) {
     const { embeddings } = await embedMany({
@@ -56,10 +47,6 @@ export const answerSimilarity = createEmbeddingBasedScorer<{
       return 0;
     }
 
-    const similarity = cosineSimilarity(referenceEmbedding, responseEmbedding);
-
-    if (threshold === undefined) return similarity;
-
-    return similarity >= threshold ? 1 : 0;
+    return cosineSimilarity(referenceEmbedding, responseEmbedding);
   }
 });
