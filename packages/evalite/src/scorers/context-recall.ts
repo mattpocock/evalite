@@ -1,7 +1,7 @@
 import { generateObject } from "ai";
 import { createScorer } from "../create-scorer.js";
 import { createLLMBasedScorer } from "./base.js";
-import { failedToScore, isSingleTurnSample } from "./utils.js";
+import { isSingleTurnSample } from "./utils.js";
 import { z } from "zod";
 
 const ContextRecallClassificationSchema = z.object({
@@ -32,12 +32,12 @@ export const contextRecall = createLLMBasedScorer(({ model }) => {
       "Estimates context recall by analyzing how much of the reference answer can be attributed to retrieved contexts",
     async scorer({ input, output }) {
       if (!isSingleTurnSample(input))
-        return failedToScore(
+        throw new Error(
           "Context Recall scorer only supports single turn samples"
         );
 
       if (!input.retrievedContexts || input.retrievedContexts.length === 0)
-        return failedToScore(
+        throw new Error(
           "No retrieved contexts provided or the retrieved contexts are empty"
         );
 
@@ -48,7 +48,7 @@ export const contextRecall = createLLMBasedScorer(({ model }) => {
       );
 
       if (classifications.length === 0)
-        return failedToScore("No classifications were found from the answer");
+        throw new Error("No classifications were found from the answer");
 
       const score = calculateScore(classifications);
 
