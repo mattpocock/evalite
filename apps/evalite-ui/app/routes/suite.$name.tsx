@@ -550,6 +550,22 @@ function SuiteComponent() {
           </>
         )}
       </InnerPageLayout>
+      {/* Sheet Overlay backdrop */}
+      {isEvalRoute && (
+        <div
+          className={cn(
+            "fixed inset-0 z-10 bg-black/50 backdrop-blur-xs transition-opacity duration-300",
+            "animate-in fade-in-0"
+          )}
+          onClick={() => {
+            navigate({
+              to: "/suite/$name",
+              params: { name },
+              search: { timestamp },
+            });
+          }}
+        />
+      )}
       <div
         className={cn(
           "fixed top-0 z-20 h-svh border-l p-2 bg-sidebar overflow-auto",
