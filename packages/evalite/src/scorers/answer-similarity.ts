@@ -14,39 +14,41 @@ import { isSingleTurnSample } from "./utils.js";
  *
  * Based on the SAS paper: https://arxiv.org/pdf/2108.06130.pdf
  */
-export const answerSimilarity = createEmbeddingBasedScorer(({ embedding }) => {
-  return createScorer({
-    name: "Answer Similarity",
-    description:
-      "Evaluates the similarity of the model's response to the expected answer",
-    async scorer({ input, output, expected }) {
-      if (!isSingleTurnSample(input))
-        throw new Error(
-          "Answer Similarity scorer only supports single turn samples"
-        );
+export const answerSimilarity = createEmbeddingBasedScorer(
+  ({ embeddingModel }) => {
+    return createScorer({
+      name: "Answer Similarity",
+      description:
+        "Evaluates the similarity of the model's response to the expected answer",
+      async scorer({ input, output, expected }) {
+        if (!isSingleTurnSample(input))
+          throw new Error(
+            "Answer Similarity scorer only supports single turn samples"
+          );
 
-      if (!expected) throw new Error("No expected answer provided");
+        if (!expected) throw new Error("No expected answer provided");
 
-      const score = await computeScore(expected, output);
-      return {
-        score,
-        metadata: `Answer similarity score: ${score.toFixed(2)}`,
-      };
-    },
-  });
-
-  async function computeScore(reference: string, response: string) {
-    const { embeddings } = await embedMany({
-      model: embedding,
-      values: [reference, response],
+        const score = await computeScore(expected, output);
+        return {
+          score,
+          metadata: `Answer similarity score: ${score.toFixed(2)}`,
+        };
+      },
     });
 
-    const [referenceEmbedding, responseEmbedding] = embeddings;
+    async function computeScore(reference: string, response: string) {
+      const { embeddings } = await embedMany({
+        model: embeddingModel,
+        values: [reference, response],
+      });
 
-    if (!referenceEmbedding || !responseEmbedding) {
-      return 0;
+      const [referenceEmbedding, responseEmbedding] = embeddings;
+
+      if (!referenceEmbedding || !responseEmbedding) {
+        return 0;
+      }
+
+      return cosineSimilarity(referenceEmbedding, responseEmbedding);
     }
-
-    return cosineSimilarity(referenceEmbedding, responseEmbedding);
   }
-});
+);
