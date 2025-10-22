@@ -9,7 +9,7 @@ export type LLMBasedScorer<TInput extends object = {}> = (
 
 export type EmbeddingBasedScorer<TInput extends object = {}> = (
   opts: {
-    embedding: EmbeddingModel;
+    embeddingModel: EmbeddingModel;
   } & TInput
 ) => Scorer;
 
@@ -22,7 +22,7 @@ export function createLLMBasedScorer<TInput extends object = {}>(
 }
 
 export function createEmbeddingBasedScorer<TInput extends object = {}>(
-  fn: (opts: { embedding: EmbeddingModel } & TInput) => Scorer
+  fn: (opts: { embeddingModel: EmbeddingModel } & TInput) => Scorer
 ): EmbeddingBasedScorer<TInput> {
   return (opts) => {
     return fn(opts);
