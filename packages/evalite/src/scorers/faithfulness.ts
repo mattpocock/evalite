@@ -73,8 +73,10 @@ export const faithfulness = createLLMBasedScorer(({ model }) => {
           "Faithfulness scorer only supports single turn samples"
         );
 
-      if (!input.retrievedContexts)
-        throw new Error("No retrieved contexts provided");
+      if (!input.groundTruth || input.groundTruth.length === 0)
+        throw new Error(
+          "No ground truth provided or the ground truth is empty"
+        );
 
       const statements = await generateStatements(
         messageContent(input.userInput),
@@ -84,7 +86,7 @@ export const faithfulness = createLLMBasedScorer(({ model }) => {
         throw new Error("No statements were generated from the answer");
 
       const verdicts = await evaluateStatements(
-        input.retrievedContexts,
+        input.groundTruth,
         statements.statements
       );
 

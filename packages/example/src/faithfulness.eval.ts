@@ -10,7 +10,7 @@ evalite("RAG Faithfulness", {
           role: "user",
           content: "What programming languages does John know?",
         },
-        retrievedContexts: [
+        groundTruth: [
           "John is a software engineer at XYZ Corp. He specializes in backend development using Python and Go. He has 5 years of experience in the industry.",
         ],
       },
