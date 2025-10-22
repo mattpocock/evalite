@@ -6,7 +6,10 @@ evalite("Answer Similarity", {
   data: [
     {
       input: {
-        query: "What is the capital of France?",
+        userInput: {
+          role: "user",
+          content: "What is the capital of France?",
+        },
       },
       expected: "Paris is the capital of France.",
     },
