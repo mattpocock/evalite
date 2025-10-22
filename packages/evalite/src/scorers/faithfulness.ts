@@ -2,16 +2,7 @@ import { createScorer } from "../create-scorer.js";
 import { createLLMBasedScorer } from "./base.js";
 import { generateObject, jsonSchema } from "ai";
 import { isSingleTurnSample } from "./utils.js";
-
-type StatementFaithfulnessAnswer = {
-  statement: string;
-  reason: string;
-  verdict: number;
-};
-
-type NLIStatementOutput = {
-  statements: StatementFaithfulnessAnswer[];
-};
+import type { Evalite } from "../types.js";
 
 const StatementGeneratorOutputSchema = jsonSchema<{
   statements: string[];
@@ -29,7 +20,9 @@ const StatementGeneratorOutputSchema = jsonSchema<{
   required: ["statements"],
 });
 
-const NLIStatementOutputSchema = jsonSchema<NLIStatementOutput>({
+const FaithfulnessStatementsOutputSchema = jsonSchema<{
+  statements: Evalite.Scorers.FaithfulnessStatements;
+}>({
   type: "object",
   properties: {
     statements: {
@@ -94,24 +87,24 @@ export const faithfulness = createLLMBasedScorer(({ model }) => {
 
       return {
         score: await computeScore(verdicts),
-        metadata: verdicts.statements.map((v) => ({
-          statement: v.statement,
-          reason: v.reason,
-          verdict: v.verdict,
+        metadata: verdicts.map((s) => ({
+          statement: s.statement,
+          reason: s.reason,
+          verdict: s.verdict,
         })),
       };
     },
   });
 
-  async function computeScore(verdicts: NLIStatementOutput) {
-    if (verdicts.statements.length === 0) {
+  async function computeScore(
+    statements: Evalite.Scorers.FaithfulnessStatements
+  ) {
+    if (statements.length === 0) {
       return 0;
     }
 
-    const faithfulVerdicts = verdicts.statements.filter(
-      (v) => v.verdict === 1
-    ).length;
-    return faithfulVerdicts / verdicts.statements.length;
+    const faithfulStatements = statements.filter((s) => s.verdict === 1).length;
+    return faithfulStatements / statements.length;
   }
 
   async function generateStatements(question: string, answer: string) {
@@ -148,12 +141,15 @@ Given a question and an answer, analyze the complexity of each sentence in the a
     return result.object;
   }
 
-  async function evaluateStatements(contexts: string[], statements: string[]) {
+  async function evaluateStatements(
+    contexts: string[],
+    statements: string[]
+  ): Promise<Evalite.Scorers.FaithfulnessStatements> {
     const context = contexts.join("\n");
 
     const result = await generateObject({
       model: model,
-      schema: NLIStatementOutputSchema,
+      schema: FaithfulnessStatementsOutputSchema,
       prompt: `
 <instructions>
 Your task is to judge the faithfulness of a series of statements based on a given context. For each statement you must return verdict as 1 if the statement can be directly inferred based on the context or 0 if the statement can not be directly inferred based on the context.
@@ -234,6 +230,6 @@ ${statements.map((s, i) => `${i + 1}. "${s}"`).join("\n")}
 </task>`.trim(),
     });
 
-    return result.object;
+    return result.object.statements;
   }
 });
