@@ -119,7 +119,6 @@ export declare namespace Evalite {
   export interface SingleTurnSample {
     query: string;
     retrievedContexts?: string[];
-    reference?: string;
   }
 
   export type EvaluationSample = SingleTurnSample;
