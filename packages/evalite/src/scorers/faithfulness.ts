@@ -2,7 +2,7 @@ import { createScorer } from "../create-scorer.js";
 import { createLLMBasedScorer } from "./base.js";
 import { generateObject } from "ai";
 import { z } from "zod";
-import { failedToScore, isSingleTurnSample } from "./utils.js";
+import { isSingleTurnSample } from "./utils.js";
 
 const StatementGeneratorOutputSchema = z.object({
   statements: z.array(z.string()).describe("The generated statements"),
@@ -42,16 +42,16 @@ export const faithfulness = createLLMBasedScorer(({ model }) => {
       "Evaluates the faithfulness of the model's response to the retrieved contexts",
     async scorer({ input, output }) {
       if (!isSingleTurnSample(input))
-        return failedToScore(
+        throw new Error(
           "Faithfulness scorer only supports single turn samples"
         );
 
       if (!input.retrievedContexts)
-        return failedToScore("No retrieved contexts provided");
+        throw new Error("No retrieved contexts provided");
 
       const statements = await generateStatements(input.query, output);
       if (statements.statements.length === 0)
-        return failedToScore("No statements were generated from the answer");
+        throw new Error("No statements were generated from the answer");
 
       const verdicts = await evaluateStatements(
         input.retrievedContexts,
