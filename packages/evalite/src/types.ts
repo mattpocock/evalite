@@ -1,3 +1,5 @@
+import type { ModelMessage, UserModelMessage } from "ai";
+
 export declare namespace Evalite {
   /**
    * Configuration options for Evalite
@@ -757,11 +759,16 @@ export declare namespace Evalite {
    */
   export namespace Scorers {
     export interface SingleTurnSample {
-      query: string;
+      userInput: UserModelMessage;
       retrievedContexts?: string[];
     }
 
-    export type EvaluationSample = SingleTurnSample;
+    export interface MultiTurnSample {
+      userInput: ModelMessage[];
+      // TODO: there will be more fields here eventually, like referenceToolCalls, referenceTopics, etc.
+    }
+
+    export type EvaluationSample = SingleTurnSample | MultiTurnSample;
 
     export type Scorer = Evalite.Scorer<EvaluationSample, string, string>;
 

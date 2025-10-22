@@ -1,7 +1,7 @@
 import { generateObject, jsonSchema } from "ai";
 import { createScorer } from "../create-scorer.js";
 import { createLLMBasedScorer } from "./base.js";
-import { isSingleTurnSample } from "./utils.js";
+import { isSingleTurnSample, messageContent } from "./utils.js";
 import type { Evalite } from "../types.js";
 
 const ContextRecallClassificationsSchema = jsonSchema<{
@@ -54,7 +54,7 @@ export const contextRecall = createLLMBasedScorer(({ model }) => {
         );
 
       const classifications = await classifyStatements(
-        input.query,
+        messageContent(input.userInput),
         output,
         input.retrievedContexts
       );
