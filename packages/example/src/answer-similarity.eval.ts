@@ -7,8 +7,8 @@ evalite("Answer Similarity", {
     {
       input: {
         query: "What is the capital of France?",
-        reference: "Paris is the capital of France.",
       },
+      expected: "Paris is the capital of France.",
     },
   ],
   task: async () => {

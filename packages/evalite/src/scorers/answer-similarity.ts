@@ -22,15 +22,15 @@ export const answerSimilarity = createEmbeddingBasedScorer<{
     name: "Answer Similarity",
     description:
       "Evaluates the similarity of the model's response to the expected answer",
-    async scorer({ input, output }) {
+    async scorer({ input, output, expected }) {
       if (!isSingleTurnSample(input))
         return failedToScore(
           "Answer Similarity scorer only supports single turn samples"
         );
 
-      if (!input.reference) return failedToScore("No reference provided");
+      if (!expected) return failedToScore("No expected answer provided");
 
-      const score = await computeScore(input.reference, output);
+      const score = await computeScore(expected, output);
       return {
         score,
         metadata: reason(score),
