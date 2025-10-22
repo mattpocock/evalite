@@ -766,4 +766,67 @@ export declare namespace Evalite {
       suites: Suite[];
     };
   }
+
+  /**
+   * Types for scorers and scorer-related functionality.
+   */
+  export namespace Scorers {
+    export type Scorer = Evalite.Scorer<
+      Evalite.EvaluationSample,
+      string,
+      string
+    >;
+
+    /**
+     * Type for LLM-based scorer factory functions.
+     * These scorers use language models to evaluate outputs.
+     */
+    export type LLMBased<TInput extends object = {}> = (
+      opts: { model: import("ai").LanguageModel } & TInput
+    ) => Evalite.Scorer<Evalite.EvaluationSample, string, string>;
+
+    /**
+     * Type for embedding-based scorer factory functions.
+     * These scorers use embedding models to evaluate outputs.
+     */
+    export type EmbeddingBased<TInput extends object = {}> = (
+      opts: {
+        embeddingModel: import("ai").EmbeddingModel;
+      } & TInput
+    ) => Evalite.Scorer<Evalite.EvaluationSample, string, string>;
+
+    /**
+     * Classification result for a single statement in context recall scoring.
+     */
+    export type ContextRecallClassification = {
+      /** The statement being evaluated */
+      statement: string;
+      /** Explanation for the attribution decision */
+      reason: string;
+      /** Whether the statement can be attributed to the context (0 or 1) */
+      attributed: number;
+    };
+
+    /**
+     * Array of context recall classifications.
+     */
+    export type ContextRecallClassifications = ContextRecallClassification[];
+
+    /**
+     * Faithfulness verdict for a single statement.
+     */
+    export type FaithfulnessStatement = {
+      /** The statement being evaluated */
+      statement: string;
+      /** Explanation for the verdict */
+      reason: string;
+      /** Whether the statement is faithful to the context (0 or 1) */
+      verdict: number;
+    };
+
+    /**
+     * Array of faithfulness statements.
+     */
+    export type FaithfulnessStatements = FaithfulnessStatement[];
+  }
 }

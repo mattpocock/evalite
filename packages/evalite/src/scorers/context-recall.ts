@@ -2,17 +2,10 @@ import { generateObject, jsonSchema } from "ai";
 import { createScorer } from "../create-scorer.js";
 import { createLLMBasedScorer } from "./base.js";
 import { isSingleTurnSample } from "./utils.js";
-
-type ContextRecallClassification = {
-  statement: string;
-  reason: string;
-  attributed: number;
-};
-
-type ContextRecallClassifications = ContextRecallClassification[];
+import type { Evalite } from "../types.js";
 
 const ContextRecallClassificationsSchema = jsonSchema<{
-  classifications: ContextRecallClassifications;
+  classifications: Evalite.Scorers.ContextRecallClassifications;
 }>({
   type: "object",
   properties: {
@@ -85,7 +78,9 @@ export const contextRecall = createLLMBasedScorer(({ model }) => {
     },
   });
 
-  function calculateScore(classifications: ContextRecallClassifications) {
+  function calculateScore(
+    classifications: Evalite.Scorers.ContextRecallClassifications
+  ) {
     if (classifications.length === 0) return 0;
 
     const attributedClassifications = classifications.filter(
