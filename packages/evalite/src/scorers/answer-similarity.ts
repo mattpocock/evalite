@@ -1,7 +1,7 @@
 import { createEmbeddingBasedScorer } from "./base.js";
 import { createScorer } from "../create-scorer.js";
 import { cosineSimilarity, embedMany } from "ai";
-import { failedToScore, isSingleTurnSample } from "./utils.js";
+import { isSingleTurnSample } from "./utils.js";
 
 /**
  * AnswerSimilarity metric scores the semantic similarity between
@@ -24,11 +24,11 @@ export const answerSimilarity = createEmbeddingBasedScorer<{
       "Evaluates the similarity of the model's response to the expected answer",
     async scorer({ input, output, expected }) {
       if (!isSingleTurnSample(input))
-        return failedToScore(
+        throw new Error(
           "Answer Similarity scorer only supports single turn samples"
         );
 
-      if (!expected) return failedToScore("No expected answer provided");
+      if (!expected) throw new Error("No expected answer provided");
 
       const score = await computeScore(expected, output);
       return {
