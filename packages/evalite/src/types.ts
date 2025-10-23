@@ -816,6 +816,28 @@ export declare namespace Evalite {
       SingleTurnData | MultiTurnData
     >;
 
+    export type SingleTurnFn<TOpts extends object> = (
+      opts: Evalite.Scorers.SingleTurnOpts & TOpts
+    ) => Evalite.MaybePromise<Evalite.Scorers.BaseResult>;
+
+    export type MultiTurnFn<TOpts extends object> = (
+      opts: Evalite.Scorers.MultiTurnOpts & TOpts
+    ) => Evalite.MaybePromise<Evalite.Scorers.BaseResult>;
+
+    export type BaseScorerOpts<TOpts extends object = {}> =
+      | ({ name: string; description?: string } & {
+          singleTurn: SingleTurnFn<TOpts>;
+          multiTurn?: MultiTurnFn<TOpts>;
+        })
+      | ({ name: string; description?: string } & {
+          singleTurn?: SingleTurnFn<TOpts>;
+          multiTurn: MultiTurnFn<TOpts>;
+        })
+      | ({ name: string; description?: string } & {
+          singleTurn: SingleTurnFn<TOpts>;
+          multiTurn: MultiTurnFn<TOpts>;
+        });
+
     /**
      * Classification result for a single statement in context recall scoring.
      */
