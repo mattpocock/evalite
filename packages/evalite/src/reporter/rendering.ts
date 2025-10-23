@@ -5,6 +5,7 @@ import { inspect } from "util";
 import type { RunnerTestFile } from "vitest";
 import type { Evalite } from "../types.js";
 import { average, EvaliteFile } from "../utils.js";
+import type { TestModule } from "vitest/node";
 
 export function withLabel(
   color: "red" | "green" | "blue" | "cyan",
@@ -112,23 +113,25 @@ export function renderErrorsSummary(
     printUnhandledErrors: (errors: unknown[]) => void;
   },
   opts: {
-    files: RunnerTestFile[];
-    errors: unknown[];
+    testModules: readonly TestModule[];
+    errors: readonly unknown[];
   }
 ) {
-  const tests = getTests(opts.files);
-  const failedTests = tests.filter((t) => t.result?.state === "fail");
+  const tests = opts.testModules.flatMap((module) =>
+    Array.from(module.children.allTests())
+  );
+  const failedTests = tests.filter((t) => t.result().state === "failed");
 
   // Print unhandled errors first
   if (opts.errors.length > 0) {
-    logger.printUnhandledErrors(opts.errors);
+    logger.printUnhandledErrors(opts.errors as unknown[]);
     logger.error("");
   }
 
   // Print test failures
   if (failedTests.length > 0) {
     for (const test of failedTests) {
-      const errors = test.result?.errors || [];
+      const errors = test.result().errors || [];
       for (const error of errors) {
         logger.printError(error, { task: test });
       }

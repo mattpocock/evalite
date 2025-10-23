@@ -280,7 +280,7 @@ export const runEvalite = async (opts: {
           name: "evalite-config-plugin",
           // Everything inside this config CAN be overridden by user's vite.config.ts
           // EXCEPT when evalite.config.ts explicitly sets values - those override vite.config.ts
-          config(config) {
+          config(config: any) {
             config.test ??= {};
             // If evalite.config.ts specifies these values, override user's vite.config.ts
             // Otherwise use vite.config.ts value or fallback to default
@@ -303,7 +303,7 @@ export const runEvalite = async (opts: {
             config.test.sequence ??= {};
             config.test.sequence.concurrent ??= true;
           },
-          configResolved(config) {
+          configResolved(config: any) {
             if (opts.configDebugMode) {
               const debugMessage = `[Evalite Config Debug] testTimeout: ${config.test?.testTimeout}, maxConcurrency: ${config.test?.maxConcurrency}\n`;
               if (opts.testOutputWritable) {
