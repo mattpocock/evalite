@@ -1,5 +1,11 @@
 # evalite
 
+## 0.17.0
+
+### Minor Changes
+
+- 220a899: Upgraded to Vitest v4
+
 ## 0.16.1
 
 ### Patch Changes
