@@ -1,6 +1,6 @@
 {
   "name": "evalite",
-  "version": "0.16.0",
+  "version": "0.16.1",
   "type": "module",
   "description": "Test your LLM-powered apps with a TypeScript-native, Vitest-based eval runner. No API key required.",
   "homepage": "https://evalite.dev",
@@ -55,7 +55,8 @@
     "@fastify/websocket": "11.2.0",
     "@stricli/auto-complete": "^1.2.0",
     "@stricli/core": "^1.2.0",
-    "@vitest/runner": "^3.2.4",
+    "@vitest/runner": "^4.0.0",
+    "@vitest/utils": "^4.0.1",
     "better-sqlite3": "^11.6.0",
     "dotenv": "^16.4.7",
     "fastify": "^5.6.1",

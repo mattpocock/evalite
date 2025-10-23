@@ -1,5 +1,11 @@
 # evalite
 
+## 0.16.1
+
+### Patch Changes
+
+- 82e3d86: Fix error logging in watch mode by restoring error details display.
+
 ## 0.16.0
 
 ### Minor Changes

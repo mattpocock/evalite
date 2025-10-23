@@ -1,14 +1,20 @@
-import { getTests, hasFailed } from "@vitest/runner/utils";
-import type { RunnerTestFile, TestAnnotation } from "vitest";
+import path from "node:path";
+import { getTestName } from "@vitest/runner/utils";
+import { parseStacktrace } from "@vitest/utils/source-map";
+import c from "tinyrainbow";
+import type { RunnerTestFile, TestAnnotation, UserConsoleLog } from "vitest";
 import type {
   Reporter,
+  RunnerTask,
+  SerializedError,
   TestCase,
   TestModule,
+  TestRunEndReason,
   TestSuite,
   Vitest,
-} from "vitest/node.js";
-import { BasicReporter } from "vitest/reporters";
+} from "vitest/node";
 import { EvaliteRunner } from "./reporter/EvaliteRunner.js";
+import { deserializeAnnotation } from "./reporter/events.js";
 import {
   renderDetailedTable,
   renderErrorsSummary,
@@ -22,8 +28,9 @@ import {
 } from "./reporter/rendering.js";
 import type { Evalite } from "./types.js";
 import { average, max } from "./utils.js";
-import path from "node:path";
-import { deserializeAnnotation } from "./reporter/events.js";
+
+const F_POINTER = "❯";
+const separator = c.dim(" > ");
 
 export interface EvaliteReporterOptions {
   isWatching: boolean;
@@ -36,12 +43,13 @@ export interface EvaliteReporterOptions {
   hideTable?: boolean;
 }
 
-export default class EvaliteReporter extends BasicReporter implements Reporter {
+export default class EvaliteReporter implements Reporter {
   private opts: EvaliteReporterOptions;
   private runner: EvaliteRunner;
+  private ctx!: Vitest;
+  private start!: number;
 
   constructor(opts: EvaliteReporterOptions) {
-    super();
     this.opts = opts;
     this.runner = new EvaliteRunner({
       storage: opts.storage,
@@ -50,7 +58,7 @@ export default class EvaliteReporter extends BasicReporter implements Reporter {
       scoreThreshold: opts.scoreThreshold,
     });
   }
-  override onInit(ctx: Vitest): void {
+  onInit(ctx: Vitest): void {
     this.ctx = ctx;
     this.start = performance.now();
 
@@ -66,10 +74,7 @@ export default class EvaliteReporter extends BasicReporter implements Reporter {
     });
   }
 
-  override onWatcherStart(
-    files: RunnerTestFile[] = [],
-    errors: unknown[] = []
-  ): void {
+  onWatcherStart(files: RunnerTestFile[] = [], errors: unknown[] = []): void {
     const failedDueToThreshold =
       this.runner.getDidLastRunFailThreshold() === "yes";
 
@@ -81,7 +86,104 @@ export default class EvaliteReporter extends BasicReporter implements Reporter {
     });
   }
 
-  override onWatcherRerun(files: string[], trigger?: string): void {
+  private shouldLog(
+    log: UserConsoleLog,
+    taskState?: "passed" | "failed" | "skipped" | "pending"
+  ): boolean {
+    if (
+      this.ctx.config.silent === true ||
+      (this.ctx.config.silent === "passed-only" && taskState !== "failed")
+    ) {
+      return false;
+    }
+    if (this.ctx.config.onConsoleLog) {
+      const task = log.taskId
+        ? this.ctx.state.idMap.get(log.taskId)
+        : undefined;
+      const entity = task && this.ctx.state.getReportedEntity(task);
+      if (
+        this.ctx.config.onConsoleLog(log.content, log.type, entity) === false
+      ) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private getFullName(task: RunnerTask, sep: string): string {
+    if (task === task.file) {
+      return task.name;
+    }
+    let name = task.file.name;
+    if (task.location) {
+      name += c.dim(`:${task.location.line}:${task.location.column}`);
+    }
+    name += sep;
+    name += getTestName(task, sep);
+    return name;
+  }
+
+  onUserConsoleLog(
+    log: UserConsoleLog,
+    taskState?: "passed" | "failed" | "skipped" | "pending"
+  ): void {
+    if (!this.shouldLog(log, taskState)) {
+      return;
+    }
+
+    const output =
+      log.type === "stdout"
+        ? this.ctx.logger.outputStream
+        : this.ctx.logger.errorStream;
+    const write = (msg: string) => {
+      (output as any).write(msg);
+    };
+
+    let headerText = "unknown test";
+    const task = log.taskId ? this.ctx.state.idMap.get(log.taskId) : undefined;
+
+    if (task) {
+      headerText = this.getFullName(task, separator);
+    } else if (log.taskId && log.taskId !== "__vitest__unknown_test__") {
+      headerText = log.taskId;
+    }
+
+    write(c.gray(log.type + c.dim(` | ${headerText}\n`)) + log.content);
+
+    if (log.origin) {
+      // browser logs don't have an extra end of line at the end like Node.js does
+      if (log.browser) {
+        write("\n");
+      }
+
+      const project = task
+        ? this.ctx.getProjectByName(task.file.projectName || "")
+        : this.ctx.getRootProject();
+
+      const stack = log.browser
+        ? project.browser?.parseStacktrace(log.origin) || []
+        : parseStacktrace(log.origin);
+
+      const highlight =
+        task && stack.find((i: any) => i.file === task.file.filepath);
+
+      for (const frame of stack) {
+        const color = frame === highlight ? c.cyan : c.gray;
+        const relativePath = path.relative(project.config.root, frame.file);
+        const positions = [
+          frame.method,
+          `${relativePath}:${c.dim(`${frame.line}:${frame.column}`)}`,
+        ]
+          .filter(Boolean)
+          .join(" ");
+        write(color(` ${c.dim(F_POINTER)} ${positions}\n`));
+      }
+    }
+
+    write("\n");
+  }
+
+  onWatcherRerun(files: string[], trigger?: string): void {
     this.runner.sendEvent({
       type: "RUN_BEGUN",
       filepaths: files,
@@ -89,9 +191,10 @@ export default class EvaliteReporter extends BasicReporter implements Reporter {
     });
   }
 
-  override onFinished = async (
-    files = this.ctx.state.getFiles(),
-    errors = this.ctx.state.getUnhandledErrors()
+  onTestRunEnd = async (
+    testModules: ReadonlyArray<TestModule>,
+    unhandledErrors: ReadonlyArray<SerializedError>,
+    reason: TestRunEndReason
   ) => {
     this.runner.sendEvent({
       type: "RUN_ENDED",
@@ -101,17 +204,22 @@ export default class EvaliteReporter extends BasicReporter implements Reporter {
     await this.runner.waitForCompletion();
 
     // Print errors first (mimicking DefaultReporter's reportSummary -> printErrorsSummary flow)
-    renderErrorsSummary(this.ctx.logger, { files, errors });
+    renderErrorsSummary(this.ctx.logger, {
+      testModules: testModules,
+      errors: unhandledErrors,
+    });
 
     // Then print test summary
-    this.reportTestSummary(files);
+    this.customTestSummary(testModules);
   };
 
-  override reportTestSummary(files: RunnerTestFile[]): void {
-    const tests = getTests(files);
+  private customTestSummary(modules: readonly TestModule[]): void {
+    const tests = modules.flatMap((module) =>
+      Array.from(module.children.allTests())
+    );
 
     const failedTestsCount = tests.filter(
-      (test) => test.result?.state === "fail"
+      (test) => test.result().state === "failed"
     ).length;
 
     // Get scores from runner's collected results
@@ -134,12 +242,12 @@ export default class EvaliteReporter extends BasicReporter implements Reporter {
     }
 
     renderSummaryStats(this.ctx.logger, {
-      totalFiles: files.length,
-      maxDuration: max(tests, (test) => test.result?.duration ?? 0),
+      totalFiles: modules.length,
+      maxDuration: max(tests, (test) => test.diagnostic()?.duration ?? 0),
       totalEvals: tests.length,
     });
 
-    if (files.length === 1 && !this.opts.hideTable) {
+    if (modules.length === 1 && !this.opts.hideTable) {
       const successfulResults = this.runner.getSuccessfulResults();
 
       if (successfulResults.length > 0) {
@@ -160,7 +268,7 @@ export default class EvaliteReporter extends BasicReporter implements Reporter {
     return;
   }
 
-  override onTestSuiteResult(testSuite: TestSuite): void {
+  onTestSuiteResult(testSuite: TestSuite): void {
     return;
   }
 
@@ -185,10 +293,6 @@ export default class EvaliteReporter extends BasicReporter implements Reporter {
     }
   }
 
-  onTestModuleQueued(file: TestModule): void {
-    return;
-  }
-
   onTestModuleStart(mod: TestModule): void {
     const tests = Array.from(mod.children.allTests());
 
@@ -204,7 +308,7 @@ export default class EvaliteReporter extends BasicReporter implements Reporter {
     return;
   }
 
-  override onTestCaseResult(test: TestCase): void {
+  onTestCaseResult(test: TestCase): void {
     // Check if we received a EVAL_SUBMITTED annotation
     const hasResultSubmitted = test.annotations().some((annotation) => {
       const data = deserializeAnnotation(annotation.message);
@@ -252,7 +356,7 @@ export default class EvaliteReporter extends BasicReporter implements Reporter {
     }
   }
 
-  protected override printAnnotations(
+  protected printAnnotations(
     _test: TestCase,
     _console: "log" | "error",
     _padding?: number
@@ -263,14 +367,10 @@ export default class EvaliteReporter extends BasicReporter implements Reporter {
     return;
   }
 
-  onTestModuleCollected(module: TestModule): void {
-    return;
-  }
-
-  override onTestModuleEnd(mod: TestModule): void {
+  onTestModuleEnd(mod: TestModule): void {
     const tests = Array.from(mod.children.allTests());
 
-    const hasFailed = tests.some((test) => test.result()?.state === "failed");
+    const hasFailed = tests.some((test) => test.result().state === "failed");
 
     const scores = this.runner.getScoresForModule(mod.moduleId);
 
