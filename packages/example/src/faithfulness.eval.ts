@@ -5,11 +5,8 @@ import { faithfulness } from "evalite/scorers";
 evalite("RAG Faithfulness", {
   data: [
     {
-      input: {
-        userInput: {
-          role: "user",
-          content: "What programming languages does John know?",
-        },
+      input: "What programming languages does John know?",
+      expected: {
         groundTruth: [
           "John is a software engineer at XYZ Corp. He specializes in backend development using Python and Go. He has 5 years of experience in the industry.",
         ],
