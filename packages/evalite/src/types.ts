@@ -1,3 +1,10 @@
+import type {
+  EmbeddingModel,
+  LanguageModel,
+  ModelMessage,
+  UserModelMessage,
+} from "ai";
+
 export declare namespace Evalite {
   /**
    * Configuration options for Evalite
@@ -742,5 +749,119 @@ export declare namespace Evalite {
       /** Array of suites that were executed in this run */
       suites: Suite[];
     };
+  }
+
+  /**
+   * Types for scorers and scorer-related functionality.
+   */
+  export namespace Scorers {
+    export interface SingleTurnData {
+      groundTruth?: string[];
+      referenceAnswer?: string;
+    }
+
+    export interface MultiTurnData {
+      referenceAnswer?: string;
+      // TODO: there will be more fields here eventually, like referenceToolCalls, referenceTopics, etc.
+    }
+
+    export interface SingleTurnOpts {
+      input: string;
+      output: string;
+      expected: SingleTurnData;
+    }
+
+    export interface MultiTurnOpts {
+      input: ModelMessage[];
+      output: string;
+      expected: MultiTurnData;
+    }
+
+    export type ScorerOpts = SingleTurnOpts | MultiTurnOpts;
+
+    export interface BaseResult {
+      score: number;
+      metadata?: unknown;
+    }
+
+    export type BaseFactory<TOpts extends object = {}> = (
+      opts: TOpts
+    ) => Evalite.Scorer<
+      string | ModelMessage[],
+      string,
+      SingleTurnData | MultiTurnData
+    >;
+
+    export type LLMBasedFactory<TOpts extends object = {}> = (
+      opts: { model: LanguageModel } & TOpts
+    ) => Evalite.Scorer<
+      string | ModelMessage[],
+      string,
+      SingleTurnData | MultiTurnData
+    >;
+
+    export type EmbeddingBasedFactory<TOpts extends object = {}> = (
+      opts: { embeddingModel: EmbeddingModel } & TOpts
+    ) => Evalite.Scorer<
+      string | ModelMessage[],
+      string,
+      SingleTurnData | MultiTurnData
+    >;
+
+    export type SingleTurnFn<TOpts extends object> = (
+      opts: Evalite.Scorers.SingleTurnOpts & TOpts
+    ) => Evalite.MaybePromise<Evalite.Scorers.BaseResult>;
+
+    export type MultiTurnFn<TOpts extends object> = (
+      opts: Evalite.Scorers.MultiTurnOpts & TOpts
+    ) => Evalite.MaybePromise<Evalite.Scorers.BaseResult>;
+
+    export type BaseScorerOpts<TOpts extends object = {}> =
+      | ({ name: string; description?: string } & {
+          singleTurn: SingleTurnFn<TOpts>;
+          multiTurn?: MultiTurnFn<TOpts>;
+        })
+      | ({ name: string; description?: string } & {
+          singleTurn?: SingleTurnFn<TOpts>;
+          multiTurn: MultiTurnFn<TOpts>;
+        })
+      | ({ name: string; description?: string } & {
+          singleTurn: SingleTurnFn<TOpts>;
+          multiTurn: MultiTurnFn<TOpts>;
+        });
+
+    /**
+     * Classification result for a single statement in context recall scoring.
+     */
+    export type ContextRecallClassification = {
+      /** The statement being evaluated */
+      statement: string;
+      /** Explanation for the attribution decision */
+      reason: string;
+      /** Whether the statement can be attributed to the context (0 or 1) */
+      attributed: number;
+    };
+
+    /**
+     * Array of context recall classifications.
+     */
+    export type ContextRecallClassifications = ContextRecallClassification[];
+
+    /**
+     * Faithfulness verdict for a single statement.
+     */
+    export type FaithfulnessStatement = {
+      /** The statement being evaluated */
+      statement: string;
+      /** Explanation for the verdict */
+      reason: string;
+      /** Whether the statement is faithful to the context (0 or 1) */
+      verdict: number;
+    };
+
+    /**
+     * Array of faithfulness statements.
+     */
+    export type FaithfulnessStatements = FaithfulnessStatement[];
   }
 }
