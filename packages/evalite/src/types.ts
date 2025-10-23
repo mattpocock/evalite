@@ -829,5 +829,26 @@ export declare namespace Evalite {
      * Array of faithfulness statements.
      */
     export type FaithfulnessStatements = FaithfulnessStatement[];
+
+    /**
+     * Expected data shape for answer similarity scorer.
+     */
+    export type AnswerSimilarityExpected = {
+      referenceAnswer: string;
+    };
+
+    /**
+     * Expected data shape for context recall scorer.
+     */
+    export type ContextRecallExpected = {
+      groundTruth: string[];
+    };
+
+    /**
+     * Expected data shape for faithfulness scorer.
+     */
+    export type FaithfulnessExpected = {
+      groundTruth: string[];
+    };
   }
 }

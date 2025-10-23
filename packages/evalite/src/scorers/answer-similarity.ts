@@ -13,9 +13,8 @@ import { cosineSimilarity, embedMany } from "ai";
  *
  * Based on the SAS paper: https://arxiv.org/pdf/2108.06130.pdf
  */
-export const answerSimilarity = createEmbeddingScorer<{
-  referenceAnswer: string;
-}>({
+export const answerSimilarity =
+  createEmbeddingScorer<Evalite.Scorers.AnswerSimilarityExpected>({
   name: "Answer Similarity",
   description:
     "Evaluates the similarity of the model's response to the expected answer",

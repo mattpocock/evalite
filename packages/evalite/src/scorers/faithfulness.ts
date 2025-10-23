@@ -61,9 +61,8 @@ const FaithfulnessStatementsOutputSchema = jsonSchema<{
  *
  * @param model - The model to use for the evaluation
  */
-export const faithfulness = createLLMScorer<{
-  groundTruth: string[];
-}>({
+export const faithfulness =
+  createLLMScorer<Evalite.Scorers.FaithfulnessExpected>({
   name: "Faithfulness",
   description:
     "Evaluates the faithfulness of the model's response to the retrieved contexts",

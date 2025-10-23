@@ -36,9 +36,8 @@ const ContextRecallClassificationsSchema = jsonSchema<{
   required: ["classifications"],
 });
 
-export const contextRecall = createLLMScorer<{
-  groundTruth: string[];
-}>({
+export const contextRecall =
+  createLLMScorer<Evalite.Scorers.ContextRecallExpected>({
   name: "Context Recall",
   description:
     "Estimates context recall by analyzing how much of the reference answer can be attributed to retrieved contexts",
