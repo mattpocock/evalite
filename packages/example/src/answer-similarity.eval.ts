@@ -5,13 +5,10 @@ import { answerSimilarity } from "evalite/scorers";
 evalite("Answer Similarity", {
   data: [
     {
-      input: {
-        userInput: {
-          role: "user",
-          content: "What is the capital of France?",
-        },
+      input: "What is the capital of France?",
+      expected: {
+        referenceAnswer: "Paris is the capital of France.",
       },
-      expected: "Paris is the capital of France.",
     },
   ],
   task: async () => {
