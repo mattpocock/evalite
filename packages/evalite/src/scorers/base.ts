@@ -3,32 +3,13 @@ import type { EmbeddingModel, LanguageModel, ModelMessage } from "ai";
 import { createScorer } from "../create-scorer.js";
 import { isMultiTurn, isSingleTurn } from "./utils.js";
 
-interface BaseScorerOpts<TInput extends object = {}> {
-  name: string;
-  description: string;
-  singleTurn?: (
-    opts: {
-      input: string;
-      output: string;
-      expected: Evalite.Scorers.SingleTurnData;
-    } & TInput
-  ) => Evalite.MaybePromise<Evalite.Scorers.BaseResult>;
-  multiTurn?: (
-    opts: {
-      input: ModelMessage[];
-      output: string;
-      expected: Evalite.Scorers.MultiTurnData;
-    } & TInput
-  ) => Evalite.MaybePromise<Evalite.Scorers.BaseResult>;
-}
-
-export function createBaseScorer<TInput extends object = {}>({
+export function createBaseScorer<TOpts extends object = {}>({
   name,
   description,
   singleTurn,
   multiTurn,
-}: BaseScorerOpts<TInput>): Evalite.Scorers.BaseFactory<TInput> {
-  return (opts: TInput) =>
+}: Evalite.Scorers.BaseScorerOpts<TOpts>): Evalite.Scorers.BaseFactory<TOpts> {
+  return (opts: TOpts) =>
     createScorer<
       string | ModelMessage[],
       string,
@@ -43,8 +24,7 @@ export function createBaseScorer<TInput extends object = {}>({
 
           return singleTurn({
             ...evalOpts,
-            expected:
-              evalOpts.expected ?? ({} as Evalite.Scorers.SingleTurnData),
+            expected: evalOpts.expected ?? {},
             ...opts,
           });
         } else if (isMultiTurn(evalOpts)) {
@@ -53,8 +33,7 @@ export function createBaseScorer<TInput extends object = {}>({
 
           return multiTurn({
             ...evalOpts,
-            expected:
-              evalOpts.expected ?? ({} as Evalite.Scorers.MultiTurnData),
+            expected: evalOpts.expected ?? {},
             ...opts,
           });
         }
@@ -63,14 +42,14 @@ export function createBaseScorer<TInput extends object = {}>({
     });
 }
 
-export function createLLMScorer(
-  opts: BaseScorerOpts<{ model: LanguageModel }>
-): Evalite.Scorers.LLMBasedFactory {
+export function createLLMScorer<T extends object = {}>(
+  opts: Evalite.Scorers.BaseScorerOpts<{ model: LanguageModel } & T>
+): Evalite.Scorers.LLMBasedFactory<T> {
   return createBaseScorer(opts);
 }
 
-export function createEmbeddingScorer(
-  opts: BaseScorerOpts<{ embeddingModel: EmbeddingModel }>
-): Evalite.Scorers.EmbeddingBasedFactory {
+export function createEmbeddingScorer<T extends object = {}>(
+  opts: Evalite.Scorers.BaseScorerOpts<{ embeddingModel: EmbeddingModel } & T>
+): Evalite.Scorers.EmbeddingBasedFactory<T> {
   return createBaseScorer(opts);
 }
