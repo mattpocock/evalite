@@ -755,80 +755,46 @@ export declare namespace Evalite {
    * Types for scorers and scorer-related functionality.
    */
   export namespace Scorers {
-    export interface SingleTurnData {
-      groundTruth?: string[];
-      referenceAnswer?: string;
-    }
-
-    export interface MultiTurnData {
-      referenceAnswer?: string;
-      // TODO: there will be more fields here eventually, like referenceToolCalls, referenceTopics, etc.
-    }
-
-    export interface SingleTurnOpts {
-      input: string;
-      output: string;
-      expected: SingleTurnData;
-    }
-
-    export interface MultiTurnOpts {
-      input: ModelMessage[];
-      output: string;
-      expected: MultiTurnData;
-    }
-
-    export type ScorerOpts = SingleTurnOpts | MultiTurnOpts;
+    export type SingleTurnInput = string;
+    export type MultiTurnInput = ModelMessage[];
+    export type SingleOrMultiTurnInput = SingleTurnInput | MultiTurnInput;
 
     export interface BaseResult {
       score: number;
       metadata?: unknown;
     }
 
-    export type BaseFactory<TOpts extends object = {}> = (
-      opts: TOpts
-    ) => Evalite.Scorer<
-      string | ModelMessage[],
-      string,
-      SingleTurnData | MultiTurnData
-    >;
+    export interface LLMBasedScorerFactoryOpts<TExpected extends object> {
+      name: string;
+      description?: string;
+      scorer: (
+        input: LLMBasedScorerOpts<TExpected>
+      ) => Evalite.MaybePromise<Evalite.UserProvidedScoreWithMetadata>;
+    }
 
-    export type LLMBasedFactory<TOpts extends object = {}> = (
-      opts: { model: LanguageModel } & TOpts
-    ) => Evalite.Scorer<
-      string | ModelMessage[],
-      string,
-      SingleTurnData | MultiTurnData
-    >;
+    export interface LLMBasedScorerBaseConfig {
+      model: LanguageModel;
+    }
 
-    export type EmbeddingBasedFactory<TOpts extends object = {}> = (
-      opts: { embeddingModel: EmbeddingModel } & TOpts
-    ) => Evalite.Scorer<
-      string | ModelMessage[],
-      string,
-      SingleTurnData | MultiTurnData
-    >;
+    export interface LLMBasedScorerOpts<TExpected extends object>
+      extends Evalite.ScoreInput<SingleOrMultiTurnInput, string, TExpected>,
+        LLMBasedScorerBaseConfig {}
 
-    export type SingleTurnFn<TOpts extends object> = (
-      opts: Evalite.Scorers.SingleTurnOpts & TOpts
-    ) => Evalite.MaybePromise<Evalite.Scorers.BaseResult>;
+    export interface EmbeddingBasedScorerFactoryOpts<TExpected extends object> {
+      name: string;
+      description?: string;
+      scorer: (
+        input: EmbeddingBasedScorerOpts<TExpected>
+      ) => Evalite.MaybePromise<Evalite.UserProvidedScoreWithMetadata>;
+    }
 
-    export type MultiTurnFn<TOpts extends object> = (
-      opts: Evalite.Scorers.MultiTurnOpts & TOpts
-    ) => Evalite.MaybePromise<Evalite.Scorers.BaseResult>;
+    export interface EmbeddingBasedScorerBaseConfig {
+      embeddingModel: EmbeddingModel;
+    }
 
-    export type BaseScorerOpts<TOpts extends object = {}> =
-      | ({ name: string; description?: string } & {
-          singleTurn: SingleTurnFn<TOpts>;
-          multiTurn?: MultiTurnFn<TOpts>;
-        })
-      | ({ name: string; description?: string } & {
-          singleTurn?: SingleTurnFn<TOpts>;
-          multiTurn: MultiTurnFn<TOpts>;
-        })
-      | ({ name: string; description?: string } & {
-          singleTurn: SingleTurnFn<TOpts>;
-          multiTurn: MultiTurnFn<TOpts>;
-        });
+    export interface EmbeddingBasedScorerOpts<TExpected extends object>
+      extends Evalite.ScoreInput<SingleOrMultiTurnInput, string, TExpected>,
+        EmbeddingBasedScorerBaseConfig {}
 
     /**
      * Classification result for a single statement in context recall scoring.

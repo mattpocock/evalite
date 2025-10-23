@@ -1,6 +1,7 @@
-import { generateObject, jsonSchema, type LanguageModel } from "ai";
-import { createLLMScorer } from "./base.js";
+import { generateObject, jsonSchema } from "ai";
 import type { Evalite } from "../types.js";
+import { createLLMScorer } from "./base.js";
+import { isMultiTurnInput } from "./utils.js";
 
 const ContextRecallClassificationsSchema = jsonSchema<{
   classifications: Evalite.Scorers.ContextRecallClassifications;
@@ -35,13 +36,21 @@ const ContextRecallClassificationsSchema = jsonSchema<{
   required: ["classifications"],
 });
 
-export const contextRecall = createLLMScorer({
+export const contextRecall = createLLMScorer<{
+  groundTruth: string[];
+}>({
   name: "Context Recall",
   description:
     "Estimates context recall by analyzing how much of the reference answer can be attributed to retrieved contexts",
-  singleTurn: async ({ input, output, expected, model }) => {
-    if (!expected.groundTruth || expected.groundTruth.length === 0)
+  scorer: async ({ input, output, expected, model }) => {
+    if (!expected?.groundTruth || expected?.groundTruth.length === 0)
       throw new Error("No ground truth provided or the ground truth is empty");
+
+    if (isMultiTurnInput(input)) {
+      throw new Error(
+        "Context Recall scorer does not support multi-turn input"
+      );
+    }
 
     const classifications = await classifyStatements(
       input,

@@ -1,6 +1,7 @@
 import { createLLMScorer } from "./base.js";
-import { generateObject, jsonSchema } from "ai";
+import { generateObject, jsonSchema, type LanguageModel } from "ai";
 import type { Evalite } from "../types.js";
+import { isMultiTurnInput } from "./utils.js";
 
 const StatementGeneratorOutputSchema = jsonSchema<{
   statements: string[];
@@ -60,13 +61,20 @@ const FaithfulnessStatementsOutputSchema = jsonSchema<{
  *
  * @param model - The model to use for the evaluation
  */
-export const faithfulness = createLLMScorer({
+export const faithfulness = createLLMScorer<{
+  groundTruth: string[];
+}>({
   name: "Faithfulness",
   description:
     "Evaluates the faithfulness of the model's response to the retrieved contexts",
-  singleTurn: async ({ input, output, expected, model }) => {
-    if (!expected.groundTruth || expected.groundTruth.length === 0)
+
+  scorer: async ({ input, output, expected, model }) => {
+    if (!expected?.groundTruth || expected.groundTruth.length === 0)
       throw new Error("No ground truth provided or the ground truth is empty");
+
+    if (isMultiTurnInput(input)) {
+      throw new Error("Faithfulness scorer does not support multi-turn input");
+    }
 
     const statements = await generateStatements(input, output, model);
     if (statements.length === 0)
@@ -97,7 +105,7 @@ export const faithfulness = createLLMScorer({
     async function generateStatements(
       question: string,
       answer: string,
-      model: import("ai").LanguageModel
+      model: LanguageModel
     ) {
       const result = await generateObject({
         model: model,

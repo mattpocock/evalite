@@ -1,3 +1,4 @@
+import type { Evalite } from "../types.js";
 import { createEmbeddingScorer } from "./base.js";
 import { cosineSimilarity, embedMany } from "ai";
 
@@ -12,12 +13,14 @@ import { cosineSimilarity, embedMany } from "ai";
  *
  * Based on the SAS paper: https://arxiv.org/pdf/2108.06130.pdf
  */
-export const answerSimilarity = createEmbeddingScorer({
+export const answerSimilarity = createEmbeddingScorer<{
+  referenceAnswer: string;
+}>({
   name: "Answer Similarity",
   description:
     "Evaluates the similarity of the model's response to the expected answer",
-  singleTurn: async ({ output, expected, embeddingModel }) => {
-    if (!expected.referenceAnswer)
+  scorer: async ({ output, expected, embeddingModel }) => {
+    if (!expected?.referenceAnswer)
       throw new Error("No reference answer provided");
 
     const { embeddings } = await embedMany({
