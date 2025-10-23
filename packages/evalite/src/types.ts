@@ -1,4 +1,9 @@
-import type { ModelMessage, UserModelMessage } from "ai";
+import type {
+  EmbeddingModel,
+  LanguageModel,
+  ModelMessage,
+  UserModelMessage,
+} from "ai";
 
 export declare namespace Evalite {
   /**
@@ -758,37 +763,58 @@ export declare namespace Evalite {
    * Types for scorers and scorer-related functionality.
    */
   export namespace Scorers {
-    export interface SingleTurnSample {
-      userInput: UserModelMessage;
+    export interface SingleTurnData {
       groundTruth?: string[];
+      referenceAnswer?: string;
     }
 
-    export interface MultiTurnSample {
-      userInput: ModelMessage[];
+    export interface MultiTurnData {
+      referenceAnswer?: string;
       // TODO: there will be more fields here eventually, like referenceToolCalls, referenceTopics, etc.
     }
 
-    export type EvaluationSample = SingleTurnSample | MultiTurnSample;
+    export interface SingleTurnOpts {
+      input: string;
+      output: string;
+      expected: SingleTurnData;
+    }
 
-    export type Scorer = Evalite.Scorer<EvaluationSample, string, string>;
+    export interface MultiTurnOpts {
+      input: ModelMessage[];
+      output: string;
+      expected: MultiTurnData;
+    }
 
-    /**
-     * Type for LLM-based scorer factory functions.
-     * These scorers use language models to evaluate outputs.
-     */
-    export type LLMBased<TInput extends object = {}> = (
-      opts: { model: import("ai").LanguageModel } & TInput
-    ) => Scorer;
+    export type ScorerOpts = SingleTurnOpts | MultiTurnOpts;
 
-    /**
-     * Type for embedding-based scorer factory functions.
-     * These scorers use embedding models to evaluate outputs.
-     */
-    export type EmbeddingBased<TInput extends object = {}> = (
-      opts: {
-        embeddingModel: import("ai").EmbeddingModel;
-      } & TInput
-    ) => Scorer;
+    export interface BaseResult {
+      score: number;
+      metadata?: unknown;
+    }
+
+    export type BaseFactory<TOpts extends object = {}> = (
+      opts: TOpts
+    ) => Evalite.Scorer<
+      string | ModelMessage[],
+      string,
+      SingleTurnData | MultiTurnData
+    >;
+
+    export type LLMBasedFactory<TOpts extends object = {}> = (
+      opts: { model: LanguageModel } & TOpts
+    ) => Evalite.Scorer<
+      string | ModelMessage[],
+      string,
+      SingleTurnData | MultiTurnData
+    >;
+
+    export type EmbeddingBasedFactory<TOpts extends object = {}> = (
+      opts: { embeddingModel: EmbeddingModel } & TOpts
+    ) => Evalite.Scorer<
+      string | ModelMessage[],
+      string,
+      SingleTurnData | MultiTurnData
+    >;
 
     /**
      * Classification result for a single statement in context recall scoring.
