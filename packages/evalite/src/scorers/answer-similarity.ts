@@ -1,7 +1,5 @@
-import { createEmbeddingBasedScorer } from "./base.js";
-import { createScorer } from "../create-scorer.js";
+import { createEmbeddingScorer } from "./base.js";
 import { cosineSimilarity, embedMany } from "ai";
-import { isSingleTurnSample } from "./utils.js";
 
 /**
  * AnswerSimilarity metric scores the semantic similarity between
@@ -14,41 +12,29 @@ import { isSingleTurnSample } from "./utils.js";
  *
  * Based on the SAS paper: https://arxiv.org/pdf/2108.06130.pdf
  */
-export const answerSimilarity = createEmbeddingBasedScorer(
-  ({ embeddingModel }) => {
-    return createScorer({
-      name: "Answer Similarity",
-      description:
-        "Evaluates the similarity of the model's response to the expected answer",
-      async scorer({ input, output, expected }) {
-        if (!isSingleTurnSample(input))
-          throw new Error(
-            "Answer Similarity scorer only supports single turn samples"
-          );
+export const answerSimilarity = createEmbeddingScorer({
+  name: "Answer Similarity",
+  description:
+    "Evaluates the similarity of the model's response to the expected answer",
+  singleTurn: async ({ output, expected, embeddingModel }) => {
+    if (!expected.referenceAnswer)
+      throw new Error("No reference answer provided");
 
-        if (!expected) throw new Error("No expected answer provided");
-
-        const score = await computeScore(expected, output);
-        return {
-          score,
-          metadata: `Answer similarity score: ${score.toFixed(2)}`,
-        };
-      },
+    const { embeddings } = await embedMany({
+      model: embeddingModel,
+      values: [expected.referenceAnswer, output],
     });
 
-    async function computeScore(reference: string, response: string) {
-      const { embeddings } = await embedMany({
-        model: embeddingModel,
-        values: [reference, response],
-      });
+    const [referenceEmbedding, responseEmbedding] = embeddings;
 
-      const [referenceEmbedding, responseEmbedding] = embeddings;
-
-      if (!referenceEmbedding || !responseEmbedding) {
-        return 0;
-      }
-
-      return cosineSimilarity(referenceEmbedding, responseEmbedding);
+    if (!referenceEmbedding || !responseEmbedding) {
+      return { score: 0 };
     }
-  }
-);
+
+    const score = cosineSimilarity(referenceEmbedding, responseEmbedding);
+    return {
+      score,
+      metadata: `Answer similarity score: ${score.toFixed(2)}`,
+    };
+  },
+});
