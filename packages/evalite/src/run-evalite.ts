@@ -280,7 +280,12 @@ export const runEvalite = async (opts: {
           name: "evalite-config-plugin",
           // Everything inside this config CAN be overridden by user's vite.config.ts
           // EXCEPT when evalite.config.ts explicitly sets values - those override vite.config.ts
-          config(config) {
+
+          // When we moved to Vitest v4, I found a strange type error where
+          // `config` was not being inferred correctly. In the TS playground,
+          // this code works fine, so it may be some kind of package resolution issue.
+          // Since this code is fully tested, I feel OK with an 'any' for now.
+          config(config: any) {
             config.test ??= {};
             // If evalite.config.ts specifies these values, override user's vite.config.ts
             // Otherwise use vite.config.ts value or fallback to default
@@ -303,7 +308,8 @@ export const runEvalite = async (opts: {
             config.test.sequence ??= {};
             config.test.sequence.concurrent ??= true;
           },
-          configResolved(config) {
+          // See comment about any on config() above
+          configResolved(config: any) {
             if (opts.configDebugMode) {
               const debugMessage = `[Evalite Config Debug] testTimeout: ${config.test?.testTimeout}, maxConcurrency: ${config.test?.maxConcurrency}\n`;
               if (opts.testOutputWritable) {
