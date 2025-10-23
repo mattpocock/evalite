@@ -72,11 +72,7 @@ export const faithfulness = createLLMScorer({
     if (statements.length === 0)
       throw new Error("No statements were generated from the answer");
 
-    const verdicts = await evaluateStatements(
-      expected.groundTruth,
-      statements,
-      model
-    );
+    const verdicts = await evaluateStatements(expected.groundTruth, statements);
 
     return {
       score: computeScore(verdicts),
@@ -138,8 +134,7 @@ Given a question and an answer, analyze the complexity of each sentence in the a
 
     async function evaluateStatements(
       contexts: string[],
-      statements: string[],
-      model: import("ai").LanguageModel
+      statements: string[]
     ): Promise<Evalite.Scorers.FaithfulnessStatements> {
       const context = contexts.join("\n");
 

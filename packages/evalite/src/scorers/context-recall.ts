@@ -46,8 +46,7 @@ export const contextRecall = createLLMScorer({
     const classifications = await classifyStatements(
       input,
       output,
-      expected.groundTruth,
-      model
+      expected.groundTruth
     );
 
     if (classifications.length === 0)
@@ -81,8 +80,7 @@ export const contextRecall = createLLMScorer({
     async function classifyStatements(
       question: string,
       answer: string,
-      groundTruth: string[],
-      model: LanguageModel
+      groundTruth: string[]
     ) {
       const context = groundTruth.join("\n");
 
