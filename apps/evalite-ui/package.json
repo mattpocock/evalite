@@ -61,15 +61,10 @@
     "tailwindcss": "^4.1.11",
     "tw-animate-css": "^1.3.5",
     "typescript": "5.9.3",
-    "vite": "^5.1.0",
+    "vite": "^7.1.12",
     "vite-tsconfig-paths": "^4.2.1"
   },
   "engines": {
     "node": ">=20.0.0"
-  },
-  "pnpm": {
-    "overrides": {
-      "vite": "^5.4.11"
-    }
   }
 }
