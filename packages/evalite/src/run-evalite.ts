@@ -244,7 +244,7 @@ export const runEvalite = async (opts: {
       include: ["**/*.eval.?(m)ts"],
       watch: opts.mode === "watch-for-file-changes",
       reporters: [
-        (reporter = new EvaliteReporter({
+        new EvaliteReporter({
           logNewState: (newState) => {
             server?.updateState(newState);
           },
@@ -259,7 +259,7 @@ export const runEvalite = async (opts: {
           },
           mode: opts.mode,
           hideTable: hideTable,
-        })),
+        }),
       ],
       mode: "test",
       browser: undefined,
@@ -321,6 +321,11 @@ export const runEvalite = async (opts: {
   vitest.provide("cwd", cwd);
   vitest.provide("trialCount", config?.trialCount);
 
+  // Get the reporter instance
+  reporter = vitest.config.reporters?.find(
+    (r) => r instanceof EvaliteReporter
+  ) as EvaliteReporter;
+
   // Create server after vitest is available
   if (
     opts.mode === "watch-for-file-changes" ||
@@ -330,7 +335,14 @@ export const runEvalite = async (opts: {
       storage: storage,
       onRerun: async () => {
         if (reporter) {
-          reporter.triggerRerun();
+          try {
+            await reporter.triggerRerun();
+          } catch (error) {
+            console.error("Failed to trigger rerun:", error);
+            throw error;
+          }
+        } else {
+          throw new Error("Reporter not available");
         }
       },
     });

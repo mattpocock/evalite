@@ -145,15 +145,17 @@ export default function App() {
                 <Logo />
               </div>
             </SidebarMenuItem>
-            <SidebarMenuItem className="md:-mx-3 -mx-2 md:px-3 px-2">
-              <div className="px-2 py-1">
-                <RerunButton
-                  size="sm"
-                  className="w-full justify-start"
-                  disabled={serverState.type === "running"}
-                />
-              </div>
-            </SidebarMenuItem>
+            {!isStaticMode() && (
+              <SidebarMenuItem className="md:-mx-3 -mx-2 md:px-3 px-2">
+                <div className="px-2 py-1">
+                  <RerunButton
+                    size="sm"
+                    className="w-full justify-start"
+                    disabled={serverState.type === "running"}
+                  />
+                </div>
+              </SidebarMenuItem>
+            )}
           </SidebarMenu>
         </SidebarHeader>
         <SidebarContent>
