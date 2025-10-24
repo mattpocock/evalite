@@ -58,6 +58,17 @@ export default class EvaliteReporter implements Reporter {
       scoreThreshold: opts.scoreThreshold,
     });
   }
+
+  /**
+   * Manually trigger a rerun of the current tests
+   */
+  triggerRerun() {
+    this.runner.sendEvent({
+      type: "RUN_BEGUN",
+      filepaths: this.ctx?.state.getFiles().map((f) => f.filepath) || [],
+      runType: "partial",
+    });
+  }
   onInit(ctx: Vitest): void {
     this.ctx = ctx;
     this.start = performance.now();

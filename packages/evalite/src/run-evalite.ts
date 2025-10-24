@@ -232,18 +232,8 @@ export const runEvalite = async (opts: {
   process.env.EVALITE_REPORT_TRACES = "true";
 
   let server: ReturnType<typeof createServer> | undefined = undefined;
-
-  if (
-    opts.mode === "watch-for-file-changes" ||
-    opts.mode === "run-once-and-serve"
-  ) {
-    server = createServer({
-      storage: storage,
-    });
-    server.start(serverPort);
-  }
-
   let exitCode: number | undefined = undefined;
+  let reporter: EvaliteReporter | undefined = undefined;
 
   const vitest = await createVitest(
     "test",
@@ -254,7 +244,7 @@ export const runEvalite = async (opts: {
       include: ["**/*.eval.?(m)ts"],
       watch: opts.mode === "watch-for-file-changes",
       reporters: [
-        new EvaliteReporter({
+        (reporter = new EvaliteReporter({
           logNewState: (newState) => {
             server?.updateState(newState);
           },
@@ -269,7 +259,7 @@ export const runEvalite = async (opts: {
           },
           mode: opts.mode,
           hideTable: hideTable,
-        }),
+        })),
       ],
       mode: "test",
       browser: undefined,
@@ -330,6 +320,22 @@ export const runEvalite = async (opts: {
 
   vitest.provide("cwd", cwd);
   vitest.provide("trialCount", config?.trialCount);
+
+  // Create server after vitest is available
+  if (
+    opts.mode === "watch-for-file-changes" ||
+    opts.mode === "run-once-and-serve"
+  ) {
+    server = createServer({
+      storage: storage,
+      onRerun: async () => {
+        if (reporter) {
+          reporter.triggerRerun();
+        }
+      },
+    });
+    server.start(serverPort);
+  }
 
   await vitest.start(filters);
 

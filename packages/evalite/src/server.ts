@@ -50,7 +50,10 @@ export const handleWebsockets = (server: fastify.FastifyInstance) => {
   };
 };
 
-export const createServer = (opts: { storage: Evalite.Storage }) => {
+export const createServer = (opts: {
+  storage: Evalite.Storage;
+  onRerun?: () => Promise<void>;
+}) => {
   const UI_ROOT = path.join(
     path.dirname(fileURLToPath(import.meta.url)),
     "./ui"
@@ -487,6 +490,32 @@ export const createServer = (opts: { storage: Evalite.Storage }) => {
 
       return res.sendFile(parsed.base, parsed.dir);
     },
+  });
+
+  // Add rerun endpoint
+  server.post<{
+    Reply: { success: boolean; message: string };
+  }>("/api/rerun", async (req, reply) => {
+    try {
+      if (!opts.onRerun) {
+        return reply.code(501).send({
+          success: false,
+          message: "Rerun functionality not available in this mode",
+        });
+      }
+
+      await opts.onRerun();
+
+      return reply.code(200).send({
+        success: true,
+        message: "Rerun triggered successfully",
+      });
+    } catch (error) {
+      return reply.code(500).send({
+        success: false,
+        message: `Failed to trigger rerun: ${error instanceof Error ? error.message : "Unknown error"}`,
+      });
+    }
   });
 
   return {
