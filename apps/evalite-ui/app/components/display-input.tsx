@@ -8,9 +8,8 @@ import {
 } from "lucide-react";
 import React, { Fragment, useLayoutEffect, useRef, useState } from "react";
 import { JSONTree } from "react-json-tree";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { downloadFile, serveFile } from "~/sdk";
+import { Response } from "./response";
 import { Button } from "./ui/button";
 
 // Helper function to find single string value in an object and its path
@@ -84,12 +83,7 @@ const DisplayText = ({
             overflow: "hidden",
           }}
         >
-          <ReactMarkdown
-            className="prose dark:prose-invert prose-sm"
-            remarkPlugins={[remarkGfm]}
-          >
-            {input}
-          </ReactMarkdown>
+          <Response>{input}</Response>
         </div>
       </Wrapper>
       {status === "showing-show-more-button" && shouldTruncateText && (
