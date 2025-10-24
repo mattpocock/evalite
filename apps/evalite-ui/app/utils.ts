@@ -6,9 +6,9 @@ export const scoreToPercent = (score: number) => {
 
 export const formatTime = (time: number) => {
   if (time < 1000) {
-    return `${time}ms`;
+    return `${time.toFixed(0)}ms`;
   }
-  return `${(time / 1000).toFixed(1)}s`;
+  return `${(time / 1000).toFixed(2)}s`;
 };
 
 export const isArrayOfRenderedColumns = (
