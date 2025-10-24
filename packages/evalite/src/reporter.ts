@@ -58,6 +58,33 @@ export default class EvaliteReporter implements Reporter {
       scoreThreshold: opts.scoreThreshold,
     });
   }
+
+  /**
+   * Manually trigger a rerun of the current tests
+   * This actually triggers Vitest to rerun the tests, not just report to DB
+   */
+  async triggerRerun() {
+    if (!this.ctx) {
+      throw new Error("Vitest context not available");
+    }
+
+    // Check if already running
+    if (this.runner.getState().type === "running") {
+      throw new Error("Tests are already running");
+    }
+
+    // Trigger actual rerun by calling Vitest's rerun method
+    if (typeof this.ctx.rerun === "function") {
+      await this.ctx.rerun();
+    } else {
+      // Fallback: trigger via runner event (this just reports to DB)
+      this.runner.sendEvent({
+        type: "RUN_BEGUN",
+        filepaths: this.ctx.state.getFiles().map((f) => f.filepath),
+        runType: "partial",
+      });
+    }
+  }
   onInit(ctx: Vitest): void {
     this.ctx = ctx;
     this.start = performance.now();

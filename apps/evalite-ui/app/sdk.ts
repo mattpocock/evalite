@@ -142,3 +142,19 @@ export const downloadFile = (filepath: string) => {
   }
   return `${BASE_URL}/api/file?path=${filepath}&download=true`;
 };
+
+export const triggerRerun = async (fetchOpts?: {
+  signal?: AbortSignal;
+}): Promise<{ success: boolean; message: string }> => {
+  if (isStaticMode()) {
+    throw new Error("Rerun is not available in static mode");
+  }
+
+  return safeFetch<{ success: boolean; message: string }>(
+    `${BASE_URL}/api/rerun`,
+    {
+      method: "POST",
+      ...fetchOpts,
+    }
+  );
+};
