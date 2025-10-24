@@ -1,7 +1,7 @@
 import { createLLMScorer } from "./base.js";
 import { generateObject, jsonSchema, type LanguageModel } from "ai";
 import type { Evalite } from "../types.js";
-import { isMultiTurnInput } from "./utils.js";
+import { isMultiTurnOutput } from "./utils.js";
 
 const StatementGeneratorOutputSchema = jsonSchema<{
   statements: string[];
@@ -63,53 +63,62 @@ const FaithfulnessStatementsOutputSchema = jsonSchema<{
  */
 export const faithfulness =
   createLLMScorer<Evalite.Scorers.FaithfulnessExpected>({
-  name: "Faithfulness",
-  description:
-    "Evaluates the faithfulness of the model's response to the retrieved contexts",
+    name: "Faithfulness",
+    description:
+      "Evaluates the faithfulness of the model's response to the retrieved contexts",
 
-  scorer: async ({ input, output, expected, model }) => {
-    if (!expected?.groundTruth || expected.groundTruth.length === 0)
-      throw new Error("No ground truth provided or the ground truth is empty");
+    scorer: async ({ input, output, expected, model }) => {
+      if (!expected?.groundTruth || expected.groundTruth.length === 0)
+        throw new Error(
+          "No ground truth provided or the ground truth is empty"
+        );
 
-    if (isMultiTurnInput(input)) {
-      throw new Error("Faithfulness scorer does not support multi-turn input");
-    }
-
-    const statements = await generateStatements(input, output, model);
-    if (statements.length === 0)
-      throw new Error("No statements were generated from the answer");
-
-    const verdicts = await evaluateStatements(expected.groundTruth, statements);
-
-    return {
-      score: computeScore(verdicts),
-      metadata: verdicts.map((s) => ({
-        statement: s.statement,
-        reason: s.reason,
-        verdict: s.verdict,
-      })),
-    };
-
-    function computeScore(statements: Evalite.Scorers.FaithfulnessStatements) {
-      if (statements.length === 0) {
-        return 0;
+      if (isMultiTurnOutput(output)) {
+        throw new Error(
+          "Faithfulness scorer does not support multi-turn output"
+        );
       }
 
-      const faithfulStatements = statements.filter(
-        (s) => s.verdict === 1
-      ).length;
-      return faithfulStatements / statements.length;
-    }
+      const statements = await generateStatements(input, output, model);
+      if (statements.length === 0)
+        throw new Error("No statements were generated from the answer");
 
-    async function generateStatements(
-      question: string,
-      answer: string,
-      model: LanguageModel
-    ) {
-      const result = await generateObject({
-        model: model,
-        schema: StatementGeneratorOutputSchema,
-        prompt: `
+      const verdicts = await evaluateStatements(
+        expected.groundTruth,
+        statements
+      );
+
+      return {
+        score: computeScore(verdicts),
+        metadata: verdicts.map((s) => ({
+          statement: s.statement,
+          reason: s.reason,
+          verdict: s.verdict,
+        })),
+      };
+
+      function computeScore(
+        statements: Evalite.Scorers.FaithfulnessStatements
+      ) {
+        if (statements.length === 0) {
+          return 0;
+        }
+
+        const faithfulStatements = statements.filter(
+          (s) => s.verdict === 1
+        ).length;
+        return faithfulStatements / statements.length;
+      }
+
+      async function generateStatements(
+        question: string,
+        answer: string,
+        model: LanguageModel
+      ) {
+        const result = await generateObject({
+          model: model,
+          schema: StatementGeneratorOutputSchema,
+          prompt: `
 <instructions>
 Given a question and an answer, analyze the complexity of each sentence in the answer. Break down each sentence into one or more fully understandable statements. Ensure that no pronouns are used in any statement. Format the outputs in JSON.
 </instructions>
@@ -134,21 +143,21 @@ Given a question and an answer, analyze the complexity of each sentence in the a
 <question>${question}</question>
 <answer>${answer}</answer>
 </task>`.trim(),
-      });
+        });
 
-      return result.object.statements;
-    }
+        return result.object.statements;
+      }
 
-    async function evaluateStatements(
-      contexts: string[],
-      statements: string[]
-    ): Promise<Evalite.Scorers.FaithfulnessStatements> {
-      const context = contexts.join("\n");
+      async function evaluateStatements(
+        contexts: string[],
+        statements: string[]
+      ): Promise<Evalite.Scorers.FaithfulnessStatements> {
+        const context = contexts.join("\n");
 
-      const result = await generateObject({
-        model: model,
-        schema: FaithfulnessStatementsOutputSchema,
-        prompt: `
+        const result = await generateObject({
+          model: model,
+          schema: FaithfulnessStatementsOutputSchema,
+          prompt: `
 <instructions>
 Your task is to judge the faithfulness of a series of statements based on a given context. For each statement you must return verdict as 1 if the statement can be directly inferred based on the context or 0 if the statement can not be directly inferred based on the context.
 </instructions>
@@ -226,9 +235,9 @@ ${context}
 ${statements.map((s, i) => `${i + 1}. "${s}"`).join("\n")}
 </statements>
 </task>`.trim(),
-      });
+        });
 
-      return result.object.statements;
-    }
-  },
-});
+        return result.object.statements;
+      }
+    },
+  });

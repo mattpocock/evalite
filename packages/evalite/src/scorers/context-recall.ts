@@ -1,7 +1,7 @@
 import { generateObject, jsonSchema } from "ai";
 import type { Evalite } from "../types.js";
 import { createLLMScorer } from "./base.js";
-import { isMultiTurnInput } from "./utils.js";
+import { isMultiTurnOutput } from "./utils.js";
 
 const ContextRecallClassificationsSchema = jsonSchema<{
   classifications: Evalite.Scorers.ContextRecallClassifications;
@@ -38,64 +38,66 @@ const ContextRecallClassificationsSchema = jsonSchema<{
 
 export const contextRecall =
   createLLMScorer<Evalite.Scorers.ContextRecallExpected>({
-  name: "Context Recall",
-  description:
-    "Estimates context recall by analyzing how much of the reference answer can be attributed to retrieved contexts",
-  scorer: async ({ input, output, expected, model }) => {
-    if (!expected?.groundTruth || expected?.groundTruth.length === 0)
-      throw new Error("No ground truth provided or the ground truth is empty");
+    name: "Context Recall",
+    description:
+      "Estimates context recall by analyzing how much of the reference answer can be attributed to retrieved contexts",
+    scorer: async ({ input, output, expected, model }) => {
+      if (!expected?.groundTruth || expected?.groundTruth.length === 0)
+        throw new Error(
+          "No ground truth provided or the ground truth is empty"
+        );
 
-    if (isMultiTurnInput(input)) {
-      throw new Error(
-        "Context Recall scorer does not support multi-turn input"
+      if (isMultiTurnOutput(output)) {
+        throw new Error(
+          "Context Recall scorer does not support multi-turn input"
+        );
+      }
+
+      const classifications = await classifyStatements(
+        input,
+        output,
+        expected.groundTruth
       );
-    }
 
-    const classifications = await classifyStatements(
-      input,
-      output,
-      expected.groundTruth
-    );
+      if (classifications.length === 0)
+        throw new Error("No classifications were found from the answer");
 
-    if (classifications.length === 0)
-      throw new Error("No classifications were found from the answer");
+      const score = calculateScore(classifications);
 
-    const score = calculateScore(classifications);
+      return {
+        score,
+        metadata: {
+          classifications,
+          reason: `${
+            classifications.filter((c) => c.attributed === 1).length
+          } out of ${
+            classifications.length
+          } statements from the response were attributed to the retrieved contexts`,
+        },
+      };
 
-    return {
-      score,
-      metadata: {
-        classifications,
-        reason: `${
-          classifications.filter((c) => c.attributed === 1).length
-        } out of ${
-          classifications.length
-        } statements from the response were attributed to the retrieved contexts`,
-      },
-    };
+      function calculateScore(
+        classifications: Evalite.Scorers.ContextRecallClassifications
+      ) {
+        if (classifications.length === 0) return 0;
 
-    function calculateScore(
-      classifications: Evalite.Scorers.ContextRecallClassifications
-    ) {
-      if (classifications.length === 0) return 0;
+        const attributedClassifications = classifications.filter(
+          (c) => c.attributed === 1
+        ).length;
+        return attributedClassifications / classifications.length;
+      }
 
-      const attributedClassifications = classifications.filter(
-        (c) => c.attributed === 1
-      ).length;
-      return attributedClassifications / classifications.length;
-    }
+      async function classifyStatements(
+        question: string,
+        answer: string,
+        groundTruth: string[]
+      ) {
+        const context = groundTruth.join("\n");
 
-    async function classifyStatements(
-      question: string,
-      answer: string,
-      groundTruth: string[]
-    ) {
-      const context = groundTruth.join("\n");
-
-      const result = await generateObject({
-        model: model,
-        schema: ContextRecallClassificationsSchema,
-        prompt: `
+        const result = await generateObject({
+          model: model,
+          schema: ContextRecallClassificationsSchema,
+          prompt: `
 <instructions>
 Given a context and an answer, analyze each sentence in the answer and classify if the sentence can be attributed to the given context or not.
 - Use only 'Yes' (1) or 'No' (0) as a binary classification
@@ -151,9 +153,9 @@ ${context}
 
 <answer>${answer}</answer>
 </task>`.trim(),
-      });
+        });
 
-      return result.object.classifications;
-    }
-  },
-});
+        return result.object.classifications;
+      }
+    },
+  });
