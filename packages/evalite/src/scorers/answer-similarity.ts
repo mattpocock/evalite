@@ -1,3 +1,4 @@
+import type { Evalite } from "../types.js";
 import { createEmbeddingScorer } from "./base.js";
 import { cosineSimilarity, embedMany } from "ai";
 
@@ -12,29 +13,30 @@ import { cosineSimilarity, embedMany } from "ai";
  *
  * Based on the SAS paper: https://arxiv.org/pdf/2108.06130.pdf
  */
-export const answerSimilarity = createEmbeddingScorer({
-  name: "Answer Similarity",
-  description:
-    "Evaluates the similarity of the model's response to the expected answer",
-  singleTurn: async ({ output, expected, embeddingModel }) => {
-    if (!expected.referenceAnswer)
-      throw new Error("No reference answer provided");
+export const answerSimilarity =
+  createEmbeddingScorer<Evalite.Scorers.AnswerSimilarityExpected>({
+    name: "Answer Similarity",
+    description:
+      "Evaluates the similarity of the model's response to the expected answer",
+    scorer: async ({ output, expected, embeddingModel }) => {
+      if (!expected?.referenceAnswer)
+        throw new Error("No reference answer provided");
 
-    const { embeddings } = await embedMany({
-      model: embeddingModel,
-      values: [expected.referenceAnswer, output],
-    });
+      const { embeddings } = await embedMany({
+        model: embeddingModel,
+        values: [expected.referenceAnswer, output],
+      });
 
-    const [referenceEmbedding, responseEmbedding] = embeddings;
+      const [referenceEmbedding, responseEmbedding] = embeddings;
 
-    if (!referenceEmbedding || !responseEmbedding) {
-      return { score: 0 };
-    }
+      if (!referenceEmbedding || !responseEmbedding) {
+        return { score: 0 };
+      }
 
-    const score = cosineSimilarity(referenceEmbedding, responseEmbedding);
-    return {
-      score,
-      metadata: `Answer similarity score: ${score.toFixed(2)}`,
-    };
-  },
-});
+      const score = cosineSimilarity(referenceEmbedding, responseEmbedding);
+      return {
+        score,
+        metadata: `Answer similarity score: ${score.toFixed(2)}`,
+      };
+    },
+  });
