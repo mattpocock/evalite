@@ -37,3 +37,20 @@ export function createEmbeddingScorer<
     });
   };
 }
+
+export function createSimpleScorer<
+  TExpected extends object,
+  TConfig extends object = {},
+>(opts: Evalite.Scorers.SimpleScorerFactoryOpts<TExpected, TConfig>) {
+  return function (config: TConfig = {} as TConfig) {
+    return createScorer<
+      string,
+      Evalite.Scorers.SingleOrMultiTurnOutput,
+      TExpected
+    >({
+      name: opts.name,
+      description: opts.description,
+      scorer: (input) => opts.scorer({ ...input, ...config }),
+    });
+  };
+}
