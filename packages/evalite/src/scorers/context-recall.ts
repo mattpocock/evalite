@@ -1,7 +1,7 @@
 import { generateObject, jsonSchema } from "ai";
 import type { Evalite } from "../types.js";
 import { createLLMScorer } from "./base.js";
-import { isMultiTurnInput } from "./utils.js";
+import { isMultiTurnOutput } from "./utils.js";
 
 const ContextRecallClassificationsSchema = jsonSchema<{
   classifications: Evalite.Scorers.ContextRecallClassifications;
@@ -47,7 +47,7 @@ export const contextRecall =
           "No ground truth provided or the ground truth is empty"
         );
 
-      if (isMultiTurnInput(input)) {
+      if (isMultiTurnOutput(output)) {
         throw new Error(
           "Context Recall scorer does not support multi-turn input"
         );

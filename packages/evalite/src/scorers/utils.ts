@@ -1,13 +1,13 @@
 import type { Evalite } from "../types.js";
 
-export function isSingleTurnInput(
-  input: Evalite.Scorers.SingleOrMultiTurnInput
-): input is Evalite.Scorers.SingleTurnInput {
-  return typeof input === "string";
+export function isSingleTurnOutput(
+  output: Evalite.Scorers.SingleOrMultiTurnOutput
+): output is Evalite.Scorers.SingleTurnOutput {
+  return typeof output === "string";
 }
 
-export function isMultiTurnInput(
-  input: Evalite.Scorers.SingleOrMultiTurnInput
-): input is Evalite.Scorers.MultiTurnInput {
-  return Array.isArray(input);
+export function isMultiTurnOutput(
+  output: Evalite.Scorers.SingleOrMultiTurnOutput
+): output is Evalite.Scorers.MultiTurnOutput {
+  return Array.isArray(output);
 }
