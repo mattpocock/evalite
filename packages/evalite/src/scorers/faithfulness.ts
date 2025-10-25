@@ -1,7 +1,7 @@
 import { createLLMScorer } from "./base.js";
 import { generateObject, jsonSchema, type LanguageModel } from "ai";
 import type { Evalite } from "../types.js";
-import { isMultiTurnInput } from "./utils.js";
+import { isMultiTurnOutput } from "./utils.js";
 
 const StatementGeneratorOutputSchema = jsonSchema<{
   statements: string[];
@@ -73,9 +73,9 @@ export const faithfulness =
           "No ground truth provided or the ground truth is empty"
         );
 
-      if (isMultiTurnInput(input)) {
+      if (isMultiTurnOutput(output)) {
         throw new Error(
-          "Faithfulness scorer does not support multi-turn input"
+          "Faithfulness scorer does not support multi-turn output"
         );
       }
 
