@@ -763,9 +763,9 @@ export declare namespace Evalite {
    * Types for scorers and scorer-related functionality.
    */
   export namespace Scorers {
-    export type SingleTurnInput = string;
-    export type MultiTurnInput = ModelMessage[];
-    export type SingleOrMultiTurnInput = SingleTurnInput | MultiTurnInput;
+    export type SingleTurnOutput = string;
+    export type MultiTurnOutput = ModelMessage[];
+    export type SingleOrMultiTurnOutput = SingleTurnOutput | MultiTurnOutput;
 
     export interface BaseResult {
       score: number;
@@ -785,7 +785,7 @@ export declare namespace Evalite {
     }
 
     export interface LLMBasedScorerOpts<TExpected extends object>
-      extends Evalite.ScoreInput<SingleOrMultiTurnInput, string, TExpected>,
+      extends Evalite.ScoreInput<string, SingleOrMultiTurnOutput, TExpected>,
         LLMBasedScorerBaseConfig {}
 
     export interface EmbeddingBasedScorerFactoryOpts<TExpected extends object> {
@@ -801,7 +801,7 @@ export declare namespace Evalite {
     }
 
     export interface EmbeddingBasedScorerOpts<TExpected extends object>
-      extends Evalite.ScoreInput<SingleOrMultiTurnInput, string, TExpected>,
+      extends Evalite.ScoreInput<string, SingleOrMultiTurnOutput, TExpected>,
         EmbeddingBasedScorerBaseConfig {}
 
     /**
@@ -857,6 +857,17 @@ export declare namespace Evalite {
      */
     export type FaithfulnessExpected = {
       groundTruth: string[];
+    };
+
+    /**
+     * Expected data shape for tool call accuracy scorer.
+     */
+    export type ToolCallAccuracyExpected = {
+      referenceToolCalls: Array<{
+        toolName: string;
+        input?: Record<string, unknown>;
+      }>;
+      strictOrder?: boolean;
     };
   }
 }
