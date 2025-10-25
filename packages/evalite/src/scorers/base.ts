@@ -1,55 +1,39 @@
-import type { Evalite } from "../types.js";
-import type { EmbeddingModel, LanguageModel, ModelMessage } from "ai";
 import { createScorer } from "../create-scorer.js";
-import { isMultiTurn, isSingleTurn } from "./utils.js";
+import type { Evalite } from "../types.js";
 
-export function createBaseScorer<TOpts extends object = {}>({
-  name,
-  description,
-  singleTurn,
-  multiTurn,
-}: Evalite.Scorers.BaseScorerOpts<TOpts>): Evalite.Scorers.BaseFactory<TOpts> {
-  return (opts: TOpts) =>
-    createScorer<
-      string | ModelMessage[],
+export function createLLMScorer<
+  TExpected extends object,
+  TConfig extends
+    Evalite.Scorers.LLMBasedScorerBaseConfig = Evalite.Scorers.LLMBasedScorerBaseConfig,
+>(opts: Evalite.Scorers.LLMBasedScorerFactoryOpts<TExpected>) {
+  return function (config: TConfig) {
+    return createScorer<
+      Evalite.Scorers.SingleOrMultiTurnInput,
       string,
-      Evalite.Scorers.SingleTurnData | Evalite.Scorers.MultiTurnData
+      TExpected
     >({
-      name,
-      description,
-      scorer: async (evalOpts) => {
-        if (isSingleTurn(evalOpts)) {
-          if (!singleTurn)
-            throw new Error("This scorer does not support single turn inputs");
-
-          return singleTurn({
-            ...evalOpts,
-            expected: evalOpts.expected ?? {},
-            ...opts,
-          });
-        } else if (isMultiTurn(evalOpts)) {
-          if (!multiTurn)
-            throw new Error("This scorer does not support multi turn inputs");
-
-          return multiTurn({
-            ...evalOpts,
-            expected: evalOpts.expected ?? {},
-            ...opts,
-          });
-        }
-        throw new Error("Invalid scorer options");
-      },
+      name: opts.name,
+      description: opts.description,
+      scorer: (input) => opts.scorer({ ...input, model: config.model }),
     });
+  };
 }
 
-export function createLLMScorer<T extends object = {}>(
-  opts: Evalite.Scorers.BaseScorerOpts<{ model: LanguageModel } & T>
-): Evalite.Scorers.LLMBasedFactory<T> {
-  return createBaseScorer(opts);
-}
-
-export function createEmbeddingScorer<T extends object = {}>(
-  opts: Evalite.Scorers.BaseScorerOpts<{ embeddingModel: EmbeddingModel } & T>
-): Evalite.Scorers.EmbeddingBasedFactory<T> {
-  return createBaseScorer(opts);
+export function createEmbeddingScorer<
+  TExpected extends object,
+  TConfig extends
+    Evalite.Scorers.EmbeddingBasedScorerBaseConfig = Evalite.Scorers.EmbeddingBasedScorerBaseConfig,
+>(opts: Evalite.Scorers.EmbeddingBasedScorerFactoryOpts<TExpected>) {
+  return function (config: TConfig) {
+    return createScorer<
+      Evalite.Scorers.SingleOrMultiTurnInput,
+      string,
+      TExpected
+    >({
+      name: opts.name,
+      description: opts.description,
+      scorer: (input) =>
+        opts.scorer({ ...input, embeddingModel: config.embeddingModel }),
+    });
+  };
 }
