@@ -1,6 +1,6 @@
 import type { Evalite } from "evalite";
 import { expect, it, vitest } from "vitest";
-import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
+import { getSuitesAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Should set exitCode to 1 if there is a failing test", async () => {
   await using fixture = await loadFixture("failing-test");
@@ -40,12 +40,12 @@ it("Should save the result AND eval as failed in the database", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
 
   expect(evals.Failing?.[0]).toMatchObject({
     name: "Failing",
-    status: "fail" satisfies Evalite.Storage.Entities.EvalStatus,
-    results: [
+    status: "fail" satisfies Evalite.Storage.Entities.SuiteStatus,
+    evals: [
       {
         status: "fail",
       },

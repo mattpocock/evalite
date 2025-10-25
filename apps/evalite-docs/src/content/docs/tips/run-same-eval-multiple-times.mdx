@@ -1,0 +1,38 @@
+---
+title: Run Same Eval Multiple Times
+---
+
+Use `trialCount` to run each test case multiple times, measuring variance in non-deterministic evaluations.
+
+## Global Configuration
+
+Set `trialCount` in `evalite.config.ts` to apply to all evals:
+
+```ts
+// evalite.config.ts
+import { defineConfig } from "evalite/config";
+
+export default defineConfig({
+  trialCount: 3, // Run each test case 3 times
+});
+```
+
+## Per-Eval Override
+
+Override the global setting for a specific eval:
+
+```ts
+evalite("Non-deterministic eval", {
+  data: () => [{ input: "Alice", expected: "Alice" }],
+  task: async (input) => {
+    // Non-deterministic task
+    return getRandomGreeting(input);
+  },
+  scorers: [
+    /* ... */
+  ],
+  trialCount: 5, // Override config: run 5 times
+});
+```
+
+Per-eval `trialCount` takes precedence over `evalite.config.ts`.

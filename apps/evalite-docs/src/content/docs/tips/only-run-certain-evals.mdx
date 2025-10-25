@@ -1,0 +1,60 @@
+---
+title: Only Run Certain Evals
+---
+
+Skip entire evals or focus on specific test cases during development.
+
+## Skip Entire Evals
+
+Use `evalite.skip()` to skip an entire eval without running it.
+
+```ts
+evalite.skip("My Eval", {
+  data: () => [],
+  task: () => {},
+});
+```
+
+This is useful when you want to temporarily disable an eval during development or testing.
+
+## Focus on Specific Test Cases
+
+Use the `only` flag on data entries to focus on specific inputs during development.
+
+```ts
+evalite("My Eval", {
+  data: () => [
+    { input: "test1", expected: "output1" },
+    { input: "test2", expected: "output2", only: true },
+    { input: "test3", expected: "output3" },
+  ],
+  task: async (input) => {
+    // Only runs for "test2"
+  },
+});
+```
+
+When any data entry has `only: true`, only those evals will be run.
+
+## Run Specific Files
+
+Run specific eval files instead of all evals by passing file paths as arguments.
+
+```bash
+evalite my-eval.eval.ts
+```
+
+Run multiple files:
+
+```bash
+evalite eval1.eval.ts eval2.eval.ts
+```
+
+Works with `watch` and `serve` modes:
+
+```bash
+evalite watch my-eval.eval.ts
+evalite serve my-eval.eval.ts
+```
+
+This is useful when working on a specific eval and you don't want to run the entire test suite.

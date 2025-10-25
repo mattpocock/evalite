@@ -5,15 +5,15 @@ export const Route = createFileRoute("/$")({
   component: IndexRoute,
   loader: async ({ context }) => {
     const { queryClient } = context;
-    const { evals: currentEvals } = await queryClient.ensureQueryData(
+    const { suites: currentSuites } = await queryClient.ensureQueryData(
       getMenuItemsQueryOptions
     );
 
-    const firstName = currentEvals[0]?.name;
+    const firstName = currentSuites[0]?.name;
 
     if (firstName) {
       return redirect({
-        to: "/eval/$name",
+        to: "/suite/$name",
         params: {
           name: firstName,
         },
