@@ -8,8 +8,8 @@ export function createLLMScorer<
 >(opts: Evalite.Scorers.LLMBasedScorerFactoryOpts<TExpected>) {
   return function (config: TConfig) {
     return createScorer<
-      Evalite.Scorers.SingleOrMultiTurnInput,
       string,
+      Evalite.Scorers.SingleOrMultiTurnOutput,
       TExpected
     >({
       name: opts.name,
@@ -26,8 +26,8 @@ export function createEmbeddingScorer<
 >(opts: Evalite.Scorers.EmbeddingBasedScorerFactoryOpts<TExpected>) {
   return function (config: TConfig) {
     return createScorer<
-      Evalite.Scorers.SingleOrMultiTurnInput,
       string,
+      Evalite.Scorers.SingleOrMultiTurnOutput,
       TExpected
     >({
       name: opts.name,
