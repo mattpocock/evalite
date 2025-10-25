@@ -1,26 +1,13 @@
 import type { Evalite } from "../types.js";
-import type { ModelMessage, UserModelMessage } from "ai";
 
-export function isSingleTurn(
-  opts: Evalite.ScoreInput<
-    string | ModelMessage[],
-    string,
-    Evalite.Scorers.SingleTurnData | Evalite.Scorers.MultiTurnData
-  >
-): opts is Evalite.ScoreInput<string, string, Evalite.Scorers.SingleTurnData> {
-  return typeof opts.input === "string";
+export function isSingleTurnInput(
+  input: Evalite.Scorers.SingleOrMultiTurnInput
+): input is Evalite.Scorers.SingleTurnInput {
+  return typeof input === "string";
 }
 
-export function isMultiTurn(
-  opts: Evalite.ScoreInput<
-    string | ModelMessage[],
-    string,
-    Evalite.Scorers.SingleTurnData | Evalite.Scorers.MultiTurnData
-  >
-): opts is Evalite.ScoreInput<
-  ModelMessage[],
-  string,
-  Evalite.Scorers.MultiTurnData
-> {
-  return Array.isArray(opts.input);
+export function isMultiTurnInput(
+  input: Evalite.Scorers.SingleOrMultiTurnInput
+): input is Evalite.Scorers.MultiTurnInput {
+  return Array.isArray(input);
 }
