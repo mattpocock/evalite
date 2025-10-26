@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vitest -w",
     "test": "vitest run",
-    "lint": "tsc"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "evalite": "workspace:*",
