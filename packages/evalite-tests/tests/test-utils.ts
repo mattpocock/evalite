@@ -1,12 +1,11 @@
-import { DB_LOCATION } from "evalite/backend-only-constants";
 import { randomUUID } from "crypto";
+import type { Evalite } from "evalite";
+import { createInMemoryStorage } from "evalite/in-memory-storage";
+import { runEvalite } from "evalite/runner";
 import { cpSync, rmSync } from "fs";
 import path from "path";
 import { Writable } from "stream";
 import stripAnsi from "strip-ansi";
-import type { Evalite } from "evalite";
-import { runEvalite } from "evalite/runner";
-import { createInMemoryStorage } from "evalite/in-memory-storage";
 
 const FIXTURES_DIR = path.join(import.meta.dirname, "./fixtures");
 const PLAYGROUND_DIR = path.join(import.meta.dirname, "./playground");

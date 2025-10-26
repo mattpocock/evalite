@@ -2,7 +2,6 @@ import { wrapLanguageModel } from "ai";
 import type {
   LanguageModelV2,
   LanguageModelV2CallOptions,
-  LanguageModelV2Middleware,
   LanguageModelV2StreamPart,
 } from "@ai-sdk/provider";
 import { reportTrace, shouldReportTrace } from "./traces.js";

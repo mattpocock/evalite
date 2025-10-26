@@ -25,7 +25,6 @@ import {
   getResultQueryOptions,
   getServerStateQueryOptions,
 } from "~/data/queries";
-import { useServerStateUtils } from "~/hooks/use-server-state-utils";
 
 const searchSchema = z.object({
   trace: z.number().optional(),
@@ -91,7 +90,6 @@ function ResultComponent() {
     {
       data: { result, prevResult, evaluation },
     },
-    { data: serverState },
   ] = useSuspenseQueries({
     queries: [
       getResultQueryOptions({
@@ -102,11 +100,6 @@ function ResultComponent() {
       getServerStateQueryOptions,
     ],
   });
-  const serverStateUtils = useServerStateUtils(serverState);
-
-  const isRunning =
-    serverStateUtils.isRunningEvalName(name) &&
-    evaluation.created_at === timestamp;
 
   const startTime = result.traces[0]?.start_time ?? 0;
   const endTime = result.traces[result.traces.length - 1]?.end_time ?? 0;

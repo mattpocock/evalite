@@ -5,7 +5,7 @@ import { evalite } from "evalite";
 import { Levenshtein } from "autoevals";
 
 const model = new MockLanguageModelV2({
-  doGenerate: async (options) => ({
+  doGenerate: async (_options) => ({
     rawCall: { rawPrompt: null, rawSettings: {} },
     finishReason: "stop",
     usage: { inputTokens: 10, outputTokens: 20, totalTokens: 35 },

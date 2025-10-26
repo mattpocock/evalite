@@ -269,7 +269,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
 
         try {
           // Pass raw data (from closure) to scorers - allows non-serializable data
-          const { output, scores, duration, columns } = await runTask({
+          const { output, scores, columns } = await runTask({
             expected: data.expected,
             input: data.input,
             variant: undefined,

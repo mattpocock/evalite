@@ -290,6 +290,7 @@ export class EvaliteRunner {
           default:
             throw new Error(`${event.type} not allowed in ${this.state.type}`);
         }
+      // eslint-disable-next-line no-fallthrough
       case "idle": {
         switch (event.type) {
           case "RUN_BEGUN":

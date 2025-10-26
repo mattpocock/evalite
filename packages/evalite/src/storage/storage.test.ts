@@ -27,7 +27,7 @@ describe("Evalite.Storage", () => {
     testAllStorage("getMany filters by ids", async (getStorage) => {
       await using storage = await getStorage();
       const run1 = await storage.runs.create({ runType: "full" });
-      const run2 = await storage.runs.create({ runType: "partial" });
+      const _run2 = await storage.runs.create({ runType: "partial" });
 
       const runs = await storage.runs.getMany({ ids: [run1.id] });
 
@@ -63,7 +63,7 @@ describe("Evalite.Storage", () => {
       async (getStorage) => {
         await using storage = await getStorage();
         const run1 = await storage.runs.create({ runType: "full" });
-        const run2 = await storage.runs.create({ runType: "full" });
+        const _run2 = await storage.runs.create({ runType: "full" });
         const run3 = await storage.runs.create({ runType: "full" });
 
         const runsDesc = await storage.runs.getMany({
@@ -186,7 +186,7 @@ describe("Evalite.Storage", () => {
         name: "eval-1",
         filepath: "/test/path1.eval.ts",
       });
-      const eval2 = await storage.evals.create({
+      const _eval2 = await storage.evals.create({
         runId: run.id,
         name: "eval-2",
         filepath: "/test/path2.eval.ts",
@@ -247,7 +247,7 @@ describe("Evalite.Storage", () => {
         name: "eval-1",
         filepath: "/test/path.eval.ts",
       });
-      const eval2 = await storage.evals.create({
+      const _eval2 = await storage.evals.create({
         runId: run.id,
         name: "eval-2",
         filepath: "/test/path.eval.ts",

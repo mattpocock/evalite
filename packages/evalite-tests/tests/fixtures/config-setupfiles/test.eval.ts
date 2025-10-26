@@ -8,7 +8,7 @@ evalite("Env Var Test", {
       expected: process.env.TEST_ENV_VAR,
     },
   ],
-  task: async (input) => {
+  task: async (_input) => {
     return process.env.TEST_ENV_VAR as string;
   },
   scorers: [Levenshtein],

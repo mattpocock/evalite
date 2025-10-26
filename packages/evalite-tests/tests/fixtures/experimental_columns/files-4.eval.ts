@@ -1,5 +1,4 @@
 import { evalite } from "evalite";
-import { reportTrace } from "evalite/traces";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 

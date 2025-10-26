@@ -12,7 +12,7 @@ evalite("Long", {
       expected: `Berlin`,
     },
   ],
-  task: async (input) => {
+  task: async (_input) => {
     await setTimeout(2000);
     return "Paris";
   },

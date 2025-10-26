@@ -5,7 +5,7 @@ import { evalite } from "evalite";
 import { traceAISDKModel } from "evalite/ai-sdk";
 
 const model = new MockLanguageModelV2({
-  doStream: async (options) => ({
+  doStream: async (_options) => ({
     stream: simulateReadableStream({
       chunks: [
         { type: "text-delta", id: "1", delta: "Hello" },

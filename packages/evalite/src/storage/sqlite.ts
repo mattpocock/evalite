@@ -67,19 +67,19 @@ const createDatabase = (url: string): BetterSqlite3.Database => {
     db.exec(
       `ALTER TABLE evals ADD COLUMN status TEXT NOT NULL DEFAULT 'success';`
     );
-  } catch (e) {}
+  } catch {}
 
   // Add status key to results table
   try {
     db.exec(
       `ALTER TABLE results ADD COLUMN status TEXT NOT NULL DEFAULT 'success';`
     );
-  } catch (e) {}
+  } catch {}
 
   // Add rendered_columns key to results table
   try {
     db.exec(`ALTER TABLE results ADD COLUMN rendered_columns TEXT`);
-  } catch (e) {}
+  } catch {}
 
   // Rename prompt_tokens/completion_tokens to input_tokens/output_tokens and add total_tokens
   try {
@@ -88,21 +88,21 @@ const createDatabase = (url: string): BetterSqlite3.Database => {
       ALTER TABLE traces RENAME COLUMN completion_tokens TO output_tokens;
       ALTER TABLE traces ADD COLUMN total_tokens INTEGER;
     `);
-  } catch (e) {}
+  } catch {}
 
   // Add variant_name and variant_group columns to evals table
   try {
     db.exec(`ALTER TABLE evals ADD COLUMN variant_name TEXT`);
-  } catch (e) {}
+  } catch {}
 
   try {
     db.exec(`ALTER TABLE evals ADD COLUMN variant_group TEXT`);
-  } catch (e) {}
+  } catch {}
 
   // Add trial_index column to results table
   try {
     db.exec(`ALTER TABLE results ADD COLUMN trial_index INTEGER`);
-  } catch (e) {}
+  } catch {}
 
   return db;
 };

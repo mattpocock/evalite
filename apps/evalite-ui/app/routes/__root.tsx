@@ -3,7 +3,6 @@ import {
   queryOptions,
   useQueryClient,
   useSuspenseQueries,
-  useSuspenseQuery,
 } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
@@ -32,7 +31,6 @@ import {
   getServerStateQueryOptions,
 } from "~/data/queries";
 import { useSubscribeToSocket } from "~/data/use-subscribe-to-socket";
-import { useServerStateUtils } from "~/hooks/use-server-state-utils";
 import "../tailwind.css";
 
 const TanStackRouterDevtools =
@@ -125,7 +123,6 @@ export default function App() {
     {
       data: { groupedEvals, score, prevScore, evalStatus, hasScores },
     },
-    { data: serverState },
   ] = useSuspenseQueries({
     queries: [getMenuItemsWithSelect, getServerStateQueryOptions],
   });
@@ -169,7 +166,7 @@ export default function App() {
           <SidebarGroup>
             <SidebarGroupLabel>Evals</SidebarGroupLabel>
             <SidebarMenu>
-              {groupedEvals.map((item, idx) => {
+              {groupedEvals.map((item) => {
                 if (item.type === "single") {
                   return (
                     <EvalSidebarItem

@@ -1,6 +1,5 @@
-import { evalite, EvaliteFile, type Evalite } from "evalite";
-import { Levenshtein } from "autoevals";
-import { reportTrace, reportTraceLocalStorage } from "evalite/traces";
+import { evalite, EvaliteFile } from "evalite";
+import { reportTrace } from "evalite/traces";
 import path from "path";
 
 evalite("Export", {
@@ -13,7 +12,7 @@ evalite("Export", {
       },
     ];
   },
-  task: async (input) => {
+  task: async (_input) => {
     const imagePath = path.join(import.meta.dirname, "test.png");
 
     // Report a trace with file

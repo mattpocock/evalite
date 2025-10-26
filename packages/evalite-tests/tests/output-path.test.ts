@@ -1,9 +1,8 @@
-import { expect, it } from "vitest";
-import { runEvalite } from "evalite/runner";
-import { captureStdout, loadFixture } from "./test-utils.js";
 import { existsSync } from "fs";
 import { readFile } from "fs/promises";
 import path from "path";
+import { expect, it } from "vitest";
+import { loadFixture } from "./test-utils.js";
 
 it("Should export results to JSON when outputPath is specified", async () => {
   await using fixture = await loadFixture("basics");

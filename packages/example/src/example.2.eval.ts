@@ -3,7 +3,7 @@ import { generateText } from "ai";
 import { evalite } from "evalite";
 import { createStorage } from "unstorage";
 import fsDriver from "unstorage/drivers/fs";
-import { Factuality, Levenshtein } from "autoevals";
+import { Factuality } from "autoevals";
 import { cacheModel } from "./cache-model.js";
 import { traceAISDKModel } from "evalite/ai-sdk";
 

@@ -1,8 +1,5 @@
 import { evalite } from "evalite";
 import { Levenshtein } from "autoevals";
-import { setTimeout } from "node:timers/promises";
-import { createReadStream } from "node:fs";
-import path from "node:path";
 
 evalite("Stream", {
   data: () => {
@@ -13,7 +10,7 @@ evalite("Stream", {
       },
     ];
   },
-  task: async (input) => {
+  task: async (_input) => {
     const arr = ["a", "b", "c", "d", "e", "f"];
 
     const stream = ReadableStream.from(arr);

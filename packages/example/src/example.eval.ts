@@ -1,5 +1,5 @@
 import { openai } from "@ai-sdk/openai";
-import { generateText, streamText } from "ai";
+import { streamText } from "ai";
 import { evalite } from "evalite";
 import { createStorage } from "unstorage";
 import fsDriver from "unstorage/drivers/fs";

@@ -1,5 +1,4 @@
 import { evalite } from "evalite";
-import { reportTrace } from "evalite/traces";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -11,7 +10,7 @@ evalite("Files", {
       },
     ];
   },
-  task: async (input) => {
+  task: async (_input) => {
     return readFileSync(path.join(import.meta.dirname, "test.png"));
   },
   scorers: [],

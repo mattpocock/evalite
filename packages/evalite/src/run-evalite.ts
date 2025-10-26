@@ -2,7 +2,6 @@ import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { Writable } from "stream";
 import { createVitest, registerConsoleShortcuts } from "vitest/node";
-import { createInMemoryStorage } from "./storage/in-memory.js";
 import { computeAverageScores } from "./storage/utils.js";
 import { DB_LOCATION, FILES_LOCATION } from "./backend-only-constants.js";
 import { DEFAULT_SERVER_PORT } from "./constants.js";
