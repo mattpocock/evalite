@@ -29,7 +29,8 @@
   "scripts": {
     "dev": "tsc -w",
     "build": "tsc && chmod +x ./dist/bin.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
   },
   "exports": {
     ".": "./dist/index.js",
