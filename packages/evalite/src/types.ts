@@ -880,5 +880,13 @@ export declare namespace Evalite {
       extraPenalty: number;
       wrongPenalty: number;
     };
+
+    export type ExactMatchExpected = {
+      expected: string;
+    };
+
+    export type ContainsExpected = {
+      expected: string;
+    };
   }
 }
