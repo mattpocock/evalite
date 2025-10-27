@@ -328,7 +328,7 @@ const EvalSidebarItem = (props: {
             : "flex justify-between text-sm px-2 py-1 rounded hover:bg-foreground/10 active:bg-foreground/20 transition-colors"
         }
         activeProps={{
-          className: "bg-foreground/20! text-foreground/80",
+          className: "bg-foreground/20!",
         }}
       >
         <span>{props.variantName || props.name}</span>
