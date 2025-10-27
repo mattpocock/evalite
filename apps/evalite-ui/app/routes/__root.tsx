@@ -3,17 +3,19 @@ import {
   queryOptions,
   useQueryClient,
   useSuspenseQueries,
-  useSuspenseQuery,
 } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
   createRootRouteWithContext,
   Link,
   Outlet,
+  useRouter,
 } from "@tanstack/react-router";
+import { z } from "zod";
+import { zodValidator } from "@tanstack/zod-adapter";
 
 import type { Evalite } from "evalite/types";
-import { FolderOpen } from "lucide-react";
+import { FolderOpen, Search, X } from "lucide-react";
 import { lazy } from "react";
 import Logo from "~/components/logo";
 import { getScoreState, Score, type ScoreState } from "~/components/score";
@@ -32,8 +34,14 @@ import {
   getServerStateQueryOptions,
 } from "~/data/queries";
 import { useSubscribeToSocket } from "~/data/use-subscribe-to-socket";
-import { useServerStateUtils } from "~/hooks/use-server-state-utils";
 import "../tailwind.css";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+  InputGroupText,
+} from "~/components/ui/input-group";
 
 const TanStackRouterDevtools =
   process.env.NODE_ENV === "production"
@@ -43,6 +51,10 @@ const TanStackRouterDevtools =
           default: res.TanStackRouterDevtools,
         }))
       );
+
+const searchSchema = z.object({
+  q: z.coerce.string().optional(),
+});
 
 type SuiteWithState = Evalite.SDK.GetMenuItemsResultSuite & {
   state: ScoreState;
@@ -112,6 +124,7 @@ export const Route = createRootRouteWithContext<{
   queryClient: QueryClient;
 }>()({
   component: App,
+  validateSearch: zodValidator(searchSchema),
   loader: async ({ context }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(getMenuItemsQueryOptions),
@@ -129,9 +142,43 @@ export default function App() {
     queries: [getMenuItemsWithSelect],
   });
 
+  const search = Route.useSearch();
+  const router = useRouter();
+  const searchQuery = search.q;
+
   const queryClient = useQueryClient();
 
   useSubscribeToSocket(queryClient);
+
+  const filteredGroupedEvals = searchQuery
+    ? groupedEvals.filter((item) => {
+        const query = searchQuery.toLowerCase();
+        if (item.type === "single") {
+          return item.suite.name.toLowerCase().includes(query);
+        } else {
+          return (
+            item.groupName.toLowerCase().includes(query) ||
+            item.variants.some(
+              (v) =>
+                v.name.toLowerCase().includes(query) ||
+                v.variantName?.toLowerCase().includes(query)
+            )
+          );
+        }
+      })
+    : groupedEvals;
+
+  function handleSearchChange(value: string) {
+    const newSearch = new URLSearchParams(window.location.search);
+    if (value) {
+      newSearch.set("q", value);
+    } else {
+      newSearch.delete("q");
+    }
+    const searchString = newSearch.toString();
+    const newUrl = `${window.location.pathname}${searchString ? `?${searchString}` : ""}`;
+    router.history.replace(newUrl);
+  }
 
   return (
     <SidebarProvider className="w-full">
@@ -166,9 +213,37 @@ export default function App() {
             </div>
           </SidebarGroup>
           <SidebarGroup>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <InputGroup className="h-8">
+                  <InputGroupAddon align="inline-start">
+                    <InputGroupText>
+                      <Search />
+                    </InputGroupText>
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    placeholder="Search"
+                    value={searchQuery ?? ""}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                  />
+                  {searchQuery && (
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupButton
+                        size="icon-xs"
+                        onClick={() => handleSearchChange("")}
+                      >
+                        <X />
+                      </InputGroupButton>
+                    </InputGroupAddon>
+                  )}
+                </InputGroup>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
+          <SidebarGroup>
             <SidebarGroupLabel>Evals</SidebarGroupLabel>
             <SidebarMenu>
-              {groupedEvals.map((item, idx) => {
+              {filteredGroupedEvals.map((item) => {
                 if (item.type === "single") {
                   return (
                     <EvalSidebarItem
@@ -238,12 +313,15 @@ const EvalSidebarItem = (props: {
   isVariant?: boolean;
   hasScores: boolean;
 }) => {
+  const search = Route.useSearch();
+
   return (
     <SidebarMenuItem key={props.name}>
       <Link
         preload="intent"
         to={`/suite/$name`}
         params={{ name: props.name }}
+        search={{ q: search.q }}
         className={
           props.isVariant
             ? "flex justify-between text-sm px-2 py-1 pl-7 rounded hover:bg-foreground/10 active:bg-foreground/20 transition-colors"
