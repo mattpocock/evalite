@@ -55,6 +55,7 @@ export const loadFixture = async (
       outputPath?: string;
       hideTable?: boolean;
       configDebugMode?: boolean;
+      disableServer?: boolean;
     }) => {
       vitestInstance = await runEvalite({
         ...opts,
