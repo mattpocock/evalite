@@ -29,6 +29,8 @@ import { useServerStateUtils } from "~/hooks/use-server-state-utils";
 
 const searchSchema = z.object({
   trace: z.number().optional(),
+  timestamp: z.string().optional(),
+  q: z.coerce.string().optional(),
 });
 
 export const Route = createFileRoute("/suite/$name/eval/$evalIndex")({
