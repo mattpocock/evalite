@@ -1,27 +1,23 @@
-interface Example {
-  input: unknown;
-  output: unknown;
-}
-
-type ExtractPlaceholders<S extends string> =
-  S extends `${infer _Start}{${infer Key}}${infer Rest}`
-    ? Key | ExtractPlaceholders<Rest>
-    : never;
+import type { Evalite } from "../types.js";
 
 export function promptBuilder<
   PromptT extends string,
   const TaskT extends readonly string[] | undefined = undefined,
->(config: { prompt: PromptT; examples?: Example[]; task?: TaskT }) {
+>(config: {
+  prompt: PromptT;
+  examples?: Evalite.Scorers.PromptBuilder.Example[];
+  task?: TaskT;
+}) {
   const { prompt, examples = [], task } = config;
 
   return (
-    values:
-      | ExtractPlaceholders<PromptT>
-      | (TaskT extends readonly string[] ? TaskT[number] : never) extends never
+    values: Evalite.Scorers.PromptBuilder.RequiredKeys<
+      PromptT,
+      TaskT
+    > extends never
       ? Record<string, never>
       : Record<
-          | ExtractPlaceholders<PromptT>
-          | (TaskT extends readonly string[] ? TaskT[number] : never),
+          Evalite.Scorers.PromptBuilder.RequiredKeys<PromptT, TaskT>,
           unknown
         >
   ): string => {
