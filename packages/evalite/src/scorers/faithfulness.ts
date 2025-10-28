@@ -64,10 +64,22 @@ const generateStatementsPrompt = promptBuilder({
       },
       output: {
         statements: [
-          "Albert Einstein was a German-born theoretical physicist.",
-          "Albert Einstein is recognized as one of the greatest and most influential physicists of all time.",
-          "Albert Einstein was best known for developing the theory of relativity.",
-          "Albert Einstein also made important contributions to the development of the theory of quantum mechanics.",
+          {
+            statement:
+              "Albert Einstein was a German-born theoretical physicist.",
+          },
+          {
+            statement:
+              "Albert Einstein is recognized as one of the greatest and most influential physicists of all time.",
+          },
+          {
+            statement:
+              "Albert Einstein was best known for developing the theory of relativity.",
+          },
+          {
+            statement:
+              "Albert Einstein also made important contributions to the development of the theory of quantum mechanics.",
+          },
         ],
       },
     },
