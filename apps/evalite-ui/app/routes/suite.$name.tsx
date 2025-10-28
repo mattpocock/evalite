@@ -33,6 +33,7 @@ import type { Evalite } from "evalite";
 
 const searchSchema = z.object({
   timestamp: z.string().optional(),
+  q: z.coerce.string().optional(),
 });
 
 export const Route = createFileRoute("/suite/$name")({
