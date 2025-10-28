@@ -7,6 +7,7 @@ import stripAnsi from "strip-ansi";
 import type { Evalite } from "evalite";
 import { runEvalite } from "evalite/runner";
 import { createInMemoryStorage } from "evalite/in-memory-storage";
+import type { Vitest } from "vitest/node";
 
 const FIXTURES_DIR = path.join(import.meta.dirname, "./fixtures");
 const PLAYGROUND_DIR = path.join(import.meta.dirname, "./playground");
@@ -29,11 +30,17 @@ export const loadFixture = async (
 
   const captured = captureStdout();
 
+  let vitestInstance: Vitest | undefined = undefined;
+
   return {
     dir: dirPath,
     storage,
     getOutput: () => captured.getOutput(),
-    [Symbol.dispose]: () => {
+    getVitest: () => vitestInstance,
+    [Symbol.asyncDispose]: async () => {
+      if (vitestInstance) {
+        await vitestInstance.close();
+      }
       rmSync(dirPath, {
         recursive: true,
         force: true,
@@ -49,13 +56,18 @@ export const loadFixture = async (
       outputPath?: string;
       hideTable?: boolean;
       configDebugMode?: boolean;
+      disableServer?: boolean;
     }) => {
-      await runEvalite({
+      vitestInstance = await runEvalite({
         ...opts,
         cwd: dirPath,
         storage,
         testOutputWritable: captured.writable,
       });
+      return vitestInstance;
+    },
+    waitForTestRunEnd: async (): Promise<void> => {
+      return vitestInstance?.waitForTestRunEnd();
     },
   };
 };
@@ -75,6 +87,20 @@ export const captureStdout = () => {
     writable,
     getOutput: () => stripAnsi(output),
   };
+};
+
+/**
+ * Trigger a watch mode rerun and wait for it to complete.
+ * Gets test specifications from Vitest state and triggers a rerun.
+ */
+export const triggerWatchModeRerun = async (vitest: Vitest) => {
+  const testFiles = vitest.state.getFilepaths();
+  const specs = testFiles.flatMap((filepath) =>
+    vitest.getModuleSpecifications(filepath)
+  );
+  await vitest.rerunTestSpecifications(specs, true);
+
+  await vitest.waitForTestRunEnd();
 };
 
 export interface EvalWithInlineResults extends Evalite.Storage.Entities.Eval {

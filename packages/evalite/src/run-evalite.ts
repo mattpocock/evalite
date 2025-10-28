@@ -200,6 +200,7 @@ export const runEvalite = async (opts: {
   hideTable?: boolean;
   storage?: Evalite.Storage;
   configDebugMode?: boolean;
+  disableServer?: boolean;
 }) => {
   const cwd = opts.cwd ?? process.cwd();
   const filesLocation = path.join(cwd, FILES_LOCATION);
@@ -234,8 +235,9 @@ export const runEvalite = async (opts: {
   let server: ReturnType<typeof createServer> | undefined = undefined;
 
   if (
-    opts.mode === "watch-for-file-changes" ||
-    opts.mode === "run-once-and-serve"
+    !opts.disableServer &&
+    (opts.mode === "watch-for-file-changes" ||
+      opts.mode === "run-once-and-serve")
   ) {
     server = createServer({
       storage: storage,
@@ -358,6 +360,8 @@ export const runEvalite = async (opts: {
       process.exit(exitCode);
     }
   }
+
+  return vitest;
 };
 
 /**

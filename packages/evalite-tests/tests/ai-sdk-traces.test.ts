@@ -2,7 +2,7 @@ import { assert, expect, it } from "vitest";
 import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Should report traces from generateText using traceAISDKModel", async () => {
-  using fixture = await loadFixture("ai-sdk-traces");
+  await using fixture = await loadFixture("ai-sdk-traces");
 
   await fixture.run({
     mode: "run-once-and-exit",
@@ -26,7 +26,7 @@ it("Should report traces from generateText using traceAISDKModel", async () => {
 });
 
 it("Should report traces from streamText using traceAISDKModel", async () => {
-  using fixture = await loadFixture("ai-sdk-traces-stream");
+  await using fixture = await loadFixture("ai-sdk-traces-stream");
 
   await fixture.run({
     mode: "run-once-and-exit",
