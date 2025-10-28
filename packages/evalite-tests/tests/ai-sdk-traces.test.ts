@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import { getSuitesAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Should report traces from generateText using traceAISDKModel", async () => {
-  using fixture = await loadFixture("ai-sdk-traces");
+  await using fixture = await loadFixture("ai-sdk-traces");
 
   await fixture.run({
     mode: "run-once-and-exit",
