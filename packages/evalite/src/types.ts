@@ -780,6 +780,18 @@ export declare namespace Evalite {
       metadata?: unknown;
     }
 
+    export interface SimpleScorerFactoryOpts<
+      TExpected extends object,
+      TConfig extends object = {},
+    > {
+      name: string;
+      description?: string;
+      scorer: (
+        input: Evalite.ScoreInput<string, SingleOrMultiTurnOutput, TExpected> &
+          TConfig
+      ) => Evalite.MaybePromise<Evalite.UserProvidedScoreWithMetadata>;
+    }
+
     export interface LLMBasedScorerFactoryOpts<TExpected extends object> {
       name: string;
       description?: string;
@@ -867,15 +879,22 @@ export declare namespace Evalite {
       groundTruth: string[];
     };
 
-    /**
-     * Expected data shape for tool call accuracy scorer.
-     */
+    export type ToolCall = {
+      toolName: string;
+      input?: unknown;
+    };
+
     export type ToolCallAccuracyExpected = {
-      referenceToolCalls: Array<{
-        toolName: string;
-        input?: Record<string, unknown>;
-      }>;
-      strictOrder?: boolean;
+      referenceToolCalls: ToolCall[];
+    };
+
+    export type ToolCallAccuracyMode = "exact" | "flexible";
+
+    export type ToolCallAccuracyWeights = {
+      exact: number;
+      nameOnly: number;
+      extraPenalty: number;
+      wrongPenalty: number;
     };
   }
 }
