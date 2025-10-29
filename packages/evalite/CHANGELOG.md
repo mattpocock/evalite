@@ -1,5 +1,11 @@
 # evalite
 
+## 0.17.1
+
+### Patch Changes
+
+- 28fc857: Fixed a bug where errors in data() were not reported
+
 ## 0.17.0
 
 ### Minor Changes
