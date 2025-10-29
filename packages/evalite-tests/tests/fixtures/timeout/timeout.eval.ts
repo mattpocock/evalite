@@ -9,9 +9,9 @@ evalite("Timeout", {
       },
     ];
   },
-  task: async (input) => {
+  task: async (_input) => {
     // This promise will never resolve, simulating a timeout
-    return new Promise((resolve) => {
+    return new Promise((_resolve) => {
       // Never calling resolve() to simulate a hang/timeout
     });
   },

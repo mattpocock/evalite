@@ -8,7 +8,7 @@ evalite("Precedence Test", {
       expected: "evalite",
     },
   ],
-  task: async (input) => {
+  task: async (_input) => {
     return process.env.SETUP_ORDER as string;
   },
   scorers: [Levenshtein],

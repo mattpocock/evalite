@@ -1,15 +1,13 @@
-import { runEvalite } from "./run-evalite.js";
-import { buildApplication, buildCommand, buildRouteMap } from "@stricli/core";
 import {
   buildInstallCommand,
   buildUninstallCommand,
 } from "@stricli/auto-complete";
+import { buildApplication, buildCommand, buildRouteMap } from "@stricli/core";
 import { createRequire } from "node:module";
-import { exportStaticUI } from "./export-static.js";
-import { createSqliteStorage } from "./storage/sqlite.js";
-import { createInMemoryStorage } from "./storage/in-memory.js";
-import path from "node:path";
 import { loadEvaliteConfig } from "./config.js";
+import { exportStaticUI } from "./export-static.js";
+import { runEvalite } from "./run-evalite.js";
+import { createInMemoryStorage } from "./storage/in-memory.js";
 
 const packageJson = createRequire(import.meta.url)(
   "../package.json"

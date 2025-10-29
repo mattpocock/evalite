@@ -13,7 +13,7 @@ evalite("Columns", {
       },
     ];
   },
-  task: async (input) => {
+  task: async (_input) => {
     return {
       last: 123,
     };

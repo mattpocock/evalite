@@ -10,7 +10,7 @@ evalite("Failing", {
       },
     ];
   },
-  task: async (input) => {
+  task: async (_input) => {
     await setTimeout(500);
     throw new Error("This is a failing test");
   },

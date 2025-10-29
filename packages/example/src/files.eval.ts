@@ -7,7 +7,7 @@ evalite("Files", {
       input: "X",
     },
   ],
-  task: async (input) => {
+  task: async (_input) => {
     return EvaliteFile.fromPath(path.join(import.meta.dirname, "test.png"));
   },
   scorers: [],

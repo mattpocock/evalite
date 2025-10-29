@@ -183,7 +183,7 @@ export default class EvaliteReporter implements Reporter {
     write("\n");
   }
 
-  onWatcherRerun(files: string[], trigger?: string): void {
+  onWatcherRerun(files: string[], _trigger?: string): void {
     this.runner.sendEvent({
       type: "RUN_BEGUN",
       filepaths: files,
@@ -194,7 +194,7 @@ export default class EvaliteReporter implements Reporter {
   onTestRunEnd = async (
     testModules: ReadonlyArray<TestModule>,
     unhandledErrors: ReadonlyArray<SerializedError>,
-    reason: TestRunEndReason
+    _reason: TestRunEndReason
   ) => {
     this.runner.sendEvent({
       type: "RUN_ENDED",
@@ -264,11 +264,11 @@ export default class EvaliteReporter implements Reporter {
     }
   }
 
-  onTestSuiteReady(testSuite: TestSuite): void {
+  onTestSuiteReady(_testSuite: TestSuite): void {
     return;
   }
 
-  onTestSuiteResult(testSuite: TestSuite): void {
+  onTestSuiteResult(_testSuite: TestSuite): void {
     return;
   }
 

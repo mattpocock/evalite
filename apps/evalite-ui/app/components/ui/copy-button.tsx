@@ -1,12 +1,7 @@
+import { CheckIcon, CopyIcon } from "lucide-react";
 import * as React from "react";
-import { CopyIcon, CheckIcon } from "lucide-react";
-import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { cn } from "~/lib/utils";
 
 interface CopyButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {

@@ -6,7 +6,7 @@ evalite("Failing In Data", {
   data: () => {
     throw new Error("This is a failing test");
   },
-  task: async (input) => {
+  task: async (_input) => {
     await setTimeout(500);
     return "def";
   },

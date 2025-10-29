@@ -54,16 +54,7 @@ export function MyLineChart(props: {
           type="linear"
           className="--var"
           strokeWidth={1}
-          activeDot={({
-            points,
-            payload,
-            height,
-            width,
-            className,
-            dataKey,
-            key,
-            ...dotProps
-          }) => {
+          activeDot={({ payload, key, ...dotProps }) => {
             const onClick = () => {
               props.onDotClick({ date: payload.date });
             };
