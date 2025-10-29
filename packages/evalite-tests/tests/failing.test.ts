@@ -33,6 +33,44 @@ it("Should report a failing test", async () => {
   expect(fixture.getOutput()).not.toContain("Input");
 });
 
+it("Should report a failing test in data()", async () => {
+  await using fixture = await loadFixture("failing-test-in-data");
+
+  const exit = vitest.fn();
+  globalThis.process.exit = exit as any;
+
+  await fixture.run({
+    mode: "run-once-and-exit",
+  });
+
+  expect(fixture.getOutput()).toContain("failing-test.eval.ts");
+  expect(fixture.getOutput()).toContain("Score  ✖ (1 failed)");
+
+  // Should not display a table
+  expect(fixture.getOutput()).not.toContain("Input");
+});
+
+it("Should report a failing test in data() in watch mode", async () => {
+  await using fixture = await loadFixture("failing-test-in-data");
+
+  const exit = vitest.fn();
+  globalThis.process.exit = exit as any;
+
+  await fixture.run({
+    mode: "watch-for-file-changes",
+  });
+
+  console.log(fixture.getOutput());
+
+  expect(fixture.getOutput()).toContain("failing-test.eval.ts");
+  expect(fixture.getOutput()).toContain("Score  ✖ (1 failed)");
+
+  // Should not display a table
+  expect(fixture.getOutput()).not.toContain("Input");
+
+  await fixture.waitForTestRunEnd();
+});
+
 it("Should save the result AND eval as failed in the database", async () => {
   await using fixture = await loadFixture("failing-test");
 
