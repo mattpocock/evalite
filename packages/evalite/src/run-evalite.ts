@@ -364,6 +364,8 @@ export const runEvalite = async (opts: {
     if (typeof exitCode === "number") {
       process.exit(exitCode);
     }
+
+    return vitest;
   }
 
   return vitest;
