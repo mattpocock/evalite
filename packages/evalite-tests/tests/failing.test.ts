@@ -60,8 +60,6 @@ it("Should report a failing test in data() in watch mode", async () => {
     mode: "watch-for-file-changes",
   });
 
-  console.log(fixture.getOutput());
-
   expect(fixture.getOutput()).toContain("failing-test.eval.ts");
   expect(fixture.getOutput()).toContain("Score  ✖ (1 failed)");
 
