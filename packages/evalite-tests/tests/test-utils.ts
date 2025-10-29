@@ -62,8 +62,9 @@ export const loadFixture = async (
         cwd: dirPath,
         storage,
         testOutputWritable: captured.writable,
+        disableServer: true,
       });
-      return vitestInstance;
+      return vitestInstance!;
     },
     waitForTestRunEnd: async (): Promise<void> => {
       return vitestInstance?.waitForTestRunEnd();

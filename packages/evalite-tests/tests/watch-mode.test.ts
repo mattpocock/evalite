@@ -8,7 +8,6 @@ it("Should handle watch mode reruns", async () => {
   // vitest.start() waits for initial run to complete before returning
   const vitest = await fixture.run({
     mode: "watch-for-file-changes",
-    disableServer: true,
   });
 
   // Get the initial run (should already exist)
@@ -28,4 +27,20 @@ it("Should handle watch mode reruns", async () => {
   expect(runs).toHaveLength(2);
   expect(runs[0]?.runType).toBe("full");
   expect(runs[1]?.runType).toBe("partial");
-}, 10000);
+});
+
+it("Should display errors in watch mode", async () => {
+  await using fixture = await loadFixture("watch-mode-fail");
+
+  const vitest = await fixture.run({
+    mode: "watch-for-file-changes",
+  });
+
+  const output1 = fixture.getOutput();
+  expect(output1).toContain("This is a failing test");
+
+  await triggerWatchModeRerun(vitest);
+
+  const output2 = fixture.getOutput();
+  expect(output2).toContain("This is a failing test");
+});

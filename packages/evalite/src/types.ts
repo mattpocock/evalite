@@ -197,12 +197,20 @@ export declare namespace Evalite {
     opts: ScoreInput<TInput, TOutput, TExpected>
   ) => MaybePromise<Score>;
 
+  export type DataShape<TInput, TExpected> = {
+    input: TInput;
+    expected?: TExpected;
+    only?: boolean;
+  };
+
+  export type DataShapeAsyncResolver<TInput, TExpected> = () => MaybePromise<
+    DataShape<TInput, TExpected>[]
+  >;
+
   export type RunnerOpts<TInput, TOutput, TExpected, TVariant = undefined> = {
     data:
-      | { input: TInput; expected?: TExpected; only?: boolean }[]
-      | (() => MaybePromise<
-          { input: TInput; expected?: TExpected; only?: boolean }[]
-        >);
+      | DataShape<TInput, TExpected>[]
+      | DataShapeAsyncResolver<TInput, TExpected>;
     task: Task<TInput, TOutput, TVariant>;
     scorers?: Array<
       | Scorer<TInput, TOutput, TExpected>

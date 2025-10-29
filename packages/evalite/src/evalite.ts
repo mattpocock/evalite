@@ -134,6 +134,32 @@ evalite.each = <TVariant>(
   };
 };
 
+type Result<TSuccess, TFailure> =
+  | {
+      success: true;
+      data: TSuccess;
+    }
+  | {
+      success: false;
+      error: TFailure;
+    };
+
+const resolveData = async <TInput, TExpected>(
+  datasetFunction: Evalite.DataShapeAsyncResolver<TInput, TExpected>
+): Promise<Result<Evalite.DataShape<TInput, TExpected>[], Error>> => {
+  try {
+    return {
+      success: true,
+      data: await datasetFunction(),
+    };
+  } catch (e) {
+    return {
+      success: false,
+      error: e as Error,
+    };
+  }
+};
+
 function registerEvalite<TInput, TOutput, TExpected>(
   evalName: string,
   opts: Evalite.RunnerOpts<TInput, TOutput, TExpected>,
@@ -144,19 +170,52 @@ function registerEvalite<TInput, TOutput, TExpected>(
   } = {}
 ) {
   const describeFn = vitestOpts.modifier === "skip" ? describe.skip : describe;
-  const datasetPromise =
+  const datasetPromise: Promise<
+    Result<Evalite.DataShape<TInput, TExpected>[], Error>
+  > =
     vitestOpts.modifier === "skip"
-      ? Promise.resolve([])
+      ? Promise.resolve({ success: true, data: [] })
       : typeof opts.data === "function"
-        ? opts.data()
-        : Promise.resolve(opts.data);
+        ? resolveData(opts.data)
+        : Promise.resolve({ success: true, data: opts.data });
 
   const fullEvalName = vitestOpts.variantName
     ? `${evalName} [${vitestOpts.variantName}]`
     : evalName;
 
   return describeFn(fullEvalName, async () => {
-    const dataset = await datasetPromise;
+    const datasetResult = await datasetPromise;
+
+    if (!datasetResult.success) {
+      it(fullEvalName, async ({ annotate, task }) => {
+        await annotate(
+          serializeAnnotation({
+            type: "EVAL_SUBMITTED",
+            eval: {
+              suiteName: fullEvalName,
+              filepath: task.file.filepath,
+              order: 0,
+              status: "fail",
+              variantName: vitestOpts.variantName,
+              variantGroup: vitestOpts.variantGroup,
+              trialIndex: undefined,
+              duration: 0,
+              expected: null,
+              input: null,
+              output: datasetResult.error,
+              scores: [],
+              traces: [],
+              renderedColumns: [],
+            },
+          })
+        );
+
+        throw datasetResult.error;
+      });
+      return;
+    }
+
+    const dataset = datasetResult.data;
 
     // Filter dataset if any entry has `only: true`
     const hasOnlyFlag = dataset.some((d) => d.only === true);
