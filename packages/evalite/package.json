@@ -47,7 +47,8 @@
     "./sqlite-storage": "./dist/storage/sqlite.js",
     "./in-memory-storage": "./dist/storage/in-memory.js",
     "./env-setup-file": "./dist/env-setup-file.js",
-    "./scorers": "./dist/scorers/index.js"
+    "./scorers": "./dist/scorers/index.js",
+    "./_internal": "./dist/internal.js"
   },
   "dependencies": {
     "@ai-sdk/provider": "^2.0.0",
