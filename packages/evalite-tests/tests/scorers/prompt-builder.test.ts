@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { promptBuilder } from "evalite/scorers";
+import { promptBuilder } from "evalite/_internal";
 
 describe("promptBuilder", () => {
   describe("XML input formatting", () => {
