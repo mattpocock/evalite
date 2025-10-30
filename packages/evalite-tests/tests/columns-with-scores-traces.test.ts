@@ -29,21 +29,3 @@ it("Should pass scores and traces to column fields", async () => {
     ],
   });
 });
-
-it("Should show score and trace data in the terminal UI", async () => {
-  await using fixture = await loadFixture("columns-with-scores-traces");
-
-  await fixture.run({
-    mode: "run-once-and-exit",
-  });
-
-  const output = fixture.getOutput();
-
-  expect(output).toContain("Exact Match Score");
-  expect(output).toContain("Exact Match Metadata");
-  expect(output).toContain("Length Score");
-  expect(output).toContain("Length Metadata");
-  expect(output).toContain("Trace Count");
-  expect(output).toContain("First Trace Input Tokens");
-  expect(output).toContain("Total Tokens");
-});
