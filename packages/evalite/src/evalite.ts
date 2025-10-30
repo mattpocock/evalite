@@ -76,6 +76,7 @@ const runTask = async <TInput, TOutput, TExpected, TVariant = undefined>(
     input: TInput;
     expected: TExpected | undefined;
     variant: TVariant;
+    traces: Evalite.Trace[];
   } & Omit<
     Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant>,
     "data" | "experimental_customColumns"
@@ -84,13 +85,6 @@ const runTask = async <TInput, TOutput, TExpected, TVariant = undefined>(
   const start = performance.now();
   const output = await executeTask(opts.task, opts.input, opts.variant);
   const duration = Math.round(performance.now() - start);
-
-  const columns =
-    (await opts.columns?.({
-      input: opts.input,
-      output,
-      expected: opts.expected,
-    })) || [];
 
   const scores = await Promise.all(
     (opts.scorers || []).map(async (scorerOrOpts) => {
@@ -109,6 +103,15 @@ const runTask = async <TInput, TOutput, TExpected, TVariant = undefined>(
       }
     })
   );
+
+  const columns =
+    (await opts.columns?.({
+      input: opts.input,
+      output,
+      expected: opts.expected,
+      scores,
+      traces: opts.traces,
+    })) || [];
 
   return {
     output,
@@ -335,6 +338,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
             scorers: opts.scorers,
             task: opts.task,
             columns: opts.columns || opts.experimental_customColumns,
+            traces,
           });
 
           const [outputWithFiles, tracesWithFiles, renderedColumns] =
