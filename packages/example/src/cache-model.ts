@@ -1,8 +1,8 @@
-import { wrapLanguageModel, type LanguageModel } from "ai";
 import {
   type LanguageModelV2,
   type LanguageModelV2CallOptions,
 } from "@ai-sdk/provider";
+import { wrapLanguageModel } from "ai";
 import { createHash } from "node:crypto";
 
 const createKey = (params: LanguageModelV2CallOptions) => {

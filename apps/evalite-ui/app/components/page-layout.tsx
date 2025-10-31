@@ -3,7 +3,6 @@ import {
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
-  BreadcrumbPage,
 } from "./ui/breadcrumb";
 import { Separator } from "./ui/separator";
 import { SidebarTrigger } from "./ui/sidebar";

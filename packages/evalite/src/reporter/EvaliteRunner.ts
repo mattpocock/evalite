@@ -290,6 +290,7 @@ export class EvaliteRunner {
           default:
             throw new Error(`${event.type} not allowed in ${this.state.type}`);
         }
+        break;
       case "idle": {
         switch (event.type) {
           case "RUN_BEGUN":

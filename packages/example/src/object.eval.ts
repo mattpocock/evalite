@@ -38,7 +38,7 @@ evalite("Test Objects", {
       },
     },
   ],
-  columns: async ({ input, output, expected }) => {
+  columns: async ({ input, output }) => {
     return [
       {
         label: "Input",

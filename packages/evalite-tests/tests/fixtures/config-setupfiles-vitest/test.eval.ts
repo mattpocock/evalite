@@ -8,7 +8,7 @@ evalite("Vitest Setup Test", {
       expected: process.env.VITEST_SETUP_VAR,
     },
   ],
-  task: async (input) => {
+  task: async (_input) => {
     return process.env.VITEST_SETUP_VAR as string;
   },
   scorers: [Levenshtein],

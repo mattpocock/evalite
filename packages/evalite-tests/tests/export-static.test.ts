@@ -1,12 +1,12 @@
+import type { Evalite } from "evalite";
 import { exportStaticUI } from "evalite/export-static";
+import { createInMemoryStorage } from "evalite/in-memory-storage";
+import { runEvalite } from "evalite/runner";
+import { createSqliteStorage } from "evalite/sqlite-storage";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { assert, expect, it } from "vitest";
-import { getSuitesAsRecordViaStorage, loadFixture } from "./test-utils.js";
-import { createInMemoryStorage } from "evalite/in-memory-storage";
-import { createSqliteStorage } from "evalite/sqlite-storage";
-import { runEvalite } from "evalite/runner";
-import type { Evalite } from "evalite";
+import { loadFixture } from "./test-utils.js";
 
 it("Should export all required files and directory structure", async () => {
   await using fixture = await loadFixture("export");
@@ -17,7 +17,6 @@ it("Should export all required files and directory structure", async () => {
 
   // Export to a temp directory
   const exportDir = path.join(fixture.dir, "evalite-export");
-  const suites = await getSuitesAsRecordViaStorage(fixture.storage);
 
   await exportStaticUI({
     storage: fixture.storage,
