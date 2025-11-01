@@ -137,13 +137,49 @@ Executes all evals and exits.
 
 ## Score Thresholds
 
-Fail CI builds if scores fall below threshold:
+Require evals to pass a minimum score threshold. Useful for CI/CD pipelines where failing evals should block deployments.
+
+### Using the Threshold Flag
+
+Pass `--threshold` to set a minimum required score:
 
 ```bash
-evalite --threshold=70
+evalite --threshold=50 # Score must be >= 50
 ```
 
-Exits with code 1 if average score < 70.
+If the average score falls below the threshold, the process exits with code 1.
+
+### Works with All Modes
+
+```bash
+evalite watch --threshold=70
+evalite serve --threshold=80
+```
+
+### Configuration File
+
+Alternatively, set `scoreThreshold` in `evalite.config.ts`:
+
+```ts
+// evalite.config.ts
+import { defineConfig } from "evalite/config";
+
+export default defineConfig({
+  scoreThreshold: 80, // Fail if average score < 80
+});
+```
+
+CLI flag takes precedence over config file setting.
+
+### CI/CD Usage
+
+Typical CI workflow:
+
+```bash
+evalite --threshold=75
+```
+
+Process exits with error code if threshold not met, failing the CI job.
 
 ## JSON Export
 
