@@ -792,11 +792,16 @@ export declare namespace Evalite {
       ) => Evalite.MaybePromise<Evalite.UserProvidedScoreWithMetadata>;
     }
 
-    export interface LLMBasedScorerFactoryOpts<TExpected extends object> {
+    export interface LLMBasedScorerFactoryOpts<
+      TExpected extends object,
+      TConfig extends object = {},
+    > {
       name: string;
       description?: string;
       scorer: (
-        input: LLMBasedScorerOpts<TExpected>
+        input: LLMBasedScorerOpts<TExpected> &
+          TConfig &
+          Evalite.Scorers.LLMBasedScorerBaseConfig
       ) => Evalite.MaybePromise<Evalite.UserProvidedScoreWithMetadata>;
     }
 
@@ -808,11 +813,16 @@ export declare namespace Evalite {
       extends Evalite.ScoreInput<string, SingleOrMultiTurnOutput, TExpected>,
         LLMBasedScorerBaseConfig {}
 
-    export interface EmbeddingBasedScorerFactoryOpts<TExpected extends object> {
+    export interface EmbeddingBasedScorerFactoryOpts<
+      TExpected extends object,
+      TConfig extends object = {},
+    > {
       name: string;
       description?: string;
       scorer: (
-        input: EmbeddingBasedScorerOpts<TExpected>
+        input: EmbeddingBasedScorerOpts<TExpected> &
+          TConfig &
+          Evalite.Scorers.EmbeddingBasedScorerBaseConfig
       ) => Evalite.MaybePromise<Evalite.UserProvidedScoreWithMetadata>;
     }
 
