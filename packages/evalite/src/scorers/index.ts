@@ -4,3 +4,4 @@ export { faithfulness } from "./faithfulness.js";
 export { answerSimilarity } from "./answer-similarity.js";
 export { contextRecall } from "./context-recall.js";
 export { toolCallAccuracy } from "./tool-call-accuracy.js";
+export { noiseSensitivity } from "./noise-sensitivity.js";

@@ -899,6 +899,23 @@ export declare namespace Evalite {
       wrongPenalty: number;
     };
 
+    export type NoiseSensitivityExpected = {
+      referenceAnswer: string;
+      groundTruth: string[];
+    };
+
+    export type NoiseSensitivityMetadata = {
+      referenceStatements: string[];
+      answerStatements: string[];
+      incorrectStatements: string[];
+      relevantContextIndices: number[];
+      irrelevantContextIndices: number[];
+      mode: "relevant" | "irrelevant";
+      retrievedToGroundTruth: boolean[][];
+      retrievedToAnswer: boolean[][];
+      groundTruthToAnswer: boolean[];
+    };
+
     /**
      * Types for prompt builder functionality.
      */
