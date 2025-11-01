@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
+import { getSuitesAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Should report long datasets consistently in the same order", async () => {
   await using fixture = await loadFixture("much-data");
@@ -8,9 +8,9 @@ it("Should report long datasets consistently in the same order", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
 
-  expect(evals["Much Data"]![0]!.results).toMatchObject([
+  expect(evals["Much Data"]![0]!.evals).toMatchObject([
     {
       input: "first",
     },

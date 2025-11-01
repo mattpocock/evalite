@@ -9,21 +9,6 @@ import { FILES_LOCATION } from "./backend-only-constants.js";
 import { createScorer } from "./index.js";
 import { serializeAnnotation } from "./reporter/events.js";
 
-const joinArrayOfUnknownResults = (results: unknown[]): unknown => {
-  return results.reduce((acc, result) => {
-    if (
-      typeof result === "string" ||
-      typeof result === "number" ||
-      typeof result === "boolean"
-    ) {
-      return `${acc}${result}`;
-    }
-    throw new Error(
-      `Cannot display results of stream: stream contains non-string, non-number, non-boolean chunks.`
-    );
-  }, "");
-};
-
 const makeSerializable = (obj: unknown): unknown => {
   try {
     structuredClone(obj);
@@ -52,23 +37,19 @@ const executeTask = async <TInput, TOutput, TVariant = undefined>(
   input: TInput,
   variant: TVariant
 ): Promise<TOutput> => {
-  const taskResultOrStream = await task(input, variant);
+  const taskResult = await task(input, variant);
 
   if (
-    typeof taskResultOrStream === "object" &&
-    taskResultOrStream &&
-    Symbol.asyncIterator in taskResultOrStream
+    typeof taskResult === "object" &&
+    taskResult &&
+    Symbol.asyncIterator in taskResult
   ) {
-    const chunks: TOutput[] = [];
-
-    for await (const chunk of taskResultOrStream) {
-      chunks.push(chunk);
-    }
-
-    return joinArrayOfUnknownResults(chunks) as TOutput;
+    console.warn(
+      "Streaming support has been removed. Process the stream before returning from task() (e.g., await result.text for AI SDK)"
+    );
   }
 
-  return taskResultOrStream;
+  return taskResult;
 };
 
 const runTask = async <TInput, TOutput, TExpected, TVariant = undefined>(
@@ -209,9 +190,9 @@ function registerEvalite<TInput, TOutput, TExpected>(
       it(fullEvalName, async ({ annotate, task }) => {
         await annotate(
           serializeAnnotation({
-            type: "RESULT_SUBMITTED",
-            result: {
-              evalName: fullEvalName,
+            type: "EVAL_SUBMITTED",
+            eval: {
+              suiteName: fullEvalName,
               filepath: task.file.filepath,
               order: 0,
               status: "fail",
@@ -283,12 +264,12 @@ function registerEvalite<TInput, TOutput, TExpected>(
 
         const rootDir = path.join(cwd, FILES_LOCATION);
 
-        // Send RESULT_STARTED annotation immediately
+        // Send EVAL_STARTED annotation immediately
         await annotate(
           serializeAnnotation({
-            type: "RESULT_STARTED",
-            initialResult: {
-              evalName: fullEvalName,
+            type: "EVAL_STARTED",
+            initialEval: {
+              suiteName: fullEvalName,
               filepath: task.file.filepath,
               order: data.index,
               variantName: vitestOpts.variantName,
@@ -349,12 +330,12 @@ function registerEvalite<TInput, TOutput, TExpected>(
 
           const serializableOutput = makeSerializable(outputWithFiles);
 
-          // Send RESULT_SUBMITTED annotation
+          // Send EVAL_SUBMITTED annotation
           await annotate(
             serializeAnnotation({
-              type: "RESULT_SUBMITTED",
-              result: {
-                evalName: fullEvalName,
+              type: "EVAL_SUBMITTED",
+              eval: {
+                suiteName: fullEvalName,
                 filepath: task.file.filepath,
                 order: data.index,
                 duration: Math.round(performance.now() - start),
@@ -384,12 +365,12 @@ function registerEvalite<TInput, TOutput, TExpected>(
                 }
               : e;
 
-          // Send RESULT_SUBMITTED annotation for failure
+          // Send EVAL_SUBMITTED annotation for failure
           await annotate(
             serializeAnnotation({
-              type: "RESULT_SUBMITTED",
-              result: {
-                evalName: fullEvalName,
+              type: "EVAL_SUBMITTED",
+              eval: {
+                suiteName: fullEvalName,
                 filepath: task.file.filepath,
                 order: data.index,
                 duration,

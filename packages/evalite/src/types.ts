@@ -1,3 +1,10 @@
+import type {
+  EmbeddingModel,
+  LanguageModel,
+  ModelMessage,
+  UserModelMessage,
+} from "ai";
+
 export declare namespace Evalite {
   /**
    * Configuration options for Evalite
@@ -43,7 +50,7 @@ export declare namespace Evalite {
     scoreThreshold?: number;
 
     /**
-     * Hide the results table in terminal output
+     * Hide the evals table in terminal output
      * @default false
      */
     hideTable?: boolean;
@@ -85,11 +92,12 @@ export declare namespace Evalite {
     trialCount?: number;
 
     /**
-     * Setup files to run before tests (e.g., for loading environment variables)
+     * Setup files to run before tests.
+     * Note: .env files are loaded automatically via dotenv - no need to configure.
      * @example
      * ```ts
      * export default defineConfig({
-     *   setupFiles: ["dotenv/config"]
+     *   setupFiles: ["./custom-setup.ts"]
      * })
      * ```
      */
@@ -103,8 +111,8 @@ export declare namespace Evalite {
     runType: RunType;
     filepaths: string[];
     runId: number | bigint | undefined;
-    evalNamesRunning: string[];
-    resultIdsRunning: (number | bigint)[];
+    suiteNamesRunning: string[];
+    evalIdsRunning: (number | bigint)[];
   };
 
   export type ServerState =
@@ -115,37 +123,37 @@ export declare namespace Evalite {
 
   export type MaybePromise<T> = T | Promise<T>;
 
-  export interface InitialResult {
-    evalName: string;
+  export interface InitialEvalResult {
+    suiteName: string;
     filepath: string;
     order: number;
-    status: ResultStatus;
+    status: EvalStatus;
     variantName: string | undefined;
     variantGroup: string | undefined;
     trialIndex: number | undefined;
   }
 
-  export type ResultStatus = "success" | "fail" | "running";
+  export type EvalStatus = "success" | "fail" | "running";
 
   export type RenderedColumn = {
     label: string;
     value: unknown;
   };
 
-  export interface Result {
-    evalName: string;
+  export interface Eval {
+    suiteName: string;
     filepath: string;
     order: number;
-    status: ResultStatus;
+    status: EvalStatus;
     variantName: string | undefined;
     variantGroup: string | undefined;
     trialIndex: number | undefined;
     /**
      * Technically, input and expected are known at the start
-     * of the evaluation. But because they may be files, they
+     * of the suite. But because they may be files, they
      * need to be saved asynchronously.
      *
-     * This is why they are only included in the final result.
+     * This is why they are only included in the final eval.
      */
     input: unknown;
     expected?: unknown;
@@ -183,7 +191,7 @@ export declare namespace Evalite {
   export type Task<TInput, TOutput, TVariant = undefined> = (
     input: TInput,
     variant: TVariant
-  ) => MaybePromise<TOutput | AsyncIterable<TOutput>>;
+  ) => MaybePromise<TOutput>;
 
   export type Scorer<TInput, TOutput, TExpected> = (
     opts: ScoreInput<TInput, TOutput, TExpected>
@@ -268,56 +276,56 @@ export declare namespace Evalite {
   };
 
   export namespace SDK {
-    export type GetEvalByNameResult = {
+    export type GetSuiteByNameResult = {
       history: {
         score: number;
         date: string;
       }[];
-      evaluation: Evalite.Storage.Entities.Eval & {
-        results: (Evalite.Storage.Entities.Result & {
+      suite: Evalite.Storage.Entities.Suite & {
+        evals: (Evalite.Storage.Entities.Eval & {
           scores: Evalite.Storage.Entities.Score[];
         })[];
       };
-      prevEvaluation:
-        | (Evalite.Storage.Entities.Eval & {
-            results: (Evalite.Storage.Entities.Result & {
+      prevSuite:
+        | (Evalite.Storage.Entities.Suite & {
+            evals: (Evalite.Storage.Entities.Eval & {
               scores: Evalite.Storage.Entities.Score[];
             })[];
           })
         | undefined;
     };
 
-    export type GetMenuItemsResultEval = {
+    export type GetMenuItemsResultSuite = {
       filepath: string;
       score: number;
       name: string;
       prevScore: number | undefined;
-      evalStatus: Evalite.Storage.Entities.EvalStatus;
+      suiteStatus: Evalite.Storage.Entities.SuiteStatus;
       variantName: string | undefined;
       variantGroup: string | undefined;
       hasScores: boolean;
     };
 
     export type GetMenuItemsResult = {
-      evals: GetMenuItemsResultEval[];
+      suites: GetMenuItemsResultSuite[];
       score: number;
       prevScore: number | undefined;
-      evalStatus: Evalite.Storage.Entities.EvalStatus;
+      runStatus: Evalite.Storage.Entities.SuiteStatus;
     };
 
-    export type GetResultResult = {
-      result: Evalite.Storage.Entities.Result & {
+    export type GetEvalResult = {
+      eval: Evalite.Storage.Entities.Eval & {
         traces: Evalite.Storage.Entities.Trace[];
         score: number;
         scores: Evalite.Storage.Entities.Score[];
       };
-      prevResult:
-        | (Evalite.Storage.Entities.Result & {
+      prevEval:
+        | (Evalite.Storage.Entities.Eval & {
             score: number;
             scores: Evalite.Storage.Entities.Score[];
           })
         | undefined;
-      evaluation: Evalite.Storage.Entities.Eval;
+      suite: Evalite.Storage.Entities.Suite;
     };
   }
 
@@ -346,7 +354,33 @@ export declare namespace Evalite {
     };
 
     /**
-     * Operations for managing evaluations.
+     * Operations for managing suites.
+     */
+    suites: {
+      /**
+       * Create a new suite and return the complete suite entity.
+       */
+      create(
+        opts: Evalite.Storage.Suites.CreateOpts
+      ): Promise<Evalite.Storage.Entities.Suite>;
+
+      /**
+       * Update a suite and return the updated entity.
+       */
+      update(
+        opts: Evalite.Storage.Suites.UpdateOpts
+      ): Promise<Evalite.Storage.Entities.Suite>;
+
+      /**
+       * Get suites matching the specified criteria.
+       */
+      getMany(
+        opts?: Evalite.Storage.Suites.GetManyOpts
+      ): Promise<Evalite.Storage.Entities.Suite[]>;
+    };
+
+    /**
+     * Operations for managing evals.
      */
     evals: {
       /**
@@ -369,32 +403,6 @@ export declare namespace Evalite {
       getMany(
         opts?: Evalite.Storage.Evals.GetManyOpts
       ): Promise<Evalite.Storage.Entities.Eval[]>;
-    };
-
-    /**
-     * Operations for managing test results.
-     */
-    results: {
-      /**
-       * Create a new result and return the complete result entity.
-       */
-      create(
-        opts: Evalite.Storage.Results.CreateOpts
-      ): Promise<Evalite.Storage.Entities.Result>;
-
-      /**
-       * Update a result and return the updated entity.
-       */
-      update(
-        opts: Evalite.Storage.Results.UpdateOpts
-      ): Promise<Evalite.Storage.Entities.Result>;
-
-      /**
-       * Get results matching the specified criteria.
-       */
-      getMany(
-        opts?: Evalite.Storage.Results.GetManyOpts
-      ): Promise<Evalite.Storage.Entities.Result[]>;
     };
 
     /**
@@ -463,13 +471,14 @@ export declare namespace Evalite {
         created_at: string;
       };
 
+      export type SuiteStatus = "fail" | "success" | "running";
       export type EvalStatus = "fail" | "success" | "running";
 
-      export type Eval = {
+      export type Suite = {
         id: number;
         run_id: number;
         name: string;
-        status: EvalStatus;
+        status: SuiteStatus;
         filepath: string;
         duration: number;
         created_at: string;
@@ -477,23 +486,23 @@ export declare namespace Evalite {
         variant_group?: string;
       };
 
-      export type Result = {
+      export type Eval = {
         id: number;
-        eval_id: number;
+        suite_id: number;
         duration: number;
         input: unknown;
         output: unknown;
         expected?: unknown;
         created_at: string;
         col_order: number;
-        status: ResultStatus;
+        status: EvalStatus;
         rendered_columns?: unknown;
         trial_index?: number | null;
       };
 
       export type Score = {
         id: number;
-        result_id: number;
+        eval_id: number;
         name: string;
         score: number;
         description?: string;
@@ -503,7 +512,7 @@ export declare namespace Evalite {
 
       export type Trace = {
         id: number;
-        result_id: number;
+        eval_id: number;
         input: unknown;
         output: unknown;
         start_time: number;
@@ -534,7 +543,7 @@ export declare namespace Evalite {
     }
 
     // ========== EVALS ==========
-    export namespace Evals {
+    export namespace Suites {
       export interface CreateOpts {
         runId: number;
         name: string;
@@ -545,14 +554,14 @@ export declare namespace Evalite {
 
       export interface UpdateOpts {
         id: number;
-        status: Entities.EvalStatus;
+        status: Entities.SuiteStatus;
       }
 
       export interface GetManyOpts {
         ids?: number[];
         runIds?: number[];
         name?: string;
-        statuses?: Entities.EvalStatus[];
+        statuses?: Entities.SuiteStatus[];
         createdAt?: string;
         createdAfter?: string;
         createdBefore?: string;
@@ -563,15 +572,15 @@ export declare namespace Evalite {
     }
 
     // ========== RESULTS ==========
-    export namespace Results {
+    export namespace Evals {
       export interface CreateOpts {
-        evalId: number;
+        suiteId: number;
         order: number;
         input: unknown;
         expected: unknown;
         output: unknown;
         duration: number;
-        status: ResultStatus;
+        status: EvalStatus;
         renderedColumns: unknown;
         trialIndex?: number;
       }
@@ -582,23 +591,23 @@ export declare namespace Evalite {
         duration: number;
         input: unknown;
         expected: unknown;
-        status: ResultStatus;
+        status: EvalStatus;
         renderedColumns: unknown;
         trialIndex?: number;
       }
 
       export interface GetManyOpts {
         ids?: number[];
-        evalIds?: number[];
+        suiteIds?: number[];
         order?: number;
-        statuses?: ResultStatus[];
+        statuses?: EvalStatus[];
       }
     }
 
     // ========== SCORES ==========
     export namespace Scores {
       export interface CreateOpts {
-        resultId: number;
+        evalId: number;
         name: string;
         score: number;
         description?: string;
@@ -607,14 +616,14 @@ export declare namespace Evalite {
 
       export interface GetManyOpts {
         ids?: number[];
-        resultIds?: number[];
+        evalIds?: number[];
       }
     }
 
     // ========== TRACES ==========
     export namespace Traces {
       export interface CreateOpts {
-        resultId: number;
+        evalId: number;
         input: unknown;
         output: unknown;
         start: number;
@@ -627,7 +636,7 @@ export declare namespace Evalite {
 
       export interface GetManyOpts {
         ids?: number[];
-        resultIds?: number[];
+        evalIds?: number[];
       }
     }
   }
@@ -685,11 +694,11 @@ export declare namespace Evalite {
       colOrder: number;
     };
 
-    /** Individual test result for a single data point */
-    export type Result = {
-      /** Unique identifier for this result */
+    /** Individual eval for a single data point */
+    export type Eval = {
+      /** Unique identifier for this eval */
       id: number;
-      /** Duration of this specific test case in milliseconds */
+      /** Duration of this specific eval in milliseconds */
       duration: number;
       /** The input data that was passed to the task function */
       input: unknown;
@@ -697,56 +706,233 @@ export declare namespace Evalite {
       output: unknown;
       /** The expected output for comparison (optional) */
       expected?: unknown;
-      /** Status of this specific test: "success" or "fail" */
+      /** Status of this specific eval: "success" or "fail" */
       status: "success" | "fail" | "running";
-      /** Zero-based order of this result within the evaluation */
+      /** Zero-based order of this eval within the suite */
       colOrder: number;
       /** Custom columns rendered for display in the UI (if any) */
       renderedColumns?: unknown;
-      /** ISO 8601 timestamp when the result was created */
+      /** ISO 8601 timestamp when the eval was created */
       createdAt: string;
-      /** Average score for this result across all scorers (0-1 scale) */
+      /** Average score for this eval across all scorers (0-1 scale) */
       averageScore: number;
-      /** Scores from all scorer functions applied to this result */
+      /** Scores from all scorer functions applied to this eval */
       scores: Score[];
       /** Traces of LLM calls made during this test */
       traces: Trace[];
     };
 
-    /** Evaluation containing multiple test results */
-    export type Eval = {
-      /** Unique identifier for this evaluation */
+    /** Suite containing multiple evals */
+    export type Suite = {
+      /** Unique identifier for this suite */
       id: number;
-      /** The name of the evaluation as defined in the evalite() call */
+      /** The name of the suite as defined in the evalite() call */
       name: string;
       /** Absolute path to the .eval.ts file containing this evaluation */
       filepath: string;
-      /** Total duration of the evaluation in milliseconds */
+      /** Total duration of the suite in milliseconds */
       duration: number;
-      /** Overall status of the evaluation: "success" means all tests passed, "fail" means at least one failed */
+      /** Overall status of the suite: "success" means all evals passed, "fail" means at least one failed */
       status: "fail" | "success" | "running";
       /** Optional variant name if using A/B testing or experimentation features */
       variantName?: string;
       /** Optional variant group name for organizing related variants */
       variantGroup?: string;
-      /** ISO 8601 timestamp when the evaluation was created */
+      /** ISO 8601 timestamp when the suite was created */
       createdAt: string;
       /** Average score across all results in this evaluation (0-1 scale) */
       averageScore: number;
-      /** Individual test results for each data point in the evaluation */
-      results: Result[];
+      /** Individual evals for each data point in the suite */
+      evals: Eval[];
     };
 
     /**
-     * The complete output structure for exporting evaluation results.
+     * The complete output structure for exporting suite results.
      * This format is designed to be a comprehensive snapshot of a test run,
      * suitable for archiving, analysis, or importing into other systems.
      */
     export type Output = {
-      /** Metadata about the test run */
+      /** Metadata about the run */
       run: Run;
-      /** Array of evaluations that were executed in this run */
-      evals: Eval[];
+      /** Array of suites that were executed in this run */
+      suites: Suite[];
     };
+  }
+
+  /**
+   * Types for scorers and scorer-related functionality.
+   */
+  export namespace Scorers {
+    export type SingleTurnOutput = string;
+    export type MultiTurnOutput = ModelMessage[];
+    export type SingleOrMultiTurnOutput = SingleTurnOutput | MultiTurnOutput;
+
+    export interface BaseResult {
+      score: number;
+      metadata?: unknown;
+    }
+
+    export interface SimpleScorerFactoryOpts<
+      TExpected extends object,
+      TConfig extends object = {},
+    > {
+      name: string;
+      description?: string;
+      scorer: (
+        input: Evalite.ScoreInput<string, SingleOrMultiTurnOutput, TExpected> &
+          TConfig
+      ) => Evalite.MaybePromise<Evalite.UserProvidedScoreWithMetadata>;
+    }
+
+    export interface LLMBasedScorerFactoryOpts<
+      TExpected extends object,
+      TConfig extends object = {},
+    > {
+      name: string;
+      description?: string;
+      scorer: (
+        input: LLMBasedScorerOpts<TExpected> &
+          TConfig &
+          Evalite.Scorers.LLMBasedScorerBaseConfig
+      ) => Evalite.MaybePromise<Evalite.UserProvidedScoreWithMetadata>;
+    }
+
+    export interface LLMBasedScorerBaseConfig {
+      model: LanguageModel;
+    }
+
+    export interface LLMBasedScorerOpts<TExpected extends object>
+      extends Evalite.ScoreInput<string, SingleOrMultiTurnOutput, TExpected>,
+        LLMBasedScorerBaseConfig {}
+
+    export interface EmbeddingBasedScorerFactoryOpts<
+      TExpected extends object,
+      TConfig extends object = {},
+    > {
+      name: string;
+      description?: string;
+      scorer: (
+        input: EmbeddingBasedScorerOpts<TExpected> &
+          TConfig &
+          Evalite.Scorers.EmbeddingBasedScorerBaseConfig
+      ) => Evalite.MaybePromise<Evalite.UserProvidedScoreWithMetadata>;
+    }
+
+    export interface EmbeddingBasedScorerBaseConfig {
+      embeddingModel: EmbeddingModel;
+    }
+
+    export interface EmbeddingBasedScorerOpts<TExpected extends object>
+      extends Evalite.ScoreInput<string, SingleOrMultiTurnOutput, TExpected>,
+        EmbeddingBasedScorerBaseConfig {}
+
+    /**
+     * Classification result for a single statement in context recall scoring.
+     */
+    export type ContextRecallClassification = {
+      /** The statement being evaluated */
+      statement: string;
+      /** Explanation for the attribution decision */
+      reason: string;
+      /** Whether the statement can be attributed to the context (0 or 1) */
+      attributed: number;
+    };
+
+    /**
+     * Array of context recall classifications.
+     */
+    export type ContextRecallClassifications = ContextRecallClassification[];
+
+    /**
+     * Faithfulness verdict for a single statement.
+     */
+    export type FaithfulnessStatement = {
+      /** The statement being evaluated */
+      statement: string;
+      /** Explanation for the verdict */
+      reason: string;
+      /** Whether the statement is faithful to the context (0 or 1) */
+      verdict: number;
+    };
+
+    /**
+     * Array of faithfulness statements.
+     */
+    export type FaithfulnessStatements = FaithfulnessStatement[];
+
+    /**
+     * Expected data shape for answer similarity scorer.
+     */
+    export type AnswerSimilarityExpected = {
+      referenceAnswer: string;
+    };
+
+    /**
+     * Expected data shape for context recall scorer.
+     */
+    export type ContextRecallExpected = {
+      groundTruth: string[];
+    };
+
+    /**
+     * Expected data shape for faithfulness scorer.
+     */
+    export type FaithfulnessExpected = {
+      groundTruth: string[];
+    };
+
+    export type ToolCall = {
+      toolName: string;
+      input?: unknown;
+    };
+
+    export type ToolCallAccuracyExpected = {
+      referenceToolCalls: ToolCall[];
+    };
+
+    export type ToolCallAccuracyMode = "exact" | "flexible";
+
+    export type ToolCallAccuracyWeights = {
+      exact: number;
+      nameOnly: number;
+      extraPenalty: number;
+      wrongPenalty: number;
+    };
+
+    /**
+     * Types for prompt builder functionality.
+     */
+    export namespace PromptBuilder {
+      /**
+       * Example with input and output for prompt building.
+       */
+      export interface Example {
+        input: unknown;
+        output: unknown;
+      }
+
+      /**
+       * Extracts placeholder keys from a template string.
+       * E.g., "Hello {name}, you are {age}" => "name" | "age"
+       */
+      export type ExtractPlaceholders<S extends string> =
+        S extends `${infer _Start}{${infer Key}}${infer Rest}`
+          ? Key | ExtractPlaceholders<Rest>
+          : never;
+
+      /**
+       * Extracts keys from a readonly string array or returns never.
+       */
+      export type TaskKeys<T extends readonly string[] | undefined> =
+        T extends readonly string[] ? T[number] : never;
+
+      /**
+       * Combines placeholder keys and task keys.
+       */
+      export type RequiredKeys<
+        PromptT extends string,
+        TaskT extends readonly string[] | undefined,
+      > = ExtractPlaceholders<PromptT> | TaskKeys<TaskT>;
+    }
   }
 }

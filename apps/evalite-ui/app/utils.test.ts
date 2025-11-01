@@ -15,4 +15,10 @@ describe("formatTime", () => {
     expect(formatTime(1243)).toBe("1.2s");
     expect(formatTime(4302)).toBe("4.3s");
   });
+
+  it("should round milliseconds to avoid floating point precision issues", () => {
+    expect(formatTime(3.090249999999997)).toBe("3ms");
+    expect(formatTime(123.456789)).toBe("123ms");
+    expect(formatTime(999.9999)).toBe("1000ms");
+  });
 });

@@ -72,74 +72,95 @@ export default defineConfig({
       },
       sidebar: [
         {
-          label: "Getting Started",
-          items: [
-            {
-              label: "What Is Evalite?",
-              slug: "what-is-evalite",
-            },
-            {
-              label: "Quickstart",
-              slug: "quickstart",
-            },
-          ],
-        },
-        {
           label: "Guides",
           items: [
             {
-              label: "Environment Variables",
-              slug: "guides/environment-variables",
+              label: "What Is Evalite?",
+              slug: "guides/what-is-evalite",
+            },
+            {
+              label: "Quickstart",
+              slug: "guides/quickstart",
+            },
+            {
+              label: "The Dev Loop",
+              slug: "guides/dev-loop",
             },
             {
               label: "Scorers",
               slug: "guides/scorers",
             },
             {
-              label: "Traces",
-              slug: "guides/traces",
-            },
-            {
-              label: "A/B Testing",
-              slug: "guides/variant-comparison",
-            },
-            {
-              label: "Multi-Modal",
-              slug: "guides/multi-modal",
-            },
-            {
               label: "Configuration",
               slug: "guides/configuration",
-            },
-            {
-              label: "Streams",
-              slug: "guides/streams",
-            },
-            {
-              label: "CLI",
-              slug: "guides/cli",
-            },
-            {
-              label: "Running Programmatically",
-              slug: "guides/running-programmatically",
-            },
-            {
-              label: "CI/CD",
-              slug: "guides/ci",
-            },
-            {
-              label: "Skipping Evals",
-              slug: "guides/skipping",
-            },
-            {
-              label: "Customizing The UI",
-              slug: "guides/customizing-the-ui",
             },
           ],
         },
         {
-          label: "Integrations",
-          items: [{ label: "Vercel AI SDK", slug: "examples/ai-sdk" }],
+          label: "Tips",
+          items: [
+            {
+              label: "Customize The UI",
+              slug: "tips/customize-the-ui",
+            },
+            {
+              label: "A/B Testing",
+              slug: "tips/comparing-different-approaches",
+            },
+            {
+              label: "Adding Traces",
+              slug: "tips/adding-traces",
+            },
+            {
+              label: "Vercel AI SDK",
+              slug: "tips/vercel-ai-sdk",
+            },
+            {
+              label: "Images And Media",
+              slug: "tips/images-and-media",
+            },
+            {
+              label: "CI/CD",
+              slug: "tips/run-evals-on-ci-cd",
+            },
+          ],
+        },
+        {
+          label: "Reference",
+          items: [
+            {
+              label: "evalite()",
+              slug: "api/evalite",
+            },
+            {
+              label: "CLI",
+              slug: "api/cli",
+            },
+            {
+              label: "defineConfig()",
+              slug: "api/define-config",
+            },
+            {
+              label: "createScorer()",
+              slug: "api/create-scorer",
+            },
+            {
+              label: "EvaliteFile",
+              slug: "api/evalite-file",
+            },
+            {
+              label: "Traces",
+              slug: "api/traces",
+            },
+            {
+              label: "runEvalite()",
+              slug: "api/run-evalite",
+            },
+            {
+              label: "Storage",
+              slug: "api/storage",
+            },
+          ],
         },
       ],
     }),
