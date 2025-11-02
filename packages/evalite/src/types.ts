@@ -180,6 +180,14 @@ export declare namespace Evalite {
     expected?: TExpected;
   };
 
+  export type ColumnInput<TInput, TOutput, TExpected> = {
+    input: TInput;
+    output: TOutput;
+    expected?: TExpected;
+    scores: Score[];
+    traces: Trace[];
+  };
+
   export type Task<TInput, TOutput, TVariant = undefined> = (
     input: TInput,
     variant: TVariant
@@ -212,10 +220,10 @@ export declare namespace Evalite {
      * @deprecated Use `columns` instead.
      */
     experimental_customColumns?: (
-      opts: ScoreInput<TInput, TOutput, TExpected>
+      opts: ColumnInput<TInput, TOutput, TExpected>
     ) => MaybePromise<RenderedColumn[]>;
     columns?: (
-      opts: ScoreInput<TInput, TOutput, TExpected>
+      opts: ColumnInput<TInput, TOutput, TExpected>
     ) => MaybePromise<RenderedColumn[]>;
     /**
      * Number of times to run each test case for non-deterministic evaluations
