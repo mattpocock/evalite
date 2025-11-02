@@ -106,10 +106,7 @@ evalite("Columns with Scores and Traces", {
       },
       {
         label: "Total Tokens",
-        value: traces.reduce(
-          (sum, t) => sum + (t.usage?.totalTokens || 0),
-          0
-        ),
+        value: traces.reduce((sum, t) => sum + (t.usage?.totalTokens || 0), 0),
       },
     ];
   },
