@@ -7,7 +7,7 @@ evalite("Failing In Data", {
     throw new Error("This is a failing test");
   },
   task: async (input) => {
-    await setTimeout(500);
+    await setTimeout(10);
     return "def";
   },
   scorers: [Levenshtein],

@@ -11,7 +11,7 @@ evalite("Basics", {
     ];
   },
   task: async (input) => {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 10));
     return input + "def";
   },
   scorers: [Levenshtein],
