@@ -826,6 +826,28 @@ export declare namespace Evalite {
       extends Evalite.ScoreInput<string, SingleOrMultiTurnOutput, TExpected>,
         EmbeddingBasedScorerBaseConfig {}
 
+    export interface LLMAndEmbeddingBasedScorerFactoryOpts<
+      TExpected extends object,
+      TConfig extends object = {},
+    > {
+      name: string;
+      description?: string;
+      scorer: (
+        input: LLMAndEmbeddingBasedScorerOpts<TExpected> &
+          TConfig &
+          Evalite.Scorers.LLMAndEmbeddingBasedScorerBaseConfig
+      ) => Evalite.MaybePromise<Evalite.UserProvidedScoreWithMetadata>;
+    }
+
+    export interface LLMAndEmbeddingBasedScorerBaseConfig {
+      model: LanguageModel;
+      embeddingModel: EmbeddingModel;
+    }
+
+    export interface LLMAndEmbeddingBasedScorerOpts<TExpected extends object>
+      extends Evalite.ScoreInput<string, SingleOrMultiTurnOutput, TExpected>,
+        LLMAndEmbeddingBasedScorerBaseConfig {}
+
     /**
      * Classification result for a single statement in context recall scoring.
      */
@@ -914,6 +936,41 @@ export declare namespace Evalite {
       retrievedToGroundTruth: boolean[][];
       retrievedToAnswer: boolean[][];
       groundTruthToAnswer: boolean[];
+    };
+
+    /**
+     * Statement with reasoning for answer correctness classification.
+     */
+    export type AnswerCorrectnessStatementWithReason = {
+      statement: string;
+      reason: string;
+    };
+
+    /**
+     * Classification result for answer correctness evaluation.
+     */
+    export type AnswerCorrectnessClassification = {
+      TP: AnswerCorrectnessStatementWithReason[];
+      FP: AnswerCorrectnessStatementWithReason[];
+      FN: AnswerCorrectnessStatementWithReason[];
+    };
+
+    /**
+     * Expected data shape for answer correctness scorer.
+     */
+    export type AnswerCorrectnessExpected = {
+      referenceAnswer: string;
+    };
+
+    /**
+     * Metadata returned by answer correctness scorer.
+     */
+    export type AnswerCorrectnessMetadata = {
+      classification: AnswerCorrectnessClassification;
+      factualityScore: number;
+      similarityScore: number;
+      responseStatements: string[];
+      referenceStatements: string[];
     };
 
     /**
