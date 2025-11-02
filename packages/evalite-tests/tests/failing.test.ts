@@ -1,12 +1,16 @@
 import type { Evalite } from "evalite";
 import { expect, it, vitest } from "vitest";
-import { getSuitesAsRecordViaStorage, loadFixture } from "./test-utils.js";
+import {
+  getSuitesAsRecordViaStorage,
+  loadFixture,
+  overrideExit,
+} from "./test-utils.js";
 
 it("Should set exitCode to 1 if there is a failing test", async () => {
   await using fixture = await loadFixture("failing-test");
 
   const exit = vitest.fn();
-  globalThis.process.exit = exit as any;
+  using _ = overrideExit(exit);
 
   await fixture.run({
     mode: "run-once-and-exit",
@@ -20,7 +24,7 @@ it("Should report a failing test", async () => {
   await using fixture = await loadFixture("failing-test");
 
   const exit = vitest.fn();
-  globalThis.process.exit = exit as any;
+  using _ = overrideExit(exit);
 
   await fixture.run({
     mode: "run-once-and-exit",
@@ -37,7 +41,7 @@ it("Should report a failing test in data()", async () => {
   await using fixture = await loadFixture("failing-test-in-data");
 
   const exit = vitest.fn();
-  globalThis.process.exit = exit as any;
+  using _ = overrideExit(exit);
 
   await fixture.run({
     mode: "run-once-and-exit",
@@ -54,7 +58,7 @@ it("Should report a failing test in data() in watch mode", async () => {
   await using fixture = await loadFixture("failing-test-in-data");
 
   const exit = vitest.fn();
-  globalThis.process.exit = exit as any;
+  using _ = overrideExit(exit);
 
   await fixture.run({
     mode: "watch-for-file-changes",
@@ -71,6 +75,9 @@ it("Should report a failing test in data() in watch mode", async () => {
 
 it("Should save the result AND eval as failed in the database", async () => {
   await using fixture = await loadFixture("failing-test");
+
+  const exit = vitest.fn();
+  using _ = overrideExit(exit);
 
   await fixture.run({
     mode: "run-once-and-exit",

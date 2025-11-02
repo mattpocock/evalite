@@ -103,6 +103,26 @@ export const triggerWatchModeRerun = async (vitest: Vitest) => {
   await vitest.waitForTestRunEnd();
 };
 
+/**
+ * Usage:
+ *
+ * ```ts
+ * const exit = vitest.fn();
+ * using _ = overrideExit(exit);
+ * ```
+ */
+export const overrideExit = (exit: (code: number) => void) => {
+  const existingExit = globalThis.process.exit;
+
+  globalThis.process.exit = exit as any;
+
+  return {
+    [Symbol.dispose]: () => {
+      globalThis.process.exit = existingExit;
+    },
+  };
+};
+
 export interface SuiteWithInlineResults extends Evalite.Storage.Entities.Suite {
   evals: EvalWithInlineScoresAndTraces[];
 }
