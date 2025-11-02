@@ -190,9 +190,9 @@ function registerEvalite<TInput, TOutput, TExpected>(
       it(fullEvalName, async ({ annotate, task }) => {
         await annotate(
           serializeAnnotation({
-            type: "RESULT_SUBMITTED",
-            result: {
-              evalName: fullEvalName,
+            type: "EVAL_SUBMITTED",
+            eval: {
+              suiteName: fullEvalName,
               filepath: task.file.filepath,
               order: 0,
               status: "fail",
