@@ -53,3 +53,27 @@ export function createSimpleScorer<
     });
   };
 }
+
+export function createLLMAndEmbeddingScorer<
+  TExpected extends object,
+  TConfig extends {} = {},
+>(
+  opts: Evalite.Scorers.LLMAndEmbeddingBasedScorerFactoryOpts<
+    TExpected,
+    TConfig
+  >
+) {
+  return function (
+    config: TConfig & Evalite.Scorers.LLMAndEmbeddingBasedScorerBaseConfig
+  ) {
+    return createScorer<
+      string,
+      Evalite.Scorers.SingleOrMultiTurnOutput,
+      TExpected
+    >({
+      name: opts.name,
+      description: opts.description,
+      scorer: (input) => opts.scorer({ ...input, ...config }),
+    });
+  };
+}
