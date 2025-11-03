@@ -1,5 +1,11 @@
 # evalite
 
+## 0.18.0
+
+### Minor Changes
+
+- 7935f7b: Column functions now receive `scores` and `traces` arrays in addition to `input`, `output`, and `expected`, allowing columns to display information from scorers and traces.
+
 ## 0.17.1
 
 ### Patch Changes
