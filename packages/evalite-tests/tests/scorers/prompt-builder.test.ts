@@ -126,7 +126,6 @@ describe("promptBuilder", () => {
 
       const result = builder({});
 
-      // Output should remain as JSON
       expect(result).toContain("<output>");
       expect(result).toContain('"statements"');
       expect(result).toContain('"count"');
@@ -335,7 +334,6 @@ describe("promptBuilder", () => {
 
       const result = builder({});
 
-      // Should handle gracefully without errors
       expect(result).toContain("<input>");
     });
 

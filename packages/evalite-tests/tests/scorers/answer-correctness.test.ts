@@ -1,63 +1,16 @@
 import { describe, it, expect } from "vitest";
 import { answerCorrectness } from "evalite/scorers";
 import type { Evalite } from "evalite";
-import { MockLanguageModelV2, MockEmbeddingModelV2 } from "ai/test";
-
-const createMockModel = (
-  responses: Array<{
-    statements?: string[];
-    classification?: {
-      TP: Array<{ statement: string; reason: string }>;
-      FP: Array<{ statement: string; reason: string }>;
-      FN: Array<{ statement: string; reason: string }>;
-    };
-  }>
-) => {
-  let callIndex = 0;
-  return new MockLanguageModelV2({
-    doGenerate: async () => {
-      const response = responses[callIndex++] || {};
-      const content = JSON.stringify(response);
-
-      return {
-        rawCall: { rawPrompt: null, rawSettings: {} },
-        finishReason: "stop" as const,
-        usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
-        content: [{ type: "text" as const, text: content }],
-        warnings: [],
-        providerMetadata: undefined,
-        request: undefined,
-        response: undefined,
-      };
-    },
-  });
-};
-
-const createMockEmbeddingModel = (embeddings: number[][]) => {
-  let callIndex = 0;
-  return new MockEmbeddingModelV2({
-    doEmbed: async ({ values }) => {
-      const result = values.map(() => {
-        return embeddings[callIndex++] || [0, 0, 0];
-      });
-      return {
-        embeddings: result,
-        usage: { tokens: 10 },
-        rawResponse: undefined,
-      };
-    },
-  });
-};
+import { createMockModel, createMockEmbeddingModel } from "./utils.js";
 
 describe("answerCorrectness scorer", () => {
   describe("perfect match", () => {
     it("should return 1.0 when answer perfectly matches reference", async () => {
       const model = createMockModel([
-        // First call: decompose response
         { statements: ["Paris is the capital of France."] },
-        // Second call: decompose reference
+
         { statements: ["Paris is the capital of France."] },
-        // Third call: classify statements
+
         {
           classification: {
             TP: [
@@ -72,10 +25,9 @@ describe("answerCorrectness scorer", () => {
         },
       ]);
 
-      // Identical embeddings for perfect similarity
       const embeddingModel = createMockEmbeddingModel([
-        [1, 0, 0], // reference
-        [1, 0, 0], // response
+        [1, 0, 0],
+        [1, 0, 0],
       ]);
 
       const scorer = answerCorrectness({ model, embeddingModel });
@@ -110,8 +62,8 @@ describe("answerCorrectness scorer", () => {
       ]);
 
       const embeddingModel = createMockEmbeddingModel([
-        [1, 0, 0], // reference
-        [0.95, 0.1, 0], // response (very similar)
+        [1, 0, 0],
+        [0.95, 0.1, 0],
       ]);
 
       const scorer = answerCorrectness({ model, embeddingModel });
@@ -124,7 +76,6 @@ describe("answerCorrectness scorer", () => {
         },
       });
 
-      // With default weights [0.75, 0.25], factuality=1.0, similarity~0.95
       expect(result.score).toBeGreaterThan(0.95);
     });
   });
@@ -159,8 +110,8 @@ describe("answerCorrectness scorer", () => {
       ]);
 
       const embeddingModel = createMockEmbeddingModel([
-        [1, 0, 0], // reference
-        [0.8, 0.2, 0], // response (somewhat similar)
+        [1, 0, 0],
+        [0.8, 0.2, 0],
       ]);
 
       const scorer = answerCorrectness({ model, embeddingModel });
@@ -174,8 +125,6 @@ describe("answerCorrectness scorer", () => {
         },
       });
 
-      // Factuality: TP=1, FP=1, FN=0 → Precision=0.5, Recall=1.0, F1=0.67
-      // With default weights [0.75, 0.25]: 0.75*0.67 + 0.25*0.8 ≈ 0.7
       expect(result.score).toBeLessThan(0.8);
       expect(result.score).toBeGreaterThan(0.5);
     });
@@ -204,8 +153,8 @@ describe("answerCorrectness scorer", () => {
       ]);
 
       const embeddingModel = createMockEmbeddingModel([
-        [1, 0, 0], // reference
-        [0, 1, 0], // response (completely different)
+        [1, 0, 0],
+        [0, 1, 0],
       ]);
 
       const scorer = answerCorrectness({ model, embeddingModel });
@@ -218,8 +167,6 @@ describe("answerCorrectness scorer", () => {
         },
       });
 
-      // Factuality: TP=0, FP=1, FN=1 → F1=0
-      // Similarity is also low
       expect(result.score).toBeLessThan(0.3);
     });
   });
@@ -254,8 +201,8 @@ describe("answerCorrectness scorer", () => {
       ]);
 
       const embeddingModel = createMockEmbeddingModel([
-        [1, 0.5, 0], // reference
-        [1, 0, 0], // response (missing some info)
+        [1, 0.5, 0],
+        [1, 0, 0],
       ]);
 
       const scorer = answerCorrectness({ model, embeddingModel });
@@ -269,7 +216,6 @@ describe("answerCorrectness scorer", () => {
         },
       });
 
-      // Factuality: TP=1, FP=0, FN=1 → Precision=1.0, Recall=0.5, F1=0.67
       expect(result.score).toBeLessThan(0.9);
       expect(result.score).toBeGreaterThan(0.5);
     });
@@ -295,14 +241,14 @@ describe("answerCorrectness scorer", () => {
       ]);
 
       const embeddingModel = createMockEmbeddingModel([
-        [1, 0, 0], // reference
-        [0.5, 0.5, 0], // response (lower similarity)
+        [1, 0, 0],
+        [0.5, 0.5, 0],
       ]);
 
       const scorer = answerCorrectness({
         model,
         embeddingModel,
-        weights: [0.9, 0.1], // 90% factuality, 10% similarity
+        weights: [0.9, 0.1],
       });
 
       const result = await scorer({
@@ -313,7 +259,6 @@ describe("answerCorrectness scorer", () => {
         },
       });
 
-      // Factuality=1.0, Similarity~0.5 → 0.9*1.0 + 0.1*0.5 = 0.95
       expect(result.score).toBeGreaterThan(0.9);
     });
 
@@ -343,14 +288,14 @@ describe("answerCorrectness scorer", () => {
       ]);
 
       const embeddingModel = createMockEmbeddingModel([
-        [1, 0, 0], // reference
-        [0.95, 0.05, 0], // response (high similarity)
+        [1, 0, 0],
+        [0.95, 0.05, 0],
       ]);
 
       const scorer = answerCorrectness({
         model,
         embeddingModel,
-        weights: [0.1, 0.9], // 10% factuality, 90% similarity
+        weights: [0.1, 0.9],
       });
 
       const result = await scorer({
@@ -361,14 +306,12 @@ describe("answerCorrectness scorer", () => {
         },
       });
 
-      // Factuality~0.67 (TP=1, FP=1), Similarity~0.95 → 0.1*0.67 + 0.9*0.95 ≈ 0.92
       expect(result.score).toBeGreaterThan(0.85);
     });
   });
 
   describe("F-beta parameter", () => {
     it("should favor recall when beta > 1", async () => {
-      // Beta = 2.0 favors recall
       const scorerHighBeta = answerCorrectness({
         model: createMockModel([
           { statements: ["Paris is the capital of France."] },
@@ -401,7 +344,7 @@ describe("answerCorrectness scorer", () => {
           [1, 0, 0],
         ]),
         beta: 2.0,
-        weights: [1.0, 0.0], // Only factuality for clear comparison
+        weights: [1.0, 0.0],
       });
 
       const resultHighBeta = await scorerHighBeta({
@@ -413,8 +356,6 @@ describe("answerCorrectness scorer", () => {
         },
       });
 
-      // TP=1, FP=0, FN=1 → Precision=1.0, Recall=0.5
-      // F2 = 5 * (1.0 * 0.5) / (4*1.0 + 0.5) = 2.5 / 4.5 ≈ 0.56
       expect(resultHighBeta.score).toBeLessThan(0.7);
       expect(resultHighBeta.score).toBeGreaterThan(0.5);
     });
@@ -452,12 +393,11 @@ describe("answerCorrectness scorer", () => {
         [1, 0, 0],
       ]);
 
-      // Beta = 0.5 favors precision
       const scorerLowBeta = answerCorrectness({
         model,
         embeddingModel,
         beta: 0.5,
-        weights: [1.0, 0.0], // Only factuality for clear comparison
+        weights: [1.0, 0.0],
       });
 
       const resultLowBeta = await scorerLowBeta({
@@ -468,8 +408,6 @@ describe("answerCorrectness scorer", () => {
         },
       });
 
-      // TP=1, FP=1, FN=0 → Precision=0.5, Recall=1.0
-      // F0.5 = 1.25 * (0.5 * 1.0) / (0.25*0.5 + 1.0) = 0.625 / 1.125 ≈ 0.56
       expect(resultLowBeta.score).toBeLessThan(0.7);
       expect(resultLowBeta.score).toBeGreaterThan(0.5);
     });
@@ -611,10 +549,7 @@ describe("answerCorrectness scorer", () => {
 
   describe("edge cases", () => {
     it("should handle empty statements from decomposition", async () => {
-      const model = createMockModel([
-        { statements: [] }, // Response decomposition returns empty
-        { statements: [] }, // Reference decomposition returns empty
-      ]);
+      const model = createMockModel([{ statements: [] }, { statements: [] }]);
 
       const embeddingModel = createMockEmbeddingModel([
         [1, 0, 0],
@@ -629,7 +564,6 @@ describe("answerCorrectness scorer", () => {
         expected: { referenceAnswer: "Unclear reference" },
       });
 
-      // Both statement lists empty should be treated as perfect match
       expect(result.score).toBe(1.0);
     });
 
@@ -651,7 +585,7 @@ describe("answerCorrectness scorer", () => {
       const scorer = answerCorrectness({
         model,
         embeddingModel,
-        weights: [1.0, 0.0], // No similarity weight
+        weights: [1.0, 0.0],
       });
 
       const result = await scorer({
@@ -660,7 +594,6 @@ describe("answerCorrectness scorer", () => {
         expected: { referenceAnswer: "Statement 1" },
       });
 
-      // Only factuality matters, which is 1.0
       expect(result.score).toBe(1.0);
     });
   });
