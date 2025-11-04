@@ -293,6 +293,26 @@ export default class EvaliteReporter implements Reporter {
     }
   }
 
+  onTestModuleCollected(mod: TestModule): void {
+    const errors = mod.errors();
+
+    // A module-level error has been detected
+    if (errors.length > 0) {
+      renderTask({
+        logger: this.ctx.logger,
+        result: {
+          filePath: path.relative(this.ctx.config.root, mod.moduleId),
+          status: "fail",
+          scores: [],
+          numberOfEvals: "unknown",
+        },
+      });
+      for (const error of errors) {
+        this.ctx.logger.printError(error);
+      }
+    }
+  }
+
   onTestModuleStart(mod: TestModule): void {
     const tests = Array.from(mod.children.allTests());
 

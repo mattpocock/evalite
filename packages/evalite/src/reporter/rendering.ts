@@ -343,7 +343,7 @@ export function renderTask(opts: {
     filePath: string;
     status: Evalite.ResultStatus;
     scores: Evalite.Score[];
-    numberOfEvals: number;
+    numberOfEvals: number | string;
   };
 }) {
   const scores = opts.result.scores.map((s) => s.score ?? 0);

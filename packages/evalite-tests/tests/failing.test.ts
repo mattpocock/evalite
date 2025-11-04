@@ -88,3 +88,38 @@ it("Should save the result AND eval as failed in the database", async () => {
     ],
   });
 });
+
+it.only("Should handle module-level errors", async () => {
+  await using fixture = await loadFixture("module-level-error");
+
+  const exit = vitest.fn();
+  globalThis.process.exit = exit as any;
+
+  await fixture.run({
+    mode: "run-once-and-exit",
+  });
+
+  console.log(fixture.getOutput());
+
+  expect(fixture.getOutput()).toContain("module-level-error.eval.ts");
+  expect(fixture.getOutput()).toContain("Module level error");
+  expect(exit).toHaveBeenCalledWith(1);
+});
+
+it.only("Should save module-level error eval as failed in database", async () => {
+  await using fixture = await loadFixture("module-level-error");
+
+  const exit = vitest.fn();
+  globalThis.process.exit = exit as any;
+
+  await fixture.run({
+    mode: "run-once-and-exit",
+  });
+
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+
+  expect(evals.Failing?.[0]).toMatchObject({
+    name: "Failing",
+    status: "fail" satisfies Evalite.Storage.Entities.EvalStatus,
+  });
+});
