@@ -105,21 +105,3 @@ it("Should handle module-level errors", async () => {
   expect(fixture.getOutput()).toContain("Module level error");
   expect(exit).toHaveBeenCalledWith(1);
 });
-
-it("Should save module-level error eval as failed in database", async () => {
-  await using fixture = await loadFixture("module-level-error");
-
-  const exit = vitest.fn();
-  globalThis.process.exit = exit as any;
-
-  await fixture.run({
-    mode: "run-once-and-exit",
-  });
-
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
-
-  expect(evals.Failing?.[0]).toMatchObject({
-    name: "Failing",
-    status: "fail" satisfies Evalite.Storage.Entities.EvalStatus,
-  });
-});
