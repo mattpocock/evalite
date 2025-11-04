@@ -89,7 +89,7 @@ it("Should save the result AND eval as failed in the database", async () => {
   });
 });
 
-it.only("Should handle module-level errors", async () => {
+it("Should handle module-level errors", async () => {
   await using fixture = await loadFixture("module-level-error");
 
   const exit = vitest.fn();
@@ -106,7 +106,7 @@ it.only("Should handle module-level errors", async () => {
   expect(exit).toHaveBeenCalledWith(1);
 });
 
-it.only("Should save module-level error eval as failed in database", async () => {
+it("Should save module-level error eval as failed in database", async () => {
   await using fixture = await loadFixture("module-level-error");
 
   const exit = vitest.fn();
