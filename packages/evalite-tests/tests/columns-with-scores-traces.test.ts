@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
+import { getSuitesAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Should pass scores and traces to column fields", async () => {
   await using fixture = await loadFixture("columns-with-scores-traces");
@@ -8,7 +8,7 @@ it("Should pass scores and traces to column fields", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
 
   expect(evals["Columns with Scores and Traces"]![0]).toMatchObject({
     results: [
