@@ -982,6 +982,15 @@ export declare namespace Evalite {
     };
 
     /**
+     * Metadata returned by answer relevancy scorer.
+     */
+    export type AnswerRelevancyMetadata = {
+      generatedQuestions: string[];
+      similarities: number[];
+      allNoncommittal: boolean;
+    };
+
+    /**
      * Types for prompt builder functionality.
      */
     export namespace PromptBuilder {
