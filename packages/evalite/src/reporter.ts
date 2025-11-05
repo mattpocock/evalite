@@ -310,6 +310,8 @@ export default class EvaliteReporter implements Reporter {
       for (const error of errors) {
         this.ctx.logger.printError(error);
       }
+
+      this.opts.modifyExitCode(1);
     }
   }
 
