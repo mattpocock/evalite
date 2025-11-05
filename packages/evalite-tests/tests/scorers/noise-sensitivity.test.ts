@@ -1,30 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { noiseSensitivity } from "evalite/scorers";
 import type { Evalite } from "evalite";
-import { MockLanguageModelV2 } from "ai/test";
-
-const createMockModel = (
-  responses: Array<{ statements?: string[]; verdicts?: number[] }>
-) => {
-  let callIndex = 0;
-  return new MockLanguageModelV2({
-    doGenerate: async () => {
-      const response = responses[callIndex++] || {};
-      const content = JSON.stringify(response);
-
-      return {
-        rawCall: { rawPrompt: null, rawSettings: {} },
-        finishReason: "stop" as const,
-        usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
-        content: [{ type: "text" as const, text: content }],
-        warnings: [],
-        providerMetadata: undefined,
-        request: undefined,
-        response: undefined,
-      };
-    },
-  });
-};
+import { createMockModel } from "./utils.js";
 
 describe("noiseSensitivity scorer", () => {
   describe("relevant mode", () => {
