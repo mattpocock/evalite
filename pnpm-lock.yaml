@@ -202,9 +202,6 @@ importers:
 
   packages/evalite:
     dependencies:
-      '@ai-sdk/provider':
-        specifier: ^2.0.0
-        version: 2.0.0
       '@fastify/static':
         specifier: ^8.2.0
         version: 8.2.0
@@ -223,9 +220,6 @@ importers:
       '@vitest/utils':
         specifier: ^4.0.1
         version: 4.0.1
-      better-sqlite3:
-        specifier: ^11.6.0
-        version: 11.6.0
       dotenv:
         specifier: ^16.4.7
         version: 16.6.1
@@ -245,6 +239,9 @@ importers:
         specifier: ^3.0.3
         version: 3.0.3
     devDependencies:
+      '@ai-sdk/provider':
+        specifier: ^2.0.0
+        version: 2.0.0
       '@types/better-sqlite3':
         specifier: ^7.6.13
         version: 7.6.13
@@ -257,6 +254,9 @@ importers:
       autoevals:
         specifier: ^0.0.131
         version: 0.0.131(ws@8.18.0)
+      better-sqlite3:
+        specifier: ^11.6.0
+        version: 11.6.0
       unstorage:
         specifier: ^1.17.1
         version: 1.17.1
