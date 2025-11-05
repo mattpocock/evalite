@@ -1,5 +1,11 @@
 # evalite
 
+## 0.18.1
+
+### Patch Changes
+
+- e7cfbfb: Fixed a bug where errors at the module level were not being reported
+
 ## 0.18.0
 
 ### Minor Changes
