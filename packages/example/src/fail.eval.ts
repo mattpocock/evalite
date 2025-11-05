@@ -10,7 +10,9 @@ evalite("Failure", {
   ],
   task: async (input) => {
     await setTimeout(500);
-    throw new Error("Fail");
   },
+
   scorers: [],
 });
+
+throw new Error("Fail");
