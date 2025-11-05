@@ -64,8 +64,7 @@
     "file-type": "^19.6.0",
     "jiti": "^2.6.1",
     "table": "^6.9.0",
-    "tinyrainbow": "^3.0.3",
-    "zod": "^4.1.12"
+    "tinyrainbow": "^3.0.3"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
