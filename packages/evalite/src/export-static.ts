@@ -100,6 +100,29 @@ const transformEvaliteFilePaths = (
 };
 
 /**
+ * Normalizes a base path for URL routing
+ * - Requires leading slash (throws if missing)
+ * - Removes trailing slash (unless root "/")
+ */
+const normalizeBasePath = (basePath: string): string => {
+  if (!basePath) {
+    return "/";
+  }
+
+  // Require leading slash
+  if (!basePath.startsWith("/")) {
+    throw new Error(`basePath must start with "/". Got: ${basePath}`);
+  }
+
+  // Remove trailing slash unless it's the root
+  if (basePath !== "/" && basePath.endsWith("/")) {
+    return basePath.slice(0, -1);
+  }
+
+  return basePath;
+};
+
+/**
  * Options for exporting static UI
  */
 export interface ExportStaticOptions {
@@ -109,6 +132,8 @@ export interface ExportStaticOptions {
   outputPath: string;
   /** Optional specific run ID to export (defaults to latest full run) */
   runId?: number;
+  /** Optional base path for hosting at non-root URLs (defaults to "/") */
+  basePath?: string;
 }
 
 /**
@@ -117,7 +142,10 @@ export interface ExportStaticOptions {
 export const exportStaticUI = async (
   options: ExportStaticOptions
 ): Promise<void> => {
-  const { storage, outputPath, runId } = options;
+  const { storage, outputPath, runId, basePath: rawBasePath = "/" } = options;
+
+  // Normalize basePath: ensure leading slash, remove trailing slash (unless root)
+  const basePath = normalizeBasePath(rawBasePath);
 
   // Get the run to export
   const run = runId
@@ -436,14 +464,31 @@ export const exportStaticUI = async (
   const indexHtmlPath = path.join(uiRoot, "index.html");
   let indexHtml = await fs.readFile(indexHtmlPath, "utf-8");
 
-  // Change absolute paths to relative
-  indexHtml = indexHtml.replace(/\/assets\//g, "/assets/");
+  // Replace absolute paths with basePath-prefixed paths
+  const pathPrefix = basePath === "/" ? "" : basePath;
+  indexHtml = indexHtml.replace(
+    /href="\/favicon\.ico"/g,
+    `href="${pathPrefix}/favicon.ico"`
+  );
+  indexHtml = indexHtml.replace(
+    /href="\/favicon\.svg"/g,
+    `href="${pathPrefix}/favicon.svg"`
+  );
+  indexHtml = indexHtml.replace(
+    /src="\/assets\//g,
+    `src="${pathPrefix}/assets/`
+  );
+  indexHtml = indexHtml.replace(
+    /href="\/assets\//g,
+    `href="${pathPrefix}/assets/`
+  );
 
   // Add static mode configuration
   const staticConfig = `
     <script>
       window.__EVALITE_STATIC_DATA__ = {
         staticMode: true,
+        basePath: ${JSON.stringify(basePath)},
         availableEvals: ${JSON.stringify(availableEvals)}
       };
     </script>

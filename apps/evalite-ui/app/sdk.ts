@@ -8,6 +8,7 @@ declare global {
   interface Window {
     __EVALITE_STATIC_DATA__?: {
       staticMode: boolean;
+      basePath?: string;
       availableEvals: string[];
     };
   }
@@ -20,6 +21,27 @@ export const isStaticMode = () => {
   return (
     typeof window !== "undefined" && window.__EVALITE_STATIC_DATA__?.staticMode
   );
+};
+
+/**
+ * Get the base path for static mode (defaults to "/" if not set)
+ */
+const getBasePath = (): string => {
+  if (!isStaticMode()) {
+    return "";
+  }
+  return window.__EVALITE_STATIC_DATA__?.basePath || "/";
+};
+
+/**
+ * Prefix a path with basePath in static mode
+ */
+const prefixPath = (path: string): string => {
+  const basePath = getBasePath();
+  if (!basePath || basePath === "/") {
+    return path;
+  }
+  return `${basePath}${path}`;
 };
 
 /**
@@ -57,7 +79,10 @@ export const getServerState = async (fetchOpts?: {
   signal?: AbortSignal;
 }): Promise<Evalite.ServerState> => {
   if (isStaticMode()) {
-    return safeFetch<Evalite.ServerState>(`/data/server-state.json`, fetchOpts);
+    return safeFetch<Evalite.ServerState>(
+      prefixPath(`/data/server-state.json`),
+      fetchOpts
+    );
   }
 
   return safeFetch<Evalite.ServerState>(
@@ -71,7 +96,7 @@ export const getMenuItems = async (fetchOpts?: {
 }): Promise<Evalite.SDK.GetMenuItemsResult> => {
   if (isStaticMode()) {
     return safeFetch<Evalite.SDK.GetMenuItemsResult>(
-      `/data/menu-items.json`,
+      prefixPath(`/data/menu-items.json`),
       fetchOpts
     );
   }
@@ -90,7 +115,7 @@ export const getEvalByName = async (
   if (isStaticMode()) {
     const sanitized = sanitizeFilename(name);
     return safeFetch<Evalite.SDK.GetEvalByNameResult>(
-      `/data/eval-${sanitized}.json`,
+      prefixPath(`/data/eval-${sanitized}.json`),
       fetchOpts
     );
   }
@@ -113,7 +138,7 @@ export const getResult = async (
   if (isStaticMode()) {
     const sanitized = sanitizeFilename(opts.evalName);
     return safeFetch<Evalite.SDK.GetResultResult>(
-      `/data/result-${sanitized}-${opts.resultIndex}.json`,
+      prefixPath(`/data/result-${sanitized}-${opts.resultIndex}.json`),
       fetchOpts
     );
   }
@@ -131,14 +156,14 @@ export const getResult = async (
 
 export const serveFile = (filepath: string) => {
   if (isStaticMode()) {
-    return `/files/${filepath}`;
+    return prefixPath(`/files/${filepath}`);
   }
   return `${BASE_URL}/api/file?path=${filepath}`;
 };
 
 export const downloadFile = (filepath: string) => {
   if (isStaticMode()) {
-    return `/files/${filepath}`;
+    return prefixPath(`/files/${filepath}`);
   }
   return `${BASE_URL}/api/file?path=${filepath}&download=true`;
 };

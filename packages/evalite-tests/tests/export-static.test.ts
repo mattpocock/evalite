@@ -90,3 +90,122 @@ it("Should remap file paths to unique filenames", async () => {
     path: expect.stringMatching(/^[a-f0-9-]+\.png$/),
   });
 });
+
+it("Should use default basePath of / when not specified", async () => {
+  await using fixture = await loadFixture("export");
+
+  await fixture.run({
+    mode: "run-once-and-exit",
+  });
+
+  const exportDir = path.join(fixture.dir, "evalite-export");
+
+  await exportStaticUI({
+    storage: fixture.storage,
+    outputPath: exportDir,
+  });
+
+  const indexHtml = await readFile(path.join(exportDir, "index.html"), "utf-8");
+
+  // Should have root-relative paths
+  expect(indexHtml).toContain('src="/assets/');
+  expect(indexHtml).toContain('href="/assets/');
+  expect(indexHtml).toContain('href="/favicon.ico"');
+  expect(indexHtml).toContain('href="/favicon.svg"');
+
+  // Should inject basePath into window config
+  expect(indexHtml).toContain("window.__EVALITE_STATIC_DATA__");
+  expect(indexHtml).toContain('basePath: "/"');
+});
+
+it("Should prefix all paths with custom basePath", async () => {
+  await using fixture = await loadFixture("export");
+
+  await fixture.run({
+    mode: "run-once-and-exit",
+  });
+
+  const exportDir = path.join(fixture.dir, "evalite-export");
+
+  await exportStaticUI({
+    storage: fixture.storage,
+    outputPath: exportDir,
+    basePath: "/evals-123",
+  });
+
+  const indexHtml = await readFile(path.join(exportDir, "index.html"), "utf-8");
+
+  // Should have basePath-prefixed paths
+  expect(indexHtml).toContain('src="/evals-123/assets/');
+  expect(indexHtml).toContain('href="/evals-123/assets/');
+  expect(indexHtml).toContain('href="/evals-123/favicon.ico"');
+  expect(indexHtml).toContain('href="/evals-123/favicon.svg"');
+
+  // Should inject basePath into window config
+  expect(indexHtml).toContain('basePath: "/evals-123"');
+});
+
+it("Should throw error if basePath missing leading slash", async () => {
+  await using fixture = await loadFixture("export");
+
+  await fixture.run({
+    mode: "run-once-and-exit",
+  });
+
+  const exportDir = path.join(fixture.dir, "evalite-export");
+
+  // Should throw error
+  await expect(
+    exportStaticUI({
+      storage: fixture.storage,
+      outputPath: exportDir,
+      basePath: "evals-123", // No leading slash
+    })
+  ).rejects.toThrow('basePath must start with "/"');
+});
+
+it("Should normalize basePath with trailing slash", async () => {
+  await using fixture = await loadFixture("export");
+
+  await fixture.run({
+    mode: "run-once-and-exit",
+  });
+
+  const exportDir = path.join(fixture.dir, "evalite-export");
+
+  await exportStaticUI({
+    storage: fixture.storage,
+    outputPath: exportDir,
+    basePath: "/evals-123/", // Trailing slash
+  });
+
+  const indexHtml = await readFile(path.join(exportDir, "index.html"), "utf-8");
+
+  // Should have no double slashes
+  expect(indexHtml).toContain('src="/evals-123/assets/');
+  expect(indexHtml).not.toContain('src="/evals-123//assets/');
+  expect(indexHtml).toContain('basePath: "/evals-123"');
+});
+
+it("Should handle multi-level basePath", async () => {
+  await using fixture = await loadFixture("export");
+
+  await fixture.run({
+    mode: "run-once-and-exit",
+  });
+
+  const exportDir = path.join(fixture.dir, "evalite-export");
+
+  await exportStaticUI({
+    storage: fixture.storage,
+    outputPath: exportDir,
+    basePath: "/reports/evals/run-123",
+  });
+
+  const indexHtml = await readFile(path.join(exportDir, "index.html"), "utf-8");
+
+  // Should have basePath-prefixed paths
+  expect(indexHtml).toContain('src="/reports/evals/run-123/assets/');
+  expect(indexHtml).toContain('href="/reports/evals/run-123/favicon.ico"');
+  expect(indexHtml).toContain('basePath: "/reports/evals/run-123"');
+});

@@ -15,11 +15,15 @@ const initRouter = () => {
     },
   });
 
+  // Get basePath from static mode config (if available)
+  const basePath = window.__EVALITE_STATIC_DATA__?.basePath ?? undefined;
+
   const router = createRouter({
     routeTree,
     scrollRestoration: true,
     context: { queryClient },
     defaultPreloadStaleTime: 0,
+    basepath: basePath,
     Wrap: ({ children }) => (
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     ),
