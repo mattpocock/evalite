@@ -11,7 +11,7 @@ it("Should pass scores and traces to column fields", async () => {
   const evals = await getSuitesAsRecordViaStorage(fixture.storage);
 
   expect(evals["Columns with Scores and Traces"]![0]).toMatchObject({
-    results: [
+    evals: [
       {
         rendered_columns: [
           { label: "Input", value: "hello" },
