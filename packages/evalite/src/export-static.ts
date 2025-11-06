@@ -13,6 +13,24 @@ const sanitizeFilename = (name: string): string => {
 };
 
 /**
+ * Rewrites paths in HTML content with basePath prefix
+ */
+const rewriteHtmlPaths = (html: string, pathPrefix: string): string => {
+  return html
+    .replace(/src="\/assets\//g, `src="${pathPrefix}/assets/`)
+    .replace(/href="\/assets\//g, `href="${pathPrefix}/assets/`);
+};
+
+/**
+ * Rewrites asset paths in JS content with basePath prefix
+ */
+const rewriteJsPaths = (js: string, pathPrefix: string): string => {
+  return js
+    .replace(/"assets\//g, `"${pathPrefix}/assets/`)
+    .replace(/'assets\//g, `'${pathPrefix}/assets/`);
+};
+
+/**
  * Get the previous completed eval by name and created_at time
  */
 const getPreviousCompletedEval = async (
@@ -100,6 +118,29 @@ const transformEvaliteFilePaths = (
 };
 
 /**
+ * Normalizes a base path for URL routing
+ * - Requires leading slash (throws if missing)
+ * - Removes trailing slash (unless root "/")
+ */
+const normalizeBasePath = (basePath: string): string => {
+  if (!basePath) {
+    return "/";
+  }
+
+  // Require leading slash
+  if (!basePath.startsWith("/")) {
+    throw new Error(`basePath must start with "/". Got: ${basePath}`);
+  }
+
+  // Remove trailing slash unless it's the root
+  if (basePath !== "/" && basePath.endsWith("/")) {
+    return basePath.slice(0, -1);
+  }
+
+  return basePath;
+};
+
+/**
  * Options for exporting static UI
  */
 export interface ExportStaticOptions {
@@ -109,6 +150,8 @@ export interface ExportStaticOptions {
   outputPath: string;
   /** Optional specific run ID to export (defaults to latest full run) */
   runId?: number;
+  /** Optional base path for hosting at non-root URLs (defaults to "/") */
+  basePath?: string;
 }
 
 /**
@@ -117,7 +160,10 @@ export interface ExportStaticOptions {
 export const exportStaticUI = async (
   options: ExportStaticOptions
 ): Promise<void> => {
-  const { storage, outputPath, runId } = options;
+  const { storage, outputPath, runId, basePath: rawBasePath = "/" } = options;
+
+  // Normalize basePath: ensure leading slash, remove trailing slash (unless root)
+  const basePath = normalizeBasePath(rawBasePath);
 
   // Get the run to export
   const run = runId
@@ -436,14 +482,16 @@ export const exportStaticUI = async (
   const indexHtmlPath = path.join(uiRoot, "index.html");
   let indexHtml = await fs.readFile(indexHtmlPath, "utf-8");
 
-  // Change absolute paths to relative
-  indexHtml = indexHtml.replace(/\/assets\//g, "/assets/");
+  // Replace absolute paths with basePath-prefixed paths
+  const pathPrefix = basePath === "/" ? "" : basePath;
+  indexHtml = rewriteHtmlPaths(indexHtml, pathPrefix);
 
   // Add static mode configuration
   const staticConfig = `
     <script>
       window.__EVALITE_STATIC_DATA__ = {
         staticMode: true,
+        basePath: ${JSON.stringify(basePath)},
         availableEvals: ${JSON.stringify(availableEvals)}
       };
     </script>
@@ -452,6 +500,20 @@ export const exportStaticUI = async (
   indexHtml = indexHtml.replace("</head>", staticConfig);
 
   await fs.writeFile(path.join(outputPath, "index.html"), indexHtml);
+
+  // Rewrite asset paths in JS files
+  if (basePath !== "/") {
+    const assetsDir = path.join(outputPath, "assets");
+    const assetFiles = await fs.readdir(assetsDir);
+    const jsFiles = assetFiles.filter((file) => file.endsWith(".js"));
+
+    for (const jsFile of jsFiles) {
+      const jsPath = path.join(assetsDir, jsFile);
+      const jsContent = await fs.readFile(jsPath, "utf-8");
+      const rewrittenJs = rewriteJsPaths(jsContent, pathPrefix);
+      await fs.writeFile(jsPath, rewrittenJs);
+    }
+  }
 
   console.log(`\n✓ Export complete: ${outputPath}`);
   console.log(`  Run: ${run.id} (${run.runType})`);

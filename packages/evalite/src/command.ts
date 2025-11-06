@@ -62,6 +62,7 @@ export const createProgram = (commands: {
   export: (opts: {
     output: string | undefined;
     runId: number | undefined;
+    basePath: string | undefined;
   }) => void;
 }) => {
   const runOnce = buildCommand({
@@ -130,13 +131,25 @@ export const createProgram = (commands: {
           brief: "Specific run ID to export (default: latest)",
           optional: true,
         },
+        basePath: {
+          kind: "parsed",
+          parse: String,
+          brief:
+            "Base path for hosting at non-root URLs (default: /). Must start with /",
+          optional: true,
+        },
       },
     },
     func: (flags: {
       output: string | undefined;
       runId: number | undefined;
+      basePath: string | undefined;
     }) => {
-      return commands.export({ output: flags.output, runId: flags.runId });
+      return commands.export({
+        output: flags.output,
+        runId: flags.runId,
+        basePath: flags.basePath,
+      });
     },
     docs: {
       brief: "Export static UI bundle for CI artifacts",
@@ -211,6 +224,7 @@ export const program = createProgram({
         storage,
         outputPath: opts.output ?? "./evalite-export",
         runId: opts.runId,
+        basePath: opts.basePath,
       });
     } finally {
       await storage.close();

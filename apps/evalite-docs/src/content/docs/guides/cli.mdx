@@ -77,4 +77,14 @@ evalite export
 
 This exports the latest run to `./evalite-export` by default.
 
+### Options
+
+- `--output` - Custom output directory
+- `--runId` - Export specific run ID
+- `--basePath` - Base path for non-root hosting (must start with `/`)
+
+```bash
+evalite export --basePath=/evals-123 --output=./my-export
+```
+
 See the [CI/CD guide](/guides/ci) for full documentation on exporting and viewing static UI bundles.

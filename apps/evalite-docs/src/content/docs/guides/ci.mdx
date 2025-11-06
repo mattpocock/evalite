@@ -30,6 +30,14 @@ evalite export --output=./my-export
 evalite export --run-id=123
 ```
 
+**Custom base path for non-root hosting:**
+
+```bash
+evalite export --basePath=/evals-123
+```
+
+Use when hosting at subpaths (e.g., S3/CloudFront with path-based URLs). The base path must start with `/`.
+
 ### Export Structure
 
 Generated bundle contains:
@@ -86,6 +94,36 @@ jobs:
 ```
 
 View results by downloading artifact and running `npx serve -s ./ui-export`.
+
+### Path-Based Deployment Example
+
+Deploy to S3/CloudFront with unique paths per run:
+
+```yaml
+- name: Export UI with base path
+  run: |
+    RUN_PATH="/evals-${{ github.run_id }}"
+    npx evalite export --basePath="$RUN_PATH" --output=./ui-export
+
+- name: Upload to S3
+  run: |
+    aws s3 sync ./ui-export s3://my-bucket/evals-${{ github.run_id }}/
+    echo "View at: https://my-domain.com/evals-${{ github.run_id }}"
+```
+
+To test locally with base path:
+
+```bash
+# Export with base path
+evalite export --basePath=/evals-123
+
+# Create matching directory structure
+mkdir -p /tmp/test/evals-123
+cp -r evalite-export/* /tmp/test/evals-123/
+
+# Serve and visit http://localhost:3000/evals-123
+npx serve /tmp/test
+```
 
 ## Running on CI
 
