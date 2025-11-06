@@ -1,10 +1,4 @@
-import type {
-  EmbeddingModel,
-  LanguageModel,
-  ModelMessage,
-  UserModelMessage,
-} from "ai";
-import type { answerRelevancy } from "./scorers/answer-relevancy.js";
+import type { EmbeddingModel, LanguageModel, ModelMessage } from "ai";
 
 export declare namespace Evalite {
   export type LowInfer<T> = T & {};
