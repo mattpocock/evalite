@@ -28,12 +28,17 @@ const DEFAULT_WEIGHTS: Evalite.Scorers.ToolCallAccuracyWeights = {
  *   arguments
  * - Penalties for wrong/missing calls
  *
- * When to use: For AI agents that need to call
+ * **When to use**: For AI agents that need to call
  * external functions/APIs. Verifies tool calling
  * behavior.
  *
- * When NOT to use: For simple text generation
+ * **When NOT to use**: For simple text generation
  * tasks without function calling.
+ *
+ * - `expected.referenceToolCalls` (optional): Array of
+ * expected tool calls. Each call specifies `toolName`
+ * (required) and optionally `input` (expected arguments).
+ * Empty/omitted = no tool calls expected.
  */
 export const toolCallAccuracy = createSimpleScorer<
   Evalite.Scorers.ToolCallAccuracyExpected,

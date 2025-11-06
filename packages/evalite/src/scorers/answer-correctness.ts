@@ -176,13 +176,17 @@ const ANSWER_CORRECTNESS_DEFAULT_BETA = 1.0;
  * The final score combines both. By default,
  * factual accuracy is 75% and similarity is 25%.
  *
- * When to use: When you need comprehensive answer
+ * **When to use**: When you need comprehensive answer
  * evaluation that balances exact correctness with
  * semantic equivalence.
  *
- * When NOT to use: If you only care about exact
+ * **When NOT to use**: If you only care about exact
  * facts (use faithfulness), or only semantic
  * similarity (use answerSimilarity).
+ *
+ * - `expected.reference` (required): Reference answer
+ * for comparison. Complete, accurate answer to
+ * input question.
  */
 export const answerCorrectness = createLLMAndEmbeddingScorer<
   Evalite.Scorers.AnswerCorrectnessExpected,

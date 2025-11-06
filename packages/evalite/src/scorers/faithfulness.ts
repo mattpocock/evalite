@@ -18,14 +18,19 @@ import {
  * 3. Scoring based on percentage of supported
  *    claims
  *
- * When to use: Essential for RAG systems where
+ * **When to use**: Essential for RAG systems where
  * accuracy matters (medical, legal, financial).
  * Catches when your AI invents facts not in
  * your documents.
  *
- * When NOT to use: If your AI should add
+ * **When NOT to use**: If your AI should add
  * knowledge beyond the context, or for creative
  * tasks where invention is desired.
+ *
+ * - `expected.groundTruth` (required): Array of
+ * source documents/passages. Verifies all output
+ * statements are supported by these contexts
+ * (no hallucinations).
  */
 export const faithfulness =
   createLLMScorer<Evalite.Scorers.FaithfulnessExpected>({

@@ -7,13 +7,16 @@ import type { Evalite } from "../types.js";
  *
  * Returns 1 if they match, 0 otherwise.
  *
- * When to use: For testing structured outputs
+ * **When to use**: For testing structured outputs
  * like JSON, code, or specific phrases that must
  * be exact.
  *
- * When NOT to use: When slight variations in
+ * **When NOT to use**: When slight variations in
  * wording are acceptable (use answerSimilarity
  * instead).
+ *
+ * - `expected.reference` (required): Exact string
+ * that output should match character-for-character.
  */
 export const exactMatch =
   createSimpleScorer<Evalite.Scorers.ExactMatchExpected>({
@@ -43,13 +46,16 @@ export const exactMatch =
  *
  * Returns 1 if found, 0 otherwise.
  *
- * When to use: To verify specific keywords or
+ * **When to use**: To verify specific keywords or
  * phrases appear in the response, regardless of
  * surrounding text.
  *
- * When NOT to use: When you need exact matches
+ * **When NOT to use**: When you need exact matches
  * (use exactMatch) or semantic similarity (use
  * answerSimilarity).
+ *
+ * - `expected.reference` (required): Substring
+ * that should appear anywhere in output.
  */
 export const contains = createSimpleScorer<Evalite.Scorers.ContainsExpected>({
   name: "Contains",

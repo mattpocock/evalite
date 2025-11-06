@@ -64,11 +64,11 @@ const answerRelevancyPrompt = promptBuilder({
  * Also detects evasive answers like "I don't know"
  * and scores them as 0.
  *
- * When to use: When you want to catch answers that
+ * **When to use**: When you want to catch answers that
  * are technically correct but don't address what
  * was asked.
  *
- * When NOT to use: If your use case allows
+ * **When NOT to use**: If your use case allows
  * tangential or exploratory responses.
  */
 export const answerRelevancy = createLLMAndEmbeddingScorer({

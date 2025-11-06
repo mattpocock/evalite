@@ -13,14 +13,18 @@ import { cosineSimilarity, embedMany } from "ai";
  * Good for cases where multiple phrasings are
  * valid.
  *
- * When to use: When there are many valid ways to
+ * **When to use**: When there are many valid ways to
  * express the correct answer, and you want to
  * allow flexibility in phrasing.
  *
- * When NOT to use: When you need to verify
+ * **When NOT to use**: When you need to verify
  * specific facts (use answerCorrectness or
  * faithfulness), or need exact matches (use
  * exactMatch).
+ *
+ * - `expected.reference` (required): Reference answer
+ * for comparison. Complete, accurate answer to
+ * input question.
  *
  * Based on the SAS paper:
  * https://arxiv.org/pdf/2108.06130.pdf
