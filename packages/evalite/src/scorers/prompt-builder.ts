@@ -1,5 +1,10 @@
 /**
- * Types for prompt builder functionality.
+ * Internal utility for building prompts used by
+ * scorers.
+ *
+ * Most users won't need to use this directly -
+ * it's used internally by the built-in scorers
+ * to create consistent prompt formats.
  */
 export namespace PromptBuilder {
   /**
@@ -34,6 +39,12 @@ export namespace PromptBuilder {
   > = ExtractPlaceholders<PromptT> | TaskKeys<TaskT>;
 }
 
+/**
+ * Creates a type-safe prompt builder function that generates
+ * structured prompts with instructions, examples, and task
+ * sections in XML format. Interpolates placeholder values from
+ * templates and wraps content in corresponding XML tags.
+ */
 export function promptBuilder<
   PromptT extends string,
   const TaskT extends readonly string[] | undefined = undefined,

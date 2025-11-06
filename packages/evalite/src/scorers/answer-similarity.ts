@@ -3,15 +3,27 @@ import { createEmbeddingScorer } from "./base.js";
 import { cosineSimilarity, embedMany } from "ai";
 
 /**
- * AnswerSimilarity metric scores the semantic similarity between
- * a ground truth answer and a generated answer.
+ * Checks how similar your AI's answer is to the
+ * expected answer in meaning (not exact words).
  *
- * The metric works by:
- * 1. Embedding both the ground truth answer and the generated answer using the provided embedding model
- * 2. Normalizing the embeddings to unit vectors
- * 3. Computing cosine similarity between the normalized embeddings
+ * This is a "soft" comparison - it doesn't
+ * require exact word matches. Instead, it
+ * measures how close the meanings are.
  *
- * Based on the SAS paper: https://arxiv.org/pdf/2108.06130.pdf
+ * Good for cases where multiple phrasings are
+ * valid.
+ *
+ * When to use: When there are many valid ways to
+ * express the correct answer, and you want to
+ * allow flexibility in phrasing.
+ *
+ * When NOT to use: When you need to verify
+ * specific facts (use answerCorrectness or
+ * faithfulness), or need exact matches (use
+ * exactMatch).
+ *
+ * Based on the SAS paper:
+ * https://arxiv.org/pdf/2108.06130.pdf
  */
 export const answerSimilarity =
   createEmbeddingScorer<Evalite.Scorers.AnswerSimilarityExpected>({

@@ -83,6 +83,26 @@ const classifyStatementsPrompt = promptBuilder({
   task: ["question", "context", "answer"],
 });
 
+/**
+ * Checks if your retrieval system (like RAG) is
+ * finding the right documents.
+ *
+ * This scorer asks: "Could you answer correctly
+ * using only the documents you retrieved?" It
+ * compares the correct answer to what's in your
+ * retrieved documents.
+ *
+ * Low score = retrieval is missing important info.
+ * High score = you retrieved the right stuff.
+ *
+ * When to use: To diagnose and improve your
+ * document retrieval. Helps identify when you're
+ * not fetching relevant documents.
+ *
+ * When NOT to use: If you don't have a retrieval
+ * system, or if your AI should use general
+ * knowledge beyond retrieved docs.
+ */
 export const contextRecall =
   createLLMScorer<Evalite.Scorers.ContextRecallExpected>({
     name: "Context Recall",

@@ -7,14 +7,25 @@ import {
 } from "./utils/statement-evaluation.js";
 
 /**
- * Faithfulness metric evaluates how grounded the model's response is in the provided context.
+ * Checks if your AI is making things up or
+ * sticking to the provided information.
  *
- * The metric works by:
- * 1. Breaking down the response into atomic statements
- * 2. Checking each statement against the retrieved contexts
- * 3. Computing a score based on the ratio of faithful statements
+ * This scorer detects hallucinations by:
+ * 1. Breaking your AI's answer into individual
+ *    claims
+ * 2. Checking if each claim is supported by the
+ *    context you provided
+ * 3. Scoring based on percentage of supported
+ *    claims
  *
- * @param model - The model to use for the evaluation
+ * When to use: Essential for RAG systems where
+ * accuracy matters (medical, legal, financial).
+ * Catches when your AI invents facts not in
+ * your documents.
+ *
+ * When NOT to use: If your AI should add
+ * knowledge beyond the context, or for creative
+ * tasks where invention is desired.
  */
 export const faithfulness =
   createLLMScorer<Evalite.Scorers.FaithfulnessExpected>({

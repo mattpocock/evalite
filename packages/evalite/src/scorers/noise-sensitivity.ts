@@ -6,6 +6,28 @@ import {
   evaluateStatementsSimple,
 } from "./utils/statement-evaluation.js";
 
+/**
+ * Checks if your AI is being misled by
+ * irrelevant documents in retrieval results.
+ *
+ * Two modes:
+ * - "relevant": How often does your AI make
+ *   mistakes even when correct docs are present?
+ * - "irrelevant": How often is your AI confused
+ *   by wrong/irrelevant documents?
+ *
+ * Helps diagnose retrieval problems - are you
+ * retrieving bad documents, or is your AI not
+ * using good ones correctly?
+ *
+ * When to use: To debug RAG systems with accuracy
+ * issues. Identifies if problems come from bad
+ * retrieval or poor reasoning.
+ *
+ * When NOT to use: For non-RAG systems, or when
+ * you haven't identified accuracy issues yet
+ * (start with faithfulness first).
+ */
 export const noiseSensitivity = createLLMScorer<
   Evalite.Scorers.NoiseSensitivityExpected,
   {

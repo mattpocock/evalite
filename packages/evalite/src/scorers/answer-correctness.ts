@@ -162,6 +162,28 @@ For each statement, provide the statement itself and a reason for the classifica
 const ANSWER_CORRECTNESS_DEFAULT_WEIGHTS: [number, number] = [0.75, 0.25];
 const ANSWER_CORRECTNESS_DEFAULT_BETA = 1.0;
 
+/**
+ * Checks if your AI's answer is correct by comparing
+ * it to a reference answer.
+ *
+ * This scorer does two things:
+ * 1. Checks factual accuracy - breaks both answers
+ *    into claims and verifies your AI's claims match
+ *    the reference (catches hallucinations)
+ * 2. Checks semantic similarity - measures how
+ *    similar the overall meaning is
+ *
+ * The final score combines both. By default,
+ * factual accuracy is 75% and similarity is 25%.
+ *
+ * When to use: When you need comprehensive answer
+ * evaluation that balances exact correctness with
+ * semantic equivalence.
+ *
+ * When NOT to use: If you only care about exact
+ * facts (use faithfulness), or only semantic
+ * similarity (use answerSimilarity).
+ */
 export const answerCorrectness = createLLMAndEmbeddingScorer<
   Evalite.Scorers.AnswerCorrectnessExpected,
   {
