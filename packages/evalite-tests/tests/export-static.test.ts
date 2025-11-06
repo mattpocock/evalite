@@ -110,8 +110,8 @@ it("Should use default basePath of / when not specified", async () => {
   // Should have root-relative paths
   expect(indexHtml).toContain('src="/assets/');
   expect(indexHtml).toContain('href="/assets/');
-  expect(indexHtml).toContain('href="/favicon.ico"');
-  expect(indexHtml).toContain('href="/favicon.svg"');
+  expect(indexHtml).toContain('href="/assets/favicon.ico"');
+  expect(indexHtml).toContain('href="/assets/favicon.svg"');
 
   // Should inject basePath into window config
   expect(indexHtml).toContain("window.__EVALITE_STATIC_DATA__");
@@ -138,8 +138,8 @@ it("Should prefix all paths with custom basePath", async () => {
   // Should have basePath-prefixed paths
   expect(indexHtml).toContain('src="/evals-123/assets/');
   expect(indexHtml).toContain('href="/evals-123/assets/');
-  expect(indexHtml).toContain('href="/evals-123/favicon.ico"');
-  expect(indexHtml).toContain('href="/evals-123/favicon.svg"');
+  expect(indexHtml).toContain('href="/evals-123/assets/favicon.ico"');
+  expect(indexHtml).toContain('href="/evals-123/assets/favicon.svg"');
 
   // Should inject basePath into window config
   expect(indexHtml).toContain('basePath: "/evals-123"');
@@ -206,6 +206,55 @@ it("Should handle multi-level basePath", async () => {
 
   // Should have basePath-prefixed paths
   expect(indexHtml).toContain('src="/reports/evals/run-123/assets/');
-  expect(indexHtml).toContain('href="/reports/evals/run-123/favicon.ico"');
+  expect(indexHtml).toContain(
+    'href="/reports/evals/run-123/assets/favicon.ico"'
+  );
+  expect(indexHtml).toContain(
+    'href="/reports/evals/run-123/assets/favicon.svg"'
+  );
   expect(indexHtml).toContain('basePath: "/reports/evals/run-123"');
+});
+
+it("Should rewrite /assets/ paths in JS files with custom basePath", async () => {
+  await using fixture = await loadFixture("export");
+
+  await fixture.run({
+    mode: "run-once-and-exit",
+  });
+
+  const exportDir = path.join(fixture.dir, "evalite-export");
+
+  await exportStaticUI({
+    storage: fixture.storage,
+    outputPath: exportDir,
+    basePath: "/evals-123",
+  });
+
+  // Read all .js files from assets directory
+  const assetsDir = path.join(exportDir, "assets");
+  const assetFiles = await readdir(assetsDir);
+  const jsFiles = assetFiles.filter((file) => file.endsWith(".js"));
+
+  expect(jsFiles.length).toBeGreaterThan(0);
+
+  let jsFilesWithAssetReferences = 0;
+
+  // Check each JS file for proper path rewriting
+  for (const jsFile of jsFiles) {
+    const jsContent = await readFile(path.join(assetsDir, jsFile), "utf-8");
+
+    // Should not contain root-relative /assets/ paths or non-prefixed assets/ paths
+    expect(jsContent).not.toContain('"/assets/');
+    expect(jsContent).not.toContain("'/assets/");
+    expect(jsContent).not.toContain('"assets/');
+    expect(jsContent).not.toContain("'assets/");
+
+    // If the file contains asset references, they should be prefixed with basePath
+    if (jsContent.includes("evals-123/assets/")) {
+      expect(jsContent).toContain('"/evals-123/assets/');
+      jsFilesWithAssetReferences++;
+    }
+  }
+
+  expect(jsFilesWithAssetReferences).toBeGreaterThan(0);
 });

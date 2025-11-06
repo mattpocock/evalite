@@ -13,6 +13,24 @@ const sanitizeFilename = (name: string): string => {
 };
 
 /**
+ * Rewrites paths in HTML content with basePath prefix
+ */
+const rewriteHtmlPaths = (html: string, pathPrefix: string): string => {
+  return html
+    .replace(/src="\/assets\//g, `src="${pathPrefix}/assets/`)
+    .replace(/href="\/assets\//g, `href="${pathPrefix}/assets/`);
+};
+
+/**
+ * Rewrites asset paths in JS content with basePath prefix
+ */
+const rewriteJsPaths = (js: string, pathPrefix: string): string => {
+  return js
+    .replace(/"assets\//g, `"${pathPrefix}/assets/`)
+    .replace(/'assets\//g, `'${pathPrefix}/assets/`);
+};
+
+/**
  * Get the previous completed eval by name and created_at time
  */
 const getPreviousCompletedEval = async (
@@ -466,22 +484,7 @@ export const exportStaticUI = async (
 
   // Replace absolute paths with basePath-prefixed paths
   const pathPrefix = basePath === "/" ? "" : basePath;
-  indexHtml = indexHtml.replace(
-    /href="\/favicon\.ico"/g,
-    `href="${pathPrefix}/favicon.ico"`
-  );
-  indexHtml = indexHtml.replace(
-    /href="\/favicon\.svg"/g,
-    `href="${pathPrefix}/favicon.svg"`
-  );
-  indexHtml = indexHtml.replace(
-    /src="\/assets\//g,
-    `src="${pathPrefix}/assets/`
-  );
-  indexHtml = indexHtml.replace(
-    /href="\/assets\//g,
-    `href="${pathPrefix}/assets/`
-  );
+  indexHtml = rewriteHtmlPaths(indexHtml, pathPrefix);
 
   // Add static mode configuration
   const staticConfig = `
@@ -497,6 +500,20 @@ export const exportStaticUI = async (
   indexHtml = indexHtml.replace("</head>", staticConfig);
 
   await fs.writeFile(path.join(outputPath, "index.html"), indexHtml);
+
+  // Rewrite asset paths in JS files
+  if (basePath !== "/") {
+    const assetsDir = path.join(outputPath, "assets");
+    const assetFiles = await fs.readdir(assetsDir);
+    const jsFiles = assetFiles.filter((file) => file.endsWith(".js"));
+
+    for (const jsFile of jsFiles) {
+      const jsPath = path.join(assetsDir, jsFile);
+      const jsContent = await fs.readFile(jsPath, "utf-8");
+      const rewrittenJs = rewriteJsPaths(jsContent, pathPrefix);
+      await fs.writeFile(jsPath, rewrittenJs);
+    }
+  }
 
   console.log(`\n✓ Export complete: ${outputPath}`);
   console.log(`  Run: ${run.id} (${run.runType})`);
