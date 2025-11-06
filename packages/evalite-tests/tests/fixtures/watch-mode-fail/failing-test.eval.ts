@@ -7,6 +7,7 @@ evalite("Failing", {
     return [
       {
         input: "abc",
+        expected: "abc",
       },
     ];
   },

@@ -52,7 +52,26 @@ const answerRelevancyPrompt = promptBuilder({
   task: ["response"],
 });
 
-export const answerRelevancy = createLLMAndEmbeddingScorer({
+/**
+ * Checks if your AI actually answered the question
+ * asked (vs going off-topic or being evasive).
+ *
+ * How it works: Looks at your AI's answer and asks
+ * "What question would this answer?" Then compares
+ * those generated questions to your original
+ * question. If similar, your AI stayed on topic.
+ *
+ * Also detects evasive answers like "I don't know"
+ * and scores them as 0.
+ *
+ * **When to use**: When you want to catch answers that
+ * are technically correct but don't address what
+ * was asked.
+ *
+ * **When NOT to use**: If your use case allows
+ * tangential or exploratory responses.
+ */
+export const answerRelevancy = createLLMAndEmbeddingScorer<string>({
   name: "Answer Relevancy",
   description:
     "Evaluates how relevant the response is to the original question by generating hypothetical questions and computing semantic similarity",

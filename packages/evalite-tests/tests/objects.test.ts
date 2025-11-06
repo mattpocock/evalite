@@ -26,12 +26,14 @@ it("Should handle objects as inputs and outputs", async () => {
               },
               { input: "abc", output: 123 },
             ],
-            expected: [
-              {
-                input: "abc",
-                output: 123,
-              },
-            ],
+            expected: {
+              reference: [
+                {
+                  input: "abc",
+                  output: 123,
+                },
+              ],
+            },
           },
         ],
       },

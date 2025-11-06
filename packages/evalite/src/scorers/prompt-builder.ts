@@ -1,25 +1,64 @@
-import type { Evalite } from "../types.js";
+/**
+ * Internal utility for building prompts used by
+ * scorers.
+ *
+ * Most users won't need to use this directly -
+ * it's used internally by the built-in scorers
+ * to create consistent prompt formats.
+ */
+export namespace PromptBuilder {
+  /**
+   * Example with input and output for prompt building.
+   */
+  export interface Example {
+    input: unknown;
+    output: unknown;
+  }
 
+  /**
+   * Extracts placeholder keys from a template string.
+   * E.g., "Hello {name}, you are {age}" => "name" | "age"
+   */
+  export type ExtractPlaceholders<S extends string> =
+    S extends `${infer _Start}{${infer Key}}${infer Rest}`
+      ? Key | ExtractPlaceholders<Rest>
+      : never;
+
+  /**
+   * Extracts keys from a readonly string array or returns never.
+   */
+  export type TaskKeys<T extends readonly string[] | undefined> =
+    T extends readonly string[] ? T[number] : never;
+
+  /**
+   * Combines placeholder keys and task keys.
+   */
+  export type RequiredKeys<
+    PromptT extends string,
+    TaskT extends readonly string[] | undefined,
+  > = ExtractPlaceholders<PromptT> | TaskKeys<TaskT>;
+}
+
+/**
+ * Creates a type-safe prompt builder function that generates
+ * structured prompts with instructions, examples, and task
+ * sections in XML format. Interpolates placeholder values from
+ * templates and wraps content in corresponding XML tags.
+ */
 export function promptBuilder<
   PromptT extends string,
   const TaskT extends readonly string[] | undefined = undefined,
 >(config: {
   prompt: PromptT;
-  examples?: Evalite.Scorers.PromptBuilder.Example[];
+  examples?: PromptBuilder.Example[];
   task?: TaskT;
 }) {
   const { prompt, examples = [], task } = config;
 
   return (
-    values: Evalite.Scorers.PromptBuilder.RequiredKeys<
-      PromptT,
-      TaskT
-    > extends never
+    values: PromptBuilder.RequiredKeys<PromptT, TaskT> extends never
       ? Record<string, never>
-      : Record<
-          Evalite.Scorers.PromptBuilder.RequiredKeys<PromptT, TaskT>,
-          unknown
-        >
+      : Record<PromptBuilder.RequiredKeys<PromptT, TaskT>, unknown>
   ): string => {
     const interpolatedPrompt = replaceTemplateVariables(prompt, values);
 

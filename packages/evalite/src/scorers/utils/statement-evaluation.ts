@@ -211,7 +211,16 @@ export const simpleNLIPrompt = promptBuilder({
 });
 
 /**
- * Decomposes a text into atomic statements given a question
+ * Splits an answer into individual factual
+ * claims that can be checked separately.
+ *
+ * Example: "Einstein was a physicist who
+ * developed relativity" becomes:
+ * - "Einstein was a physicist"
+ * - "Einstein developed relativity"
+ *
+ * Also removes pronouns and replaces with actual
+ * names to make each claim standalone.
  */
 export async function decomposeIntoStatements(
   question: string,
@@ -228,7 +237,14 @@ export async function decomposeIntoStatements(
 }
 
 /**
- * Evaluates statements against context with detailed verdicts and reasons
+ * Checks if each claim can be verified from the
+ * provided context.
+ *
+ * Returns both a verdict (supported or not) and
+ * an explanation for each claim.
+ *
+ * More detailed than the simple version but uses
+ * more AI tokens.
  */
 export async function evaluateStatementFaithfulness(
   context: string,
@@ -252,7 +268,13 @@ export async function evaluateStatementFaithfulness(
 }
 
 /**
- * Evaluates statements against context with simple verdicts (0/1 only)
+ * Checks if each claim can be verified from the
+ * provided context.
+ *
+ * Returns only verdicts (supported or not) with
+ * no explanations.
+ *
+ * Faster and cheaper than the detailed version.
  */
 export async function evaluateStatementsSimple(
   context: string,

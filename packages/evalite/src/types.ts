@@ -4,8 +4,10 @@ import type {
   ModelMessage,
   UserModelMessage,
 } from "ai";
+import type { answerRelevancy } from "./scorers/answer-relevancy.js";
 
 export declare namespace Evalite {
+  export type LowInfer<T> = T & {};
   /**
    * Configuration options for Evalite
    */
@@ -185,13 +187,13 @@ export declare namespace Evalite {
   export type ScoreInput<TInput, TOutput, TExpected> = {
     input: TInput;
     output: TOutput;
-    expected?: TExpected;
+    expected: TExpected;
   };
 
-  export type ColumnInput<TInput, TOutput, TExpected> = {
+  export type ColumnInput<TInput, TOutput, TScorers extends AnyScorer[]> = {
     input: TInput;
     output: TOutput;
-    expected?: TExpected;
+    expected: ExpectedFromScorers<TScorers>;
     scores: Score[];
     traces: Trace[];
   };
@@ -205,33 +207,65 @@ export declare namespace Evalite {
     opts: ScoreInput<TInput, TOutput, TExpected>
   ) => MaybePromise<Score>;
 
-  export type DataShape<TInput, TExpected> = {
+  export interface DataShapeWithoutExpected<TInput> {
     input: TInput;
-    expected?: TExpected;
     only?: boolean;
-  };
+  }
 
-  export type DataShapeAsyncResolver<TInput, TExpected> = () => MaybePromise<
-    DataShape<TInput, TExpected>[]
+  export interface DataShapeWithExpected<TInput, TExpected>
+    extends DataShapeWithoutExpected<TInput> {
+    expected: TExpected;
+  }
+
+  export type AsyncResolver<Output> = () => MaybePromise<Output>;
+
+  export type MaybeAsyncResolver<Output> = AsyncResolver<Output> | Output;
+
+  export type AnyScorer = Scorer<any, any, any> | ScorerOpts<any, any, any>;
+
+  export type ExpectedFromScorers<TScorers extends AnyScorer[]> =
+    TScorers[number] extends
+      | Scorer<any, any, infer TExpected>
+      | ScorerOpts<any, any, infer TExpected>
+      ? TExpected
+      : never;
+
+  export type InputFromScorers<TScorers extends AnyScorer[]> =
+    TScorers[number] extends
+      | Scorer<infer TInput, any, any>
+      | ScorerOpts<infer TInput, any, any>
+      ? TInput
+      : never;
+
+  export type OutputFromScorers<TScorers extends AnyScorer[]> =
+    TScorers[number] extends
+      | Scorer<any, infer TOutput, any>
+      | ScorerOpts<any, infer TOutput, any>
+      ? TOutput
+      : never;
+
+  export type RunnerOptsDataShapeFromScorers<
+    TInput,
+    TScorers extends AnyScorer[],
+  > = MaybeAsyncResolver<
+    TScorers extends never[]
+      ? DataShapeWithoutExpected<TInput>[]
+      : {} extends ExpectedFromScorers<TScorers>
+        ? DataShapeWithoutExpected<TInput>[]
+        : DataShapeWithExpected<TInput, ExpectedFromScorers<TScorers>>[]
   >;
 
-  export type RunnerOpts<TInput, TOutput, TExpected, TVariant = undefined> = {
-    data:
-      | DataShape<TInput, TExpected>[]
-      | DataShapeAsyncResolver<TInput, TExpected>;
+  export type RunnerOpts<
+    TInput,
+    TOutput,
+    TScorers extends AnyScorer[],
+    TVariant = undefined,
+  > = {
+    data: RunnerOptsDataShapeFromScorers<TInput, TScorers>;
     task: Task<TInput, TOutput, TVariant>;
-    scorers?: Array<
-      | Scorer<TInput, TOutput, TExpected>
-      | ScorerOpts<TInput, TOutput, TExpected>
-    >;
-    /**
-     * @deprecated Use `columns` instead.
-     */
-    experimental_customColumns?: (
-      opts: ColumnInput<TInput, TOutput, TExpected>
-    ) => MaybePromise<RenderedColumn[]>;
+    scorers?: TScorers;
     columns?: (
-      opts: ColumnInput<TInput, TOutput, TExpected>
+      opts: ColumnInput<TInput, TOutput, TScorers>
     ) => MaybePromise<RenderedColumn[]>;
     /**
      * Number of times to run each test case for non-deterministic evaluations
@@ -781,25 +815,27 @@ export declare namespace Evalite {
     }
 
     export interface SimpleScorerFactoryOpts<
+      TInput,
       TExpected extends object,
-      TConfig extends object = {},
+      TConfig extends object | void = void,
     > {
       name: string;
       description?: string;
       scorer: (
-        input: Evalite.ScoreInput<string, SingleOrMultiTurnOutput, TExpected> &
+        input: Evalite.ScoreInput<TInput, SingleOrMultiTurnOutput, TExpected> &
           TConfig
       ) => Evalite.MaybePromise<Evalite.UserProvidedScoreWithMetadata>;
     }
 
     export interface LLMBasedScorerFactoryOpts<
+      TInput,
       TExpected extends object,
-      TConfig extends object = {},
+      TConfig extends object | void = void,
     > {
       name: string;
       description?: string;
       scorer: (
-        input: LLMBasedScorerOpts<TExpected> &
+        input: LLMBasedScorerOpts<TInput, TExpected> &
           TConfig &
           Evalite.Scorers.LLMBasedScorerBaseConfig
       ) => Evalite.MaybePromise<Evalite.UserProvidedScoreWithMetadata>;
@@ -809,18 +845,19 @@ export declare namespace Evalite {
       model: LanguageModel;
     }
 
-    export interface LLMBasedScorerOpts<TExpected extends object>
-      extends Evalite.ScoreInput<string, SingleOrMultiTurnOutput, TExpected>,
+    export interface LLMBasedScorerOpts<TInput, TExpected extends object>
+      extends Evalite.ScoreInput<TInput, SingleOrMultiTurnOutput, TExpected>,
         LLMBasedScorerBaseConfig {}
 
     export interface EmbeddingBasedScorerFactoryOpts<
+      TInput,
       TExpected extends object,
-      TConfig extends object = {},
+      TConfig extends object | void = void,
     > {
       name: string;
       description?: string;
       scorer: (
-        input: EmbeddingBasedScorerOpts<TExpected> &
+        input: EmbeddingBasedScorerOpts<TInput, TExpected> &
           TConfig &
           Evalite.Scorers.EmbeddingBasedScorerBaseConfig
       ) => Evalite.MaybePromise<Evalite.UserProvidedScoreWithMetadata>;
@@ -830,18 +867,19 @@ export declare namespace Evalite {
       embeddingModel: EmbeddingModel;
     }
 
-    export interface EmbeddingBasedScorerOpts<TExpected extends object>
-      extends Evalite.ScoreInput<string, SingleOrMultiTurnOutput, TExpected>,
+    export interface EmbeddingBasedScorerOpts<TInput, TExpected extends object>
+      extends Evalite.ScoreInput<TInput, SingleOrMultiTurnOutput, TExpected>,
         EmbeddingBasedScorerBaseConfig {}
 
     export interface LLMAndEmbeddingBasedScorerFactoryOpts<
+      TInput,
       TExpected extends object,
-      TConfig extends object = {},
+      TConfig extends object,
     > {
       name: string;
       description?: string;
       scorer: (
-        input: LLMAndEmbeddingBasedScorerOpts<TExpected> &
+        input: LLMAndEmbeddingBasedScorerOpts<TInput, TExpected> &
           TConfig &
           Evalite.Scorers.LLMAndEmbeddingBasedScorerBaseConfig
       ) => Evalite.MaybePromise<Evalite.UserProvidedScoreWithMetadata>;
@@ -852,8 +890,10 @@ export declare namespace Evalite {
       embeddingModel: EmbeddingModel;
     }
 
-    export interface LLMAndEmbeddingBasedScorerOpts<TExpected extends object>
-      extends Evalite.ScoreInput<string, SingleOrMultiTurnOutput, TExpected>,
+    export interface LLMAndEmbeddingBasedScorerOpts<
+      TInput,
+      TExpected extends object,
+    > extends Evalite.ScoreInput<TInput, SingleOrMultiTurnOutput, TExpected>,
         LLMAndEmbeddingBasedScorerBaseConfig {}
 
     /**
@@ -894,13 +934,39 @@ export declare namespace Evalite {
      * Expected data shape for answer similarity scorer.
      */
     export type AnswerSimilarityExpected = {
-      referenceAnswer: string;
+      /**
+       * Reference answer to measure semantic similarity against.
+       */
+      reference: string;
+    };
+
+    /**
+     * Expected data shape for exact match scorer.
+     */
+    export interface ExactMatchExpected {
+      /**
+       * Exact string that output should match character-for-character.
+       */
+      reference: string;
+    }
+
+    /**
+     * Expected data shape for contains scorer.
+     */
+    export type ContainsExpected = {
+      /**
+       * Substring that should appear anywhere in output.
+       */
+      reference: string;
     };
 
     /**
      * Expected data shape for context recall scorer.
      */
     export type ContextRecallExpected = {
+      /**
+       * Array of retrieved context documents/passages. Used to verify if answer statements can be attributed to retrieved contexts.
+       */
       groundTruth: string[];
     };
 
@@ -908,6 +974,9 @@ export declare namespace Evalite {
      * Expected data shape for faithfulness scorer.
      */
     export type FaithfulnessExpected = {
+      /**
+       * Array of source documents/passages. Verifies all output statements are supported by these contexts (no hallucinations).
+       */
       groundTruth: string[];
     };
 
@@ -916,7 +985,13 @@ export declare namespace Evalite {
       input?: unknown;
     };
 
+    /**
+     * Expected data shape for tool call accuracy scorer.
+     */
     export type ToolCallAccuracyExpected = {
+      /**
+       * Array of expected tool calls. Each call specifies `toolName` (required) and optionally `input` (expected arguments). Empty array or omitted = no tool calls expected.
+       */
       referenceToolCalls: ToolCall[];
     };
 
@@ -929,10 +1004,21 @@ export declare namespace Evalite {
       wrongPenalty: number;
     };
 
+    /**
+     * Expected data shape for noise sensitivity scorer.
+     */
     export type NoiseSensitivityExpected = {
-      referenceAnswer: string;
+      /**
+       * Correct/reference answer to the question.
+       */
+      reference: string;
+      /**
+       * Array of retrieved context documents. Determines if incorrect statements influenced by relevant or irrelevant contexts.
+       */
       groundTruth: string[];
     };
+
+    export type NoiseSensitivityMode = "relevant" | "irrelevant";
 
     export type NoiseSensitivityMetadata = {
       referenceStatements: string[];
@@ -940,7 +1026,7 @@ export declare namespace Evalite {
       incorrectStatements: string[];
       relevantContextIndices: number[];
       irrelevantContextIndices: number[];
-      mode: "relevant" | "irrelevant";
+      mode: NoiseSensitivityMode;
       retrievedToGroundTruth: boolean[][];
       retrievedToAnswer: boolean[][];
       groundTruthToAnswer: boolean[];
@@ -967,7 +1053,10 @@ export declare namespace Evalite {
      * Expected data shape for answer correctness scorer.
      */
     export type AnswerCorrectnessExpected = {
-      referenceAnswer: string;
+      /**
+       * Reference answer for comparison. Complete, accurate answer to input question.
+       */
+      reference: string;
     };
 
     /**
@@ -989,41 +1078,5 @@ export declare namespace Evalite {
       similarities: number[];
       allNoncommittal: boolean;
     };
-
-    /**
-     * Types for prompt builder functionality.
-     */
-    export namespace PromptBuilder {
-      /**
-       * Example with input and output for prompt building.
-       */
-      export interface Example {
-        input: unknown;
-        output: unknown;
-      }
-
-      /**
-       * Extracts placeholder keys from a template string.
-       * E.g., "Hello {name}, you are {age}" => "name" | "age"
-       */
-      export type ExtractPlaceholders<S extends string> =
-        S extends `${infer _Start}{${infer Key}}${infer Rest}`
-          ? Key | ExtractPlaceholders<Rest>
-          : never;
-
-      /**
-       * Extracts keys from a readonly string array or returns never.
-       */
-      export type TaskKeys<T extends readonly string[] | undefined> =
-        T extends readonly string[] ? T[number] : never;
-
-      /**
-       * Combines placeholder keys and task keys.
-       */
-      export type RequiredKeys<
-        PromptT extends string,
-        TaskT extends readonly string[] | undefined,
-      > = ExtractPlaceholders<PromptT> | TaskKeys<TaskT>;
-    }
   }
 }
