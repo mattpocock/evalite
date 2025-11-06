@@ -31,12 +31,11 @@ export const answerSimilarity =
     description:
       "Evaluates the similarity of the model's response to the expected answer",
     scorer: async ({ output, expected, embeddingModel }) => {
-      if (!expected?.referenceAnswer)
-        throw new Error("No reference answer provided");
+      if (!expected?.reference) throw new Error("No reference answer provided");
 
       const { embeddings } = await embedMany({
         model: embeddingModel,
-        values: [expected.referenceAnswer, output],
+        values: [expected.reference, output],
       });
 
       const [referenceEmbedding, responseEmbedding] = embeddings;
@@ -48,7 +47,6 @@ export const answerSimilarity =
       const score = cosineSimilarity(referenceEmbedding, responseEmbedding);
       return {
         score,
-        metadata: `Answer similarity score: ${score.toFixed(2)}`,
       };
     },
   });

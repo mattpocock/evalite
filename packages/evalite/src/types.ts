@@ -894,15 +894,15 @@ export declare namespace Evalite {
      * Expected data shape for answer similarity scorer.
      */
     export type AnswerSimilarityExpected = {
-      referenceAnswer: string;
+      reference: string;
     };
 
     export type ExactMatchExpected = {
-      expected: string;
+      reference: string;
     };
 
     export type ContainsExpected = {
-      expected: string;
+      reference: string;
     };
 
     /**
@@ -938,7 +938,7 @@ export declare namespace Evalite {
     };
 
     export type NoiseSensitivityExpected = {
-      referenceAnswer: string;
+      reference: string;
       groundTruth: string[];
     };
 
@@ -977,7 +977,7 @@ export declare namespace Evalite {
      * Expected data shape for answer correctness scorer.
      */
     export type AnswerCorrectnessExpected = {
-      referenceAnswer: string;
+      reference: string;
     };
 
     /**

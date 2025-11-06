@@ -22,15 +22,15 @@ export const exactMatch =
     scorer: ({ output, expected }) => {
       if (
         typeof output !== "string" ||
-        typeof expected?.expected !== "string"
+        typeof expected?.reference !== "string"
       ) {
         throw new Error("Output and expected must be strings");
       }
 
       return {
-        score: output === expected.expected ? 1 : 0,
+        score: output === expected.reference ? 1 : 0,
         metadata: {
-          expected: expected.expected,
+          expected: expected.reference,
           output,
         },
       };
@@ -55,16 +55,16 @@ export const contains = createSimpleScorer<Evalite.Scorers.ContainsExpected>({
   name: "Contains",
   description: "Checks if the output contains the expected value.",
   scorer: ({ output, expected }) => {
-    if (typeof output !== "string" || typeof expected?.expected !== "string") {
+    if (typeof output !== "string" || typeof expected?.reference !== "string") {
       throw new Error(
         "Output and expected must be strings or an array of strings"
       );
     }
 
     return {
-      score: output.includes(expected.expected) ? 1 : 0,
+      score: output.includes(expected.reference) ? 1 : 0,
       metadata: {
-        expected: expected.expected,
+        expected: expected.reference,
         output,
       },
     };

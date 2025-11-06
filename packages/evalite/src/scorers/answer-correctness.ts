@@ -212,10 +212,8 @@ export const answerCorrectness = createLLMAndEmbeddingScorer<
     weights = ANSWER_CORRECTNESS_DEFAULT_WEIGHTS,
     beta = ANSWER_CORRECTNESS_DEFAULT_BETA,
   }) => {
-    if (!expected?.referenceAnswer) {
-      throw new Error(
-        "Answer Correctness scorer requires expected.referenceAnswer"
-      );
+    if (!expected?.reference) {
+      throw new Error("Answer Correctness scorer requires expected.reference");
     }
 
     if (weights.length !== 2) {
@@ -243,7 +241,7 @@ export const answerCorrectness = createLLMAndEmbeddingScorer<
 
     const [responseStatements, referenceStatements] = await Promise.all([
       decomposeIntoStatements(input, outputText, model),
-      decomposeIntoStatements(input, expected.referenceAnswer, model),
+      decomposeIntoStatements(input, expected.reference, model),
     ]);
 
     let factualityScore = 1.0;
@@ -279,7 +277,7 @@ export const answerCorrectness = createLLMAndEmbeddingScorer<
     if (weights[1] > 0) {
       const { embeddings } = await embedMany({
         model: embeddingModel,
-        values: [expected.referenceAnswer, outputText],
+        values: [expected.reference, outputText],
       });
 
       const [referenceEmbedding, responseEmbedding] = embeddings;

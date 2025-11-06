@@ -7,7 +7,7 @@ evalite("RAG Noise Sensitivity", {
     {
       input: "What is the capital of France?",
       expected: {
-        referenceAnswer: "Paris is the capital of France.",
+        reference: "Paris is the capital of France.",
         groundTruth: [
           "Paris is the capital and largest city of France. It is located in the north-central part of the country.",
           "Lyon is the third-largest city in France and an important cultural center.",

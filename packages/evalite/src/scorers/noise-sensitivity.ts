@@ -45,9 +45,9 @@ export const noiseSensitivity = createLLMScorer<
       );
     }
 
-    if (!expected?.referenceAnswer) {
+    if (!expected?.reference) {
       throw new Error(
-        "referenceAnswer is required in the expected data for noise sensitivity scorer"
+        "reference is required in the expected data for noise sensitivity scorer"
       );
     }
 
@@ -65,7 +65,7 @@ export const noiseSensitivity = createLLMScorer<
 
     const referenceStatements = await decomposeIntoStatements(
       input,
-      expected.referenceAnswer,
+      expected.reference,
       model
     );
 
@@ -103,7 +103,7 @@ export const noiseSensitivity = createLLMScorer<
     }
 
     const groundTruthToAnswerVerdicts = await evaluateStatementsSimple(
-      expected.referenceAnswer,
+      expected.reference,
       answerStatements,
       model
     );

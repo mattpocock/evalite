@@ -7,7 +7,7 @@ evalite("Answer Similarity", {
     {
       input: "What is the capital of France?",
       expected: {
-        referenceAnswer: "Paris is the capital of France.",
+        reference: "Paris is the capital of France.",
       },
     },
   ],
