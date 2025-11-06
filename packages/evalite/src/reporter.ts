@@ -300,7 +300,7 @@ export default class EvaliteReporter implements Reporter {
     if (errors.length > 0) {
       renderTask({
         logger: this.ctx.logger,
-        result: {
+        eval: {
           filePath: path.relative(this.ctx.config.root, mod.moduleId),
           status: "fail",
           scores: [],
