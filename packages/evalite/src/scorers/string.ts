@@ -62,9 +62,7 @@ export const contains = createSimpleScorer<Evalite.Scorers.ContainsExpected>({
   description: "Checks if the output contains the expected value.",
   scorer: ({ output, expected }) => {
     if (typeof output !== "string" || typeof expected?.reference !== "string") {
-      throw new Error(
-        "Output and expected must be strings or an array of strings"
-      );
+      throw new Error("Output and expected must be strings");
     }
 
     return {

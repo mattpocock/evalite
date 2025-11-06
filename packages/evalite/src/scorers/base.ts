@@ -61,7 +61,7 @@ export function createEmbeddingScorer<
  */
 export function createSimpleScorer<
   TExpected extends object,
-  TConfig extends object = {},
+  TConfig extends object | void = void,
 >(opts: Evalite.Scorers.SimpleScorerFactoryOpts<TExpected, TConfig>) {
   return function (config: TConfig) {
     return createScorer<
