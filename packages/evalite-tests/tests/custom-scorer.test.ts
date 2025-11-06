@@ -47,8 +47,9 @@ it("Should fail if the custom scorer does not return an object containing score 
 
   await expect(() =>
     scorer({
+      expected: "awdawd" as never,
       input: "awdawd",
-      output: "awdwd" as any,
+      output: "awdwd",
     })
   ).rejects.toThrowError("The scorer 'Is Same' must return a number.");
 });

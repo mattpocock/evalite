@@ -187,7 +187,7 @@ export declare namespace Evalite {
   export type ScoreInput<TInput, TOutput, TExpected> = {
     input: TInput;
     output: TOutput;
-    expected?: TExpected;
+    expected: TExpected;
   };
 
   export type ColumnInput<TInput, TOutput, TScorers extends AnyScorer[]> = {
@@ -221,18 +221,28 @@ export declare namespace Evalite {
 
   export type MaybeAsyncResolver<Output> = AsyncResolver<Output> | Output;
 
-  export type AnyScorer = Scorer<any, any, any>;
+  export type AnyScorer = Scorer<any, any, any> | ScorerOpts<any, any, any>;
 
   export type ExpectedFromScorers<TScorers extends AnyScorer[]> =
-    TScorers[number] extends Scorer<any, any, infer TExpected>
+    TScorers[number] extends
+      | Scorer<any, any, infer TExpected>
+      | ScorerOpts<any, any, infer TExpected>
       ? TExpected
       : never;
 
   export type InputFromScorers<TScorers extends AnyScorer[]> =
-    TScorers[number] extends Scorer<infer TInput, any, any> ? TInput : never;
+    TScorers[number] extends
+      | Scorer<infer TInput, any, any>
+      | ScorerOpts<infer TInput, any, any>
+      ? TInput
+      : never;
 
   export type OutputFromScorers<TScorers extends AnyScorer[]> =
-    TScorers[number] extends Scorer<any, infer TOutput, any> ? TOutput : never;
+    TScorers[number] extends
+      | Scorer<any, infer TOutput, any>
+      | ScorerOpts<any, infer TOutput, any>
+      ? TOutput
+      : never;
 
   export type RunnerOptsDataShapeFromScorers<
     TInput,
