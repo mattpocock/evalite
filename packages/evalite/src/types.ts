@@ -4,6 +4,7 @@ import type {
   ModelMessage,
   UserModelMessage,
 } from "ai";
+import type { answerRelevancy } from "./scorers/answer-relevancy.js";
 
 export declare namespace Evalite {
   export type LowInfer<T> = T & {};
@@ -227,14 +228,22 @@ export declare namespace Evalite {
       ? TExpected
       : never;
 
+  export type InputFromScorers<TScorers extends AnyScorer[]> =
+    TScorers[number] extends Scorer<infer TInput, any, any> ? TInput : never;
+
+  export type OutputFromScorers<TScorers extends AnyScorer[]> =
+    TScorers[number] extends Scorer<any, infer TOutput, any> ? TOutput : never;
+
   export type RunnerOptsDataShapeFromScorers<
     TInput,
     TScorers extends AnyScorer[],
-  > = TScorers extends never[]
-    ? MaybeAsyncResolver<DataShapeWithoutExpected<TInput>[]>
-    : MaybeAsyncResolver<
-        DataShapeWithExpected<TInput, ExpectedFromScorers<TScorers>>[]
-      >;
+  > = MaybeAsyncResolver<
+    TScorers extends never[]
+      ? DataShapeWithoutExpected<TInput>[]
+      : {} extends ExpectedFromScorers<TScorers>
+        ? DataShapeWithoutExpected<TInput>[]
+        : DataShapeWithExpected<TInput, ExpectedFromScorers<TScorers>>[]
+  >;
 
   export type RunnerOpts<
     TInput,
@@ -796,25 +805,27 @@ export declare namespace Evalite {
     }
 
     export interface SimpleScorerFactoryOpts<
+      TInput,
       TExpected extends object,
       TConfig extends object | void = void,
     > {
       name: string;
       description?: string;
       scorer: (
-        input: Evalite.ScoreInput<string, SingleOrMultiTurnOutput, TExpected> &
+        input: Evalite.ScoreInput<TInput, SingleOrMultiTurnOutput, TExpected> &
           TConfig
       ) => Evalite.MaybePromise<Evalite.UserProvidedScoreWithMetadata>;
     }
 
     export interface LLMBasedScorerFactoryOpts<
+      TInput,
       TExpected extends object,
       TConfig extends object | void = void,
     > {
       name: string;
       description?: string;
       scorer: (
-        input: LLMBasedScorerOpts<TExpected> &
+        input: LLMBasedScorerOpts<TInput, TExpected> &
           TConfig &
           Evalite.Scorers.LLMBasedScorerBaseConfig
       ) => Evalite.MaybePromise<Evalite.UserProvidedScoreWithMetadata>;
@@ -824,18 +835,19 @@ export declare namespace Evalite {
       model: LanguageModel;
     }
 
-    export interface LLMBasedScorerOpts<TExpected extends object>
-      extends Evalite.ScoreInput<string, SingleOrMultiTurnOutput, TExpected>,
+    export interface LLMBasedScorerOpts<TInput, TExpected extends object>
+      extends Evalite.ScoreInput<TInput, SingleOrMultiTurnOutput, TExpected>,
         LLMBasedScorerBaseConfig {}
 
     export interface EmbeddingBasedScorerFactoryOpts<
+      TInput,
       TExpected extends object,
       TConfig extends object | void = void,
     > {
       name: string;
       description?: string;
       scorer: (
-        input: EmbeddingBasedScorerOpts<TExpected> &
+        input: EmbeddingBasedScorerOpts<TInput, TExpected> &
           TConfig &
           Evalite.Scorers.EmbeddingBasedScorerBaseConfig
       ) => Evalite.MaybePromise<Evalite.UserProvidedScoreWithMetadata>;
@@ -845,18 +857,19 @@ export declare namespace Evalite {
       embeddingModel: EmbeddingModel;
     }
 
-    export interface EmbeddingBasedScorerOpts<TExpected extends object>
-      extends Evalite.ScoreInput<string, SingleOrMultiTurnOutput, TExpected>,
+    export interface EmbeddingBasedScorerOpts<TInput, TExpected extends object>
+      extends Evalite.ScoreInput<TInput, SingleOrMultiTurnOutput, TExpected>,
         EmbeddingBasedScorerBaseConfig {}
 
     export interface LLMAndEmbeddingBasedScorerFactoryOpts<
+      TInput,
       TExpected extends object,
-      TConfig extends object = {},
+      TConfig extends object,
     > {
       name: string;
       description?: string;
       scorer: (
-        input: LLMAndEmbeddingBasedScorerOpts<TExpected> &
+        input: LLMAndEmbeddingBasedScorerOpts<TInput, TExpected> &
           TConfig &
           Evalite.Scorers.LLMAndEmbeddingBasedScorerBaseConfig
       ) => Evalite.MaybePromise<Evalite.UserProvidedScoreWithMetadata>;
@@ -867,8 +880,10 @@ export declare namespace Evalite {
       embeddingModel: EmbeddingModel;
     }
 
-    export interface LLMAndEmbeddingBasedScorerOpts<TExpected extends object>
-      extends Evalite.ScoreInput<string, SingleOrMultiTurnOutput, TExpected>,
+    export interface LLMAndEmbeddingBasedScorerOpts<
+      TInput,
+      TExpected extends object,
+    > extends Evalite.ScoreInput<TInput, SingleOrMultiTurnOutput, TExpected>,
         LLMAndEmbeddingBasedScorerBaseConfig {}
 
     /**

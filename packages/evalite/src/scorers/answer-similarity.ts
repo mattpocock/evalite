@@ -29,28 +29,30 @@ import { cosineSimilarity, embedMany } from "ai";
  * Based on the SAS paper:
  * https://arxiv.org/pdf/2108.06130.pdf
  */
-export const answerSimilarity =
-  createEmbeddingScorer<Evalite.Scorers.AnswerSimilarityExpected>({
-    name: "Answer Similarity",
-    description:
-      "Evaluates the similarity of the model's response to the expected answer",
-    scorer: async ({ output, expected, embeddingModel }) => {
-      if (!expected?.reference) throw new Error("No reference answer provided");
+export const answerSimilarity = createEmbeddingScorer<
+  never,
+  Evalite.Scorers.AnswerSimilarityExpected
+>({
+  name: "Answer Similarity",
+  description:
+    "Evaluates the similarity of the model's response to the expected answer",
+  scorer: async ({ output, expected, embeddingModel }) => {
+    if (!expected?.reference) throw new Error("No reference answer provided");
 
-      const { embeddings } = await embedMany({
-        model: embeddingModel,
-        values: [expected.reference, output],
-      });
+    const { embeddings } = await embedMany({
+      model: embeddingModel,
+      values: [expected.reference, output],
+    });
 
-      const [referenceEmbedding, responseEmbedding] = embeddings;
+    const [referenceEmbedding, responseEmbedding] = embeddings;
 
-      if (!referenceEmbedding || !responseEmbedding) {
-        return { score: 0 };
-      }
+    if (!referenceEmbedding || !responseEmbedding) {
+      return { score: 0 };
+    }
 
-      const score = cosineSimilarity(referenceEmbedding, responseEmbedding);
-      return {
-        score,
-      };
-    },
-  });
+    const score = cosineSimilarity(referenceEmbedding, responseEmbedding);
+    return {
+      score,
+    };
+  },
+});

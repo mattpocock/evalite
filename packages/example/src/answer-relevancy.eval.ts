@@ -1,24 +1,32 @@
 import { openai } from "@ai-sdk/openai";
 import { evalite } from "evalite";
-import { answerRelevancy } from "evalite/scorers";
+import { answerRelevancy, toolCallAccuracy } from "evalite/scorers";
 
 evalite("Answer Relevancy", {
   data: [
     {
       input: "What is the capital of France?",
-      expected: {},
+      expected: {
+        referenceToolCalls: [],
+      },
     },
     {
       input: "Who invented the telephone?",
-      expected: {},
+      expected: {
+        referenceToolCalls: [],
+      },
     },
     {
       input: "What are the health benefits of exercise?",
-      expected: {},
+      expected: {
+        referenceToolCalls: [],
+      },
     },
     {
       input: "How does photosynthesis work?",
-      expected: {},
+      expected: {
+        referenceToolCalls: [],
+      },
     },
   ],
   task(input) {
@@ -37,6 +45,9 @@ evalite("Answer Relevancy", {
     answerRelevancy({
       model: openai("gpt-4.1-mini"),
       embeddingModel: openai.embedding("text-embedding-3-small"),
+    }),
+    toolCallAccuracy({
+      mode: "exact",
     }),
   ],
 });

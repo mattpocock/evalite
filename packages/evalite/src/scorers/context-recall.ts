@@ -108,71 +108,71 @@ const classifyStatementsPrompt = promptBuilder({
  * verify if answer statements can be attributed
  * to retrieved contexts.
  */
-export const contextRecall =
-  createLLMScorer<Evalite.Scorers.ContextRecallExpected>({
-    name: "Context Recall",
-    description:
-      "Estimates context recall by analyzing how much of the reference answer can be attributed to retrieved contexts",
-    scorer: async ({ input, output, expected, model }) => {
-      if (!expected?.groundTruth || expected?.groundTruth.length === 0)
-        throw new Error(
-          "No ground truth provided or the ground truth is empty"
-        );
+export const contextRecall = createLLMScorer<
+  string,
+  Evalite.Scorers.ContextRecallExpected
+>({
+  name: "Context Recall",
+  description:
+    "Estimates context recall by analyzing how much of the reference answer can be attributed to retrieved contexts",
+  scorer: async ({ input, output, expected, model }) => {
+    if (!expected?.groundTruth || expected?.groundTruth.length === 0)
+      throw new Error("No ground truth provided or the ground truth is empty");
 
-      if (isMultiTurnOutput(output)) {
-        throw new Error(
-          "Context Recall scorer does not support multi-turn input"
-        );
-      }
-
-      const classifications = await classifyStatements(
-        input,
-        output,
-        expected.groundTruth
+    if (isMultiTurnOutput(output)) {
+      throw new Error(
+        "Context Recall scorer does not support multi-turn input"
       );
+    }
 
-      if (classifications.length === 0)
-        throw new Error("No classifications were found from the answer");
+    const classifications = await classifyStatements(
+      input,
+      output,
+      expected.groundTruth
+    );
 
-      const score = calculateScore(classifications);
+    if (classifications.length === 0)
+      throw new Error("No classifications were found from the answer");
 
-      return {
-        score,
-        metadata: {
-          classifications,
-          reason: `${
-            classifications.filter((c) => c.attributed === 1).length
-          } out of ${
-            classifications.length
-          } statements from the response were attributed to the retrieved contexts`,
-        },
-      };
+    const score = calculateScore(classifications);
 
-      function calculateScore(
-        classifications: Evalite.Scorers.ContextRecallClassifications
-      ) {
-        if (classifications.length === 0) return 0;
+    return {
+      score,
+      metadata: {
+        classifications,
+        reason: `${
+          classifications.filter((c) => c.attributed === 1).length
+        } out of ${
+          classifications.length
+        } statements from the response were attributed to the retrieved contexts`,
+      },
+    };
 
-        const attributedClassifications = classifications.filter(
-          (c) => c.attributed === 1
-        ).length;
-        return attributedClassifications / classifications.length;
-      }
+    function calculateScore(
+      classifications: Evalite.Scorers.ContextRecallClassifications
+    ) {
+      if (classifications.length === 0) return 0;
 
-      async function classifyStatements(
-        question: string,
-        answer: string,
-        groundTruth: string[]
-      ) {
-        const context = groundTruth.join("\n");
+      const attributedClassifications = classifications.filter(
+        (c) => c.attributed === 1
+      ).length;
+      return attributedClassifications / classifications.length;
+    }
 
-        const result = await generateObject({
-          model: model,
-          schema: ContextRecallClassificationsSchema,
-          prompt: classifyStatementsPrompt({ question, context, answer }),
-        });
+    async function classifyStatements(
+      question: string,
+      answer: string,
+      groundTruth: string[]
+    ) {
+      const context = groundTruth.join("\n");
 
-        return result.object.classifications;
-      }
-    },
-  });
+      const result = await generateObject({
+        model: model,
+        schema: ContextRecallClassificationsSchema,
+        prompt: classifyStatementsPrompt({ question, context, answer }),
+      });
+
+      return result.object.classifications;
+    }
+  },
+});

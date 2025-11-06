@@ -36,6 +36,7 @@ import {
  * irrelevant contexts.
  */
 export const noiseSensitivity = createLLMScorer<
+  string,
   Evalite.Scorers.NoiseSensitivityExpected,
   {
     mode?: "relevant" | "irrelevant";

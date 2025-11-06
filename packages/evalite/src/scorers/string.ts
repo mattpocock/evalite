@@ -18,27 +18,26 @@ import type { Evalite } from "../types.js";
  * - `expected.reference` (required): Exact string
  * that output should match character-for-character.
  */
-export const exactMatch =
-  createSimpleScorer<Evalite.Scorers.ExactMatchExpected>({
-    name: "Exact Match",
-    description: "Checks if the output is the same as the expected value.",
-    scorer: ({ output, expected }) => {
-      if (
-        typeof output !== "string" ||
-        typeof expected?.reference !== "string"
-      ) {
-        throw new Error("Output and expected must be strings");
-      }
+export const exactMatch = createSimpleScorer<
+  string,
+  Evalite.Scorers.ExactMatchExpected
+>({
+  name: "Exact Match",
+  description: "Checks if the output is the same as the expected value.",
+  scorer: ({ output, expected }) => {
+    if (typeof output !== "string" || typeof expected?.reference !== "string") {
+      throw new Error("Output and expected must be strings");
+    }
 
-      return {
-        score: output === expected.reference ? 1 : 0,
-        metadata: {
-          expected: expected.reference,
-          output,
-        },
-      };
-    },
-  });
+    return {
+      score: output === expected.reference ? 1 : 0,
+      metadata: {
+        expected: expected.reference,
+        output,
+      },
+    };
+  },
+});
 
 /**
  * Checks if your AI's output contains the
@@ -57,7 +56,10 @@ export const exactMatch =
  * - `expected.reference` (required): Substring
  * that should appear anywhere in output.
  */
-export const contains = createSimpleScorer<Evalite.Scorers.ContainsExpected>({
+export const contains = createSimpleScorer<
+  string,
+  Evalite.Scorers.ContainsExpected
+>({
   name: "Contains",
   description: "Checks if the output contains the expected value.",
   scorer: ({ output, expected }) => {

@@ -71,7 +71,7 @@ const answerRelevancyPrompt = promptBuilder({
  * **When NOT to use**: If your use case allows
  * tangential or exploratory responses.
  */
-export const answerRelevancy = createLLMAndEmbeddingScorer({
+export const answerRelevancy = createLLMAndEmbeddingScorer<string>({
   name: "Answer Relevancy",
   description:
     "Evaluates how relevant the response is to the original question by generating hypothetical questions and computing semantic similarity",

@@ -10,12 +10,13 @@ import type { Evalite } from "../types.js";
  * understanding (like checking faithfulness).
  */
 export function createLLMScorer<
-  TExpected extends object,
+  TInput,
+  TExpected extends object = {},
   TConfig extends object = {},
->(opts: Evalite.Scorers.LLMBasedScorerFactoryOpts<TExpected, TConfig>) {
+>(opts: Evalite.Scorers.LLMBasedScorerFactoryOpts<TInput, TExpected, TConfig>) {
   return function (config: TConfig & Evalite.Scorers.LLMBasedScorerBaseConfig) {
     return createScorer<
-      string,
+      TInput,
       Evalite.Scorers.SingleOrMultiTurnOutput,
       TExpected
     >({
@@ -34,14 +35,21 @@ export function createLLMScorer<
  * Use this for semantic similarity comparisons.
  */
 export function createEmbeddingScorer<
-  TExpected extends object,
+  TInput,
+  TExpected extends object = {},
   TConfig extends object = {},
->(opts: Evalite.Scorers.EmbeddingBasedScorerFactoryOpts<TExpected, TConfig>) {
+>(
+  opts: Evalite.Scorers.EmbeddingBasedScorerFactoryOpts<
+    TInput,
+    TExpected,
+    TConfig
+  >
+) {
   return function (
     config: TConfig & Evalite.Scorers.EmbeddingBasedScorerBaseConfig
   ) {
     return createScorer<
-      string,
+      TInput,
       Evalite.Scorers.SingleOrMultiTurnOutput,
       TExpected
     >({
@@ -60,12 +68,13 @@ export function createEmbeddingScorer<
  * matching or numeric comparisons.
  */
 export function createSimpleScorer<
-  TExpected extends object,
+  TInput,
+  TExpected extends object = {},
   TConfig extends object | void = void,
->(opts: Evalite.Scorers.SimpleScorerFactoryOpts<TExpected, TConfig>) {
+>(opts: Evalite.Scorers.SimpleScorerFactoryOpts<TInput, TExpected, TConfig>) {
   return function (config: TConfig) {
     return createScorer<
-      string,
+      TInput,
       Evalite.Scorers.SingleOrMultiTurnOutput,
       TExpected
     >({
@@ -86,10 +95,12 @@ export function createSimpleScorer<
  * evaluation approaches.
  */
 export function createLLMAndEmbeddingScorer<
-  TExpected extends object,
+  TInput,
+  TExpected extends object = {},
   TConfig extends object = {},
 >(
   opts: Evalite.Scorers.LLMAndEmbeddingBasedScorerFactoryOpts<
+    TInput,
     TExpected,
     TConfig
   >
@@ -98,7 +109,7 @@ export function createLLMAndEmbeddingScorer<
     config: TConfig & Evalite.Scorers.LLMAndEmbeddingBasedScorerBaseConfig
   ) {
     return createScorer<
-      string,
+      TInput,
       Evalite.Scorers.SingleOrMultiTurnOutput,
       TExpected
     >({

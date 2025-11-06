@@ -41,6 +41,7 @@ const DEFAULT_WEIGHTS: Evalite.Scorers.ToolCallAccuracyWeights = {
  * Empty/omitted = no tool calls expected.
  */
 export const toolCallAccuracy = createSimpleScorer<
+  unknown,
   Evalite.Scorers.ToolCallAccuracyExpected,
   {
     mode?: Evalite.Scorers.ToolCallAccuracyMode;

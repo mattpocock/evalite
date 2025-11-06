@@ -107,12 +107,20 @@ const runTask = async <
   };
 };
 
-export const evalite = <TInput, TOutput, TScorers extends Evalite.AnyScorer[]>(
+export const evalite = <
+  TScorers extends Evalite.AnyScorer[],
+  TInput extends Evalite.InputFromScorers<TScorers>,
+  TOutput extends Evalite.OutputFromScorers<TScorers>,
+>(
   evalName: string,
   opts: Evalite.RunnerOpts<TInput, TOutput, TScorers>
 ) => registerEvalite(evalName, opts);
 
-evalite.skip = <TInput, TOutput, TScorers extends Evalite.AnyScorer[]>(
+evalite.skip = <
+  TScorers extends Evalite.AnyScorer[],
+  TInput extends Evalite.InputFromScorers<TScorers>,
+  TOutput extends Evalite.OutputFromScorers<TScorers>,
+>(
   evalName: string,
   opts: Evalite.RunnerOpts<TInput, TOutput, TScorers>
 ) => registerEvalite(evalName, opts, { modifier: "skip" });
@@ -125,7 +133,11 @@ evalite.experimental_skip = evalite.skip;
 evalite.each = <TVariant>(
   variants: Array<{ name: string; input: TVariant }>
 ) => {
-  return <TInput, TOutput, TScorers extends Evalite.AnyScorer[]>(
+  return <
+    TScorers extends Evalite.AnyScorer[],
+    TInput extends Evalite.InputFromScorers<TScorers>,
+    TOutput extends Evalite.OutputFromScorers<TScorers>,
+  >(
     evalName: string,
     opts: Evalite.RunnerOpts<TInput, TOutput, TScorers, TVariant>
   ) => {
@@ -168,7 +180,11 @@ const resolveData = async <Output>(
   }
 };
 
-function registerEvalite<TInput, TOutput, TScorers extends Evalite.AnyScorer[]>(
+function registerEvalite<
+  TScorers extends Evalite.AnyScorer[],
+  TInput extends Evalite.InputFromScorers<TScorers>,
+  TOutput extends Evalite.OutputFromScorers<TScorers>,
+>(
   evalName: string,
   opts: Evalite.RunnerOpts<TInput, TOutput, TScorers>,
   vitestOpts: {

@@ -189,6 +189,7 @@ const ANSWER_CORRECTNESS_DEFAULT_BETA = 1.0;
  * input question.
  */
 export const answerCorrectness = createLLMAndEmbeddingScorer<
+  string,
   Evalite.Scorers.AnswerCorrectnessExpected,
   {
     /**
