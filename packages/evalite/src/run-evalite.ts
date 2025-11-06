@@ -2,15 +2,14 @@ import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { Writable } from "stream";
 import { createVitest, registerConsoleShortcuts } from "vitest/node";
-import { createInMemoryStorage } from "./storage/in-memory.js";
-import { computeAverageScores } from "./storage/utils.js";
 import { FILES_LOCATION } from "./backend-only-constants.js";
+import { loadEvaliteConfig, loadVitestSetupFiles } from "./config.js";
 import { DEFAULT_SERVER_PORT } from "./constants.js";
 import EvaliteReporter from "./reporter.js";
 import { createServer } from "./server.js";
+import { createInMemoryStorage } from "./storage/in-memory.js";
+import { computeAverageScores } from "./storage/utils.js";
 import type { Evalite } from "./types.js";
-import { createSqliteStorage } from "./storage/sqlite.js";
-import { loadEvaliteConfig, loadVitestSetupFiles } from "./config.js";
 
 declare module "vitest" {
   export interface ProvidedContext {
