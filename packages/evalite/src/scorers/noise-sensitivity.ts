@@ -6,7 +6,37 @@ import {
   evaluateStatementsSimple,
 } from "./utils/statement-evaluation.js";
 
+/**
+ * Checks if your AI is being misled by
+ * irrelevant documents in retrieval results.
+ *
+ * Two modes:
+ * - `relevant`: How often does your AI make
+ *   mistakes even when correct docs are present?
+ * - `irrelevant`: How often is your AI confused
+ *   by wrong/irrelevant documents?
+ *
+ * Helps diagnose retrieval problems - are you
+ * retrieving bad documents, or is your AI not
+ * using good ones correctly?
+ *
+ * **When to use**: To debug RAG systems with accuracy
+ * issues. Identifies if problems come from bad
+ * retrieval or poor reasoning.
+ *
+ * **When NOT to use**: For non-RAG systems, or when
+ * you haven't identified accuracy issues yet
+ * (start with faithfulness first).
+ *
+ * - `expected.reference` (required): Correct/reference
+ * answer to the question.
+ * - `expected.groundTruth` (required): Array of
+ * retrieved context documents. Determines if
+ * incorrect statements influenced by relevant or
+ * irrelevant contexts.
+ */
 export const noiseSensitivity = createLLMScorer<
+  string,
   Evalite.Scorers.NoiseSensitivityExpected,
   {
     mode?: "relevant" | "irrelevant";
@@ -23,9 +53,9 @@ export const noiseSensitivity = createLLMScorer<
       );
     }
 
-    if (!expected?.referenceAnswer) {
+    if (!expected?.reference) {
       throw new Error(
-        "referenceAnswer is required in the expected data for noise sensitivity scorer"
+        "reference is required in the expected data for noise sensitivity scorer"
       );
     }
 
@@ -43,7 +73,7 @@ export const noiseSensitivity = createLLMScorer<
 
     const referenceStatements = await decomposeIntoStatements(
       input,
-      expected.referenceAnswer,
+      expected.reference,
       model
     );
 
@@ -81,7 +111,7 @@ export const noiseSensitivity = createLLMScorer<
     }
 
     const groundTruthToAnswerVerdicts = await evaluateStatementsSimple(
-      expected.referenceAnswer,
+      expected.reference,
       answerStatements,
       model
     );

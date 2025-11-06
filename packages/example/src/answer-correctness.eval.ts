@@ -7,13 +7,13 @@ evalite("Answer Correctness", {
     {
       input: "What is the capital of France?",
       expected: {
-        referenceAnswer: "Paris is the capital of France.",
+        reference: "Paris is the capital of France.",
       },
     },
     {
       input: "Who invented the telephone?",
       expected: {
-        referenceAnswer:
+        reference:
           "Alexander Graham Bell invented the telephone. The telephone was patented in 1876.",
       },
     },

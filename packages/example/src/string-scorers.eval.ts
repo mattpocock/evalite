@@ -1,19 +1,19 @@
 import { evalite } from "evalite";
-import { exactMatch, contains } from "evalite/scorers";
+import { contains, exactMatch } from "evalite/scorers";
 
 evalite("Exact Match", {
   data: [
     {
       input: "What is the capital of France?",
       expected: {
-        expected: "Paris is the capital of France",
+        reference: "Paris is the capital of France",
       },
     },
   ],
+  scorers: [exactMatch()],
   task: async (input) => {
     return "Paris is the capital of France";
   },
-  scorers: [exactMatch()],
 });
 
 evalite("Contains", {
@@ -21,7 +21,7 @@ evalite("Contains", {
     {
       input: "What is the capital of France?",
       expected: {
-        expected: "Paris",
+        reference: "Paris",
       },
     },
   ],

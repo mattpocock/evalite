@@ -11,7 +11,37 @@ const DEFAULT_WEIGHTS: Evalite.Scorers.ToolCallAccuracyWeights = {
   wrongPenalty: 0.25,
 };
 
+/**
+ * Checks if your AI is calling the right
+ * functions with the right parameters.
+ *
+ * Two modes:
+ * - "exact": Calls must happen in exact order
+ *   with exact arguments
+ * - "flexible": Calls can happen in any order,
+ *   only checks correct functions were called
+ *
+ * Scoring:
+ * - Full credit for correct function + correct
+ *   arguments
+ * - Partial credit for correct function + wrong
+ *   arguments
+ * - Penalties for wrong/missing calls
+ *
+ * **When to use**: For AI agents that need to call
+ * external functions/APIs. Verifies tool calling
+ * behavior.
+ *
+ * **When NOT to use**: For simple text generation
+ * tasks without function calling.
+ *
+ * - `expected.referenceToolCalls` (optional): Array of
+ * expected tool calls. Each call specifies `toolName`
+ * (required) and optionally `input` (expected arguments).
+ * Empty/omitted = no tool calls expected.
+ */
 export const toolCallAccuracy = createSimpleScorer<
+  unknown,
   Evalite.Scorers.ToolCallAccuracyExpected,
   {
     mode?: Evalite.Scorers.ToolCallAccuracyMode;
@@ -68,7 +98,7 @@ function scoreExactMode(
   return {
     score,
     metadata: {
-      mode: "exact" as const,
+      mode: "exact",
       exactMatches: components.exact,
       nameOnlyMatches: components.nameOnly,
       wrongOrMissing: components.wrong,
@@ -98,7 +128,7 @@ function scoreFlexibleMode(
   return {
     score,
     metadata: {
-      mode: "flexible" as const,
+      mode: "flexible",
       exactMatches: components.exact,
       nameOnlyMatches: components.nameOnly,
       extras: components.extras,

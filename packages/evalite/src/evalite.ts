@@ -52,14 +52,19 @@ const executeTask = async <TInput, TOutput, TVariant = undefined>(
   return taskResult;
 };
 
-const runTask = async <TInput, TOutput, TExpected, TVariant = undefined>(
+const runTask = async <
+  TInput,
+  TOutput,
+  TScorers extends Evalite.AnyScorer[],
+  TVariant = undefined,
+>(
   opts: {
     input: TInput;
-    expected: TExpected | undefined;
+    expected: Evalite.ExpectedFromScorers<TScorers>;
     variant: TVariant;
     traces: Evalite.Trace[];
   } & Omit<
-    Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant>,
+    Evalite.RunnerOpts<TInput, TOutput, TScorers, TVariant>,
     "data" | "experimental_customColumns"
   >
 ) => {
@@ -102,27 +107,34 @@ const runTask = async <TInput, TOutput, TExpected, TVariant = undefined>(
   };
 };
 
-export const evalite = <TInput, TOutput, TExpected = TOutput>(
+export const evalite = <
+  TScorers extends Evalite.AnyScorer[],
+  TInput extends Evalite.InputFromScorers<TScorers>,
+  TOutput extends Evalite.OutputFromScorers<TScorers>,
+>(
   evalName: string,
-  opts: Evalite.RunnerOpts<TInput, TOutput, TExpected>
+  opts: Evalite.RunnerOpts<TInput, TOutput, TScorers>
 ) => registerEvalite(evalName, opts);
 
-evalite.skip = <TInput, TOutput, TExpected>(
+evalite.skip = <
+  TScorers extends Evalite.AnyScorer[],
+  TInput extends Evalite.InputFromScorers<TScorers>,
+  TOutput extends Evalite.OutputFromScorers<TScorers>,
+>(
   evalName: string,
-  opts: Evalite.RunnerOpts<TInput, TOutput, TExpected>
+  opts: Evalite.RunnerOpts<TInput, TOutput, TScorers>
 ) => registerEvalite(evalName, opts, { modifier: "skip" });
-
-/**
- * @deprecated Use `evalite.skip` instead.
- */
-evalite.experimental_skip = evalite.skip;
 
 evalite.each = <TVariant>(
   variants: Array<{ name: string; input: TVariant }>
 ) => {
-  return <TInput, TOutput, TExpected = TOutput>(
+  return <
+    TScorers extends Evalite.AnyScorer[],
+    TInput extends Evalite.InputFromScorers<TScorers>,
+    TOutput extends Evalite.OutputFromScorers<TScorers>,
+  >(
     evalName: string,
-    opts: Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant>
+    opts: Evalite.RunnerOpts<TInput, TOutput, TScorers, TVariant>
   ) => {
     for (const variant of variants) {
       registerEvalite(
@@ -147,9 +159,9 @@ type Result<TSuccess, TFailure> =
       error: TFailure;
     };
 
-const resolveData = async <TInput, TExpected>(
-  datasetFunction: Evalite.DataShapeAsyncResolver<TInput, TExpected>
-): Promise<Result<Evalite.DataShape<TInput, TExpected>[], Error>> => {
+const resolveData = async <Output>(
+  datasetFunction: Evalite.AsyncResolver<Output>
+): Promise<Result<Output, Error>> => {
   try {
     return {
       success: true,
@@ -163,9 +175,13 @@ const resolveData = async <TInput, TExpected>(
   }
 };
 
-function registerEvalite<TInput, TOutput, TExpected>(
+function registerEvalite<
+  TScorers extends Evalite.AnyScorer[],
+  TInput extends Evalite.InputFromScorers<TScorers>,
+  TOutput extends Evalite.OutputFromScorers<TScorers>,
+>(
   evalName: string,
-  opts: Evalite.RunnerOpts<TInput, TOutput, TExpected>,
+  opts: Evalite.RunnerOpts<TInput, TOutput, TScorers>,
   vitestOpts: {
     modifier?: "only" | "skip";
     variantName?: string;
@@ -173,9 +189,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
   } = {}
 ) {
   const describeFn = vitestOpts.modifier === "skip" ? describe.skip : describe;
-  const datasetPromise: Promise<
-    Result<Evalite.DataShape<TInput, TExpected>[], Error>
-  > =
+  const datasetPromise: Promise<Result<any, Error>> =
     vitestOpts.modifier === "skip"
       ? Promise.resolve({ success: true, data: [] })
       : typeof opts.data === "function"
@@ -218,7 +232,10 @@ function registerEvalite<TInput, TOutput, TExpected>(
       return;
     }
 
-    const dataset = datasetResult.data;
+    const dataset: Evalite.DataShapeWithExpected<
+      TInput,
+      Evalite.ExpectedFromScorers<TScorers>
+    >[] = datasetResult.data;
 
     // Filter dataset if any entry has `only: true`
     const hasOnlyFlag = dataset.some((d) => d.only === true);
@@ -233,7 +250,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
     // Expand dataset with trials
     const expandedDataset: Array<{
       input: TInput;
-      expected?: TExpected;
+      expected: Evalite.ExpectedFromScorers<TScorers>;
       dataIndex: number;
       trialIndex?: number;
       index: number;
@@ -318,7 +335,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
             variant: undefined,
             scorers: opts.scorers,
             task: opts.task,
-            columns: opts.columns || opts.experimental_customColumns,
+            columns: opts.columns,
             traces,
           });
 

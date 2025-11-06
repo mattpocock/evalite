@@ -150,38 +150,3 @@ it("Should let users add files to columns", async () => {
     ],
   });
 });
-
-it("Should let users add files to experimental_customColumns", async () => {
-  await using fixture = await loadFixture("experimental_columns");
-
-  await fixture.run({
-    mode: "run-once-and-exit",
-  });
-
-  const dir = path.join(fixture.dir, FILES_LOCATION);
-
-  const files = await readdir(dir);
-
-  expect(files).toHaveLength(1);
-
-  const filePath = path.join(dir, files[0]!);
-
-  const file = await readFile(filePath);
-
-  expect(file).toBeTruthy();
-
-  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
-
-  expect(evals.experimental_customColumns![0]).toMatchObject({
-    evals: [
-      {
-        rendered_columns: [
-          {
-            label: "Column",
-            value: EvaliteFile.fromPath(filePath),
-          },
-        ],
-      },
-    ],
-  });
-});

@@ -159,7 +159,37 @@ For each statement, provide the statement itself and a reason for the classifica
   task: ["question", "answerStatements", "referenceStatements"],
 });
 
+const ANSWER_CORRECTNESS_DEFAULT_WEIGHTS: [number, number] = [0.75, 0.25];
+const ANSWER_CORRECTNESS_DEFAULT_BETA = 1.0;
+
+/**
+ * Checks if your AI's answer is correct by comparing
+ * it to a reference answer.
+ *
+ * This scorer does two things:
+ * 1. Checks factual accuracy - breaks both answers
+ *    into claims and verifies your AI's claims match
+ *    the reference (catches hallucinations)
+ * 2. Checks semantic similarity - measures how
+ *    similar the overall meaning is
+ *
+ * The final score combines both. By default,
+ * factual accuracy is 75% and similarity is 25%.
+ *
+ * **When to use**: When you need comprehensive answer
+ * evaluation that balances exact correctness with
+ * semantic equivalence.
+ *
+ * **When NOT to use**: If you only care about exact
+ * facts (use faithfulness), or only semantic
+ * similarity (use answerSimilarity).
+ *
+ * - `expected.reference` (required): Reference answer
+ * for comparison. Complete, accurate answer to
+ * input question.
+ */
 export const answerCorrectness = createLLMAndEmbeddingScorer<
+  string,
   Evalite.Scorers.AnswerCorrectnessExpected,
   {
     /**
@@ -184,13 +214,11 @@ export const answerCorrectness = createLLMAndEmbeddingScorer<
     expected,
     model,
     embeddingModel,
-    weights = [0.75, 0.25],
-    beta = 1.0,
+    weights = ANSWER_CORRECTNESS_DEFAULT_WEIGHTS,
+    beta = ANSWER_CORRECTNESS_DEFAULT_BETA,
   }) => {
-    if (!expected?.referenceAnswer) {
-      throw new Error(
-        "Answer Correctness scorer requires expected.referenceAnswer"
-      );
+    if (!expected?.reference) {
+      throw new Error("Answer Correctness scorer requires expected.reference");
     }
 
     if (weights.length !== 2) {
@@ -218,7 +246,7 @@ export const answerCorrectness = createLLMAndEmbeddingScorer<
 
     const [responseStatements, referenceStatements] = await Promise.all([
       decomposeIntoStatements(input, outputText, model),
-      decomposeIntoStatements(input, expected.referenceAnswer, model),
+      decomposeIntoStatements(input, expected.reference, model),
     ]);
 
     let factualityScore = 1.0;
@@ -254,7 +282,7 @@ export const answerCorrectness = createLLMAndEmbeddingScorer<
     if (weights[1] > 0) {
       const { embeddings } = await embedMany({
         model: embeddingModel,
-        values: [expected.referenceAnswer, outputText],
+        values: [expected.reference, outputText],
       });
 
       const [referenceEmbedding, responseEmbedding] = embeddings;

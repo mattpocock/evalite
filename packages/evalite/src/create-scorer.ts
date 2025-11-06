@@ -1,6 +1,6 @@
 import type { Evalite } from "./types.js";
 
-export const createScorer = <TInput, TOutput, TExpected = TOutput>(
+export const createScorer = <TInput, TOutput, TExpected>(
   opts: Evalite.ScorerOpts<TInput, TOutput, TExpected>
 ): Evalite.Scorer<TInput, TOutput, TExpected> => {
   return async (input: Evalite.ScoreInput<TInput, TOutput, TExpected>) => {

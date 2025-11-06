@@ -368,8 +368,3 @@ export const runEvalite = async (opts: {
 
   return vitest;
 };
-
-/**
- * @deprecated Use `runEvalite` instead. This export will be removed in a future version.
- */
-export const runVitest = runEvalite;
