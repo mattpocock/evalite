@@ -15,6 +15,9 @@ jobs:
           fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
+
+      - run: git status
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22.x
