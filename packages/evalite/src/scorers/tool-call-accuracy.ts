@@ -68,7 +68,7 @@ function scoreExactMode(
   return {
     score,
     metadata: {
-      mode: "exact" as const,
+      mode: "exact",
       exactMatches: components.exact,
       nameOnlyMatches: components.nameOnly,
       wrongOrMissing: components.wrong,
@@ -98,7 +98,7 @@ function scoreFlexibleMode(
   return {
     score,
     metadata: {
-      mode: "flexible" as const,
+      mode: "flexible",
       exactMatches: components.exact,
       nameOnlyMatches: components.nameOnly,
       extras: components.extras,

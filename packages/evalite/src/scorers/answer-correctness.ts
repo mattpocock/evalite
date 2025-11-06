@@ -159,6 +159,9 @@ For each statement, provide the statement itself and a reason for the classifica
   task: ["question", "answerStatements", "referenceStatements"],
 });
 
+const ANSWER_CORRECTNESS_DEFAULT_WEIGHTS: [number, number] = [0.75, 0.25];
+const ANSWER_CORRECTNESS_DEFAULT_BETA = 1.0;
+
 export const answerCorrectness = createLLMAndEmbeddingScorer<
   Evalite.Scorers.AnswerCorrectnessExpected,
   {
@@ -184,8 +187,8 @@ export const answerCorrectness = createLLMAndEmbeddingScorer<
     expected,
     model,
     embeddingModel,
-    weights = [0.75, 0.25],
-    beta = 1.0,
+    weights = ANSWER_CORRECTNESS_DEFAULT_WEIGHTS,
+    beta = ANSWER_CORRECTNESS_DEFAULT_BETA,
   }) => {
     if (!expected?.referenceAnswer) {
       throw new Error(

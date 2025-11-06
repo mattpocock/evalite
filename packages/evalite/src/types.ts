@@ -897,6 +897,14 @@ export declare namespace Evalite {
       referenceAnswer: string;
     };
 
+    export type ExactMatchExpected = {
+      expected: string;
+    };
+
+    export type ContainsExpected = {
+      expected: string;
+    };
+
     /**
      * Expected data shape for context recall scorer.
      */
@@ -934,13 +942,15 @@ export declare namespace Evalite {
       groundTruth: string[];
     };
 
+    export type NoiseSensitivityMode = "relevant" | "irrelevant";
+
     export type NoiseSensitivityMetadata = {
       referenceStatements: string[];
       answerStatements: string[];
       incorrectStatements: string[];
       relevantContextIndices: number[];
       irrelevantContextIndices: number[];
-      mode: "relevant" | "irrelevant";
+      mode: NoiseSensitivityMode;
       retrievedToGroundTruth: boolean[][];
       retrievedToAnswer: boolean[][];
       groundTruthToAnswer: boolean[];
@@ -989,41 +999,5 @@ export declare namespace Evalite {
       similarities: number[];
       allNoncommittal: boolean;
     };
-
-    /**
-     * Types for prompt builder functionality.
-     */
-    export namespace PromptBuilder {
-      /**
-       * Example with input and output for prompt building.
-       */
-      export interface Example {
-        input: unknown;
-        output: unknown;
-      }
-
-      /**
-       * Extracts placeholder keys from a template string.
-       * E.g., "Hello {name}, you are {age}" => "name" | "age"
-       */
-      export type ExtractPlaceholders<S extends string> =
-        S extends `${infer _Start}{${infer Key}}${infer Rest}`
-          ? Key | ExtractPlaceholders<Rest>
-          : never;
-
-      /**
-       * Extracts keys from a readonly string array or returns never.
-       */
-      export type TaskKeys<T extends readonly string[] | undefined> =
-        T extends readonly string[] ? T[number] : never;
-
-      /**
-       * Combines placeholder keys and task keys.
-       */
-      export type RequiredKeys<
-        PromptT extends string,
-        TaskT extends readonly string[] | undefined,
-      > = ExtractPlaceholders<PromptT> | TaskKeys<TaskT>;
-    }
   }
 }
