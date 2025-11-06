@@ -1,5 +1,11 @@
 # evalite
 
+## 0.19.0
+
+### Minor Changes
+
+- d186618: Support custom base paths for static UI exports. Use `evalite export --basePath=/your-path` to host at non-root URLs like S3/CloudFront subpaths.
+
 ## 0.18.1
 
 ### Patch Changes
