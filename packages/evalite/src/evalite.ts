@@ -125,11 +125,6 @@ evalite.skip = <
   opts: Evalite.RunnerOpts<TInput, TOutput, TScorers>
 ) => registerEvalite(evalName, opts, { modifier: "skip" });
 
-/**
- * @deprecated Use `evalite.skip` instead.
- */
-evalite.experimental_skip = evalite.skip;
-
 evalite.each = <TVariant>(
   variants: Array<{ name: string; input: TVariant }>
 ) => {
