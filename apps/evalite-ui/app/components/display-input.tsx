@@ -1,12 +1,13 @@
 import type { Evalite } from "evalite/types";
 import { EvaliteFile } from "evalite/utils";
-import type { UIMessage } from "ai";
+import type { DynamicToolCall, StaticToolCall, UIMessage } from "ai";
 import {
   AlertCircle,
   ChevronDown,
   ChevronUp,
   DownloadIcon,
   Code2,
+  Wrench,
 } from "lucide-react";
 import React, { Fragment, useLayoutEffect, useRef, useState } from "react";
 import { JSONTree } from "react-json-tree";
@@ -140,7 +141,7 @@ const DisplayJSON = ({
     return (
       <div>
         {singleStringResult.path.length > 0 && (
-          <div className="flex items-center text-sm text-muted-foreground mb-2">
+          <div className="flex items-center text-sm text-muted-foreground mb-1">
             {singleStringResult.path.map((segment, index) => (
               <React.Fragment key={index}>
                 <span className="font-mono">
@@ -288,6 +289,24 @@ const isUIMessageArray = (input: unknown): input is UIMessage[] => {
   );
 };
 
+type AISDKToolCall = StaticToolCall<any> | DynamicToolCall;
+
+// Helper function to check if input is an array of AI SDK tool calls
+const isAISDKToolCallArray = (input: unknown): input is AISDKToolCall[] => {
+  return (
+    Array.isArray(input) &&
+    input.length > 0 &&
+    input.every(
+      (tc: any) =>
+        typeof tc === "object" &&
+        tc !== null &&
+        tc.type === "tool-call" &&
+        "toolName" in tc &&
+        "toolCallId" in tc
+    )
+  );
+};
+
 const DisplayError = ({
   error,
 }: {
@@ -299,6 +318,57 @@ const DisplayError = ({
       <div className="whitespace-pre-wrap w-full break-words">
         {error.message}
       </div>
+    </div>
+  );
+};
+
+const DisplayToolCall = ({ toolCall }: { toolCall: AISDKToolCall }) => {
+  return (
+    <div className="space-y-2">
+      {/* Tool name header */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 text-sm font-mono text-foreground">
+          {toolCall.toolName}
+        </div>
+
+        {toolCall.invalid || toolCall.error ? (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-red-500/10 text-red-500 dark:text-red-400">
+            <AlertCircle className="size-3" />
+            Error
+          </span>
+        ) : null}
+      </div>
+
+      {/* Display error message if present */}
+      {toolCall.error ? (
+        <div className="text-xs text-red-500 dark:text-red-400">
+          {typeof toolCall.error === "string"
+            ? toolCall.error
+            : JSON.stringify(toolCall.error)}
+        </div>
+      ) : null}
+
+      {/* Tool input */}
+      <div className="">
+        <DisplayJSON input={toolCall.input as object} name={undefined} />
+      </div>
+    </div>
+  );
+};
+
+const DisplayAISDKToolCalls = ({
+  toolCalls,
+}: {
+  toolCalls: AISDKToolCall[];
+}) => {
+  return (
+    <div className="space-y-4">
+      {toolCalls.map((toolCall, index) => (
+        <DisplayToolCall
+          key={toolCall.toolCallId || index}
+          toolCall={toolCall}
+        />
+      ))}
     </div>
   );
 };
@@ -457,6 +527,15 @@ export const DisplayInput = (props: {
     return (
       <Wrapper className={props.className}>
         <DisplayError error={props.input} />
+      </Wrapper>
+    );
+  }
+
+  // Check for AI SDK tool call array
+  if (Array.isArray(props.input) && isAISDKToolCallArray(props.input)) {
+    return (
+      <Wrapper className={props.className}>
+        <DisplayAISDKToolCalls toolCalls={props.input} />
       </Wrapper>
     );
   }
