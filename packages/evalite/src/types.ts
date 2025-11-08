@@ -184,10 +184,10 @@ export declare namespace Evalite {
     expected: TExpected;
   };
 
-  export type ColumnInput<TInput, TOutput, TScorers extends AnyScorer[]> = {
+  export type ColumnInput<TInput, TOutput, TExpected> = {
     input: TInput;
     output: TOutput;
-    expected: ExpectedFromScorers<TScorers>;
+    expected: TExpected | undefined;
     scores: Score[];
     traces: Trace[];
   };
@@ -201,14 +201,10 @@ export declare namespace Evalite {
     opts: ScoreInput<TInput, TOutput, TExpected>
   ) => MaybePromise<Score>;
 
-  export interface DataShapeWithoutExpected<TInput> {
+  export interface DataShape<TInput, TExpected = undefined> {
     input: TInput;
+    expected?: TExpected;
     only?: boolean;
-  }
-
-  export interface DataShapeWithExpected<TInput, TExpected>
-    extends DataShapeWithoutExpected<TInput> {
-    expected: TExpected;
   }
 
   export type AsyncResolver<Output> = () => MaybePromise<Output>;
@@ -217,49 +213,19 @@ export declare namespace Evalite {
 
   export type AnyScorer = Scorer<any, any, any> | ScorerOpts<any, any, any>;
 
-  export type ExpectedFromScorers<TScorers extends AnyScorer[]> =
-    TScorers[number] extends
-      | Scorer<any, any, infer TExpected>
-      | ScorerOpts<any, any, infer TExpected>
-      ? TExpected
-      : never;
-
-  export type InputFromScorers<TScorers extends AnyScorer[]> =
-    TScorers[number] extends
-      | Scorer<infer TInput, any, any>
-      | ScorerOpts<infer TInput, any, any>
-      ? TInput
-      : never;
-
-  export type OutputFromScorers<TScorers extends AnyScorer[]> =
-    TScorers[number] extends
-      | Scorer<any, infer TOutput, any>
-      | ScorerOpts<any, infer TOutput, any>
-      ? TOutput
-      : never;
-
-  export type RunnerOptsDataShapeFromScorers<
-    TInput,
-    TScorers extends AnyScorer[],
-  > = MaybeAsyncResolver<
-    TScorers extends never[]
-      ? DataShapeWithoutExpected<TInput>[]
-      : {} extends ExpectedFromScorers<TScorers>
-        ? DataShapeWithoutExpected<TInput>[]
-        : DataShapeWithExpected<TInput, ExpectedFromScorers<TScorers>>[]
+  export type RunnerOptsData<TInput, TExpected> = MaybeAsyncResolver<
+    DataShape<TInput, TExpected>[]
   >;
 
-  export type RunnerOpts<
-    TInput,
-    TOutput,
-    TScorers extends AnyScorer[],
-    TVariant = undefined,
-  > = {
-    data: RunnerOptsDataShapeFromScorers<TInput, TScorers>;
+  export type RunnerOpts<TInput, TOutput, TExpected, TVariant = undefined> = {
+    data: RunnerOptsData<TInput, TExpected>;
     task: Task<TInput, TOutput, TVariant>;
-    scorers?: TScorers;
+    scorers?: (
+      | Scorer<TInput, TOutput, TExpected>
+      | ScorerOpts<TInput, TOutput, TExpected>
+    )[];
     columns?: (
-      opts: ColumnInput<TInput, TOutput, TScorers>
+      opts: ColumnInput<TInput, TOutput, TExpected>
     ) => MaybePromise<RenderedColumn[]>;
     /**
      * Number of times to run each test case for non-deterministic evaluations
