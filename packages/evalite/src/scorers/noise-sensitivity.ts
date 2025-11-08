@@ -1,6 +1,5 @@
-import { createLLMScorer } from "./base.js";
 import type { Evalite } from "../types.js";
-import { isMultiTurnOutput } from "./utils.js";
+import type { LanguageModel } from "ai";
 import {
   decomposeIntoStatements,
   evaluateStatementsSimple,
@@ -28,120 +27,109 @@ import {
  * you haven't identified accuracy issues yet
  * (start with faithfulness first).
  *
- * - `expected.reference` (required): Correct/reference
- * answer to the question.
- * - `expected.groundTruth` (required): Array of
- * retrieved context documents. Determines if
- * incorrect statements influenced by relevant or
- * irrelevant contexts.
+ * @param opts.question - The question being asked
+ * @param opts.answer - The AI's answer to evaluate (string only, not multi-turn)
+ * @param opts.reference - Correct/reference answer to the question
+ * @param opts.groundTruth - Array of retrieved context documents
+ * @param opts.model - Language model to use for evaluation
+ * @param opts.mode - Mode to use: 'relevant' or 'irrelevant' (default: 'relevant')
  */
-export const noiseSensitivity = createLLMScorer<
-  string,
-  Evalite.Scorers.NoiseSensitivityExpected,
-  {
-    mode?: "relevant" | "irrelevant";
+export async function noiseSensitivity(
+  opts: Evalite.Scorers.NoiseSensitivityOpts
+) {
+  const mode = opts.mode ?? "relevant";
+
+  if (mode !== "relevant" && mode !== "irrelevant") {
+    throw new Error(
+      `Invalid mode: ${mode}. Must be 'relevant' or 'irrelevant'.`
+    );
   }
->({
-  name: "Noise Sensitivity",
-  description:
-    "Evaluates whether incorrect answers are influenced by relevant or irrelevant retrieved contexts",
 
-  scorer: async ({ input, output, expected, model, mode = "relevant" }) => {
-    if (mode !== "relevant" && mode !== "irrelevant") {
-      throw new Error(
-        `Invalid mode: ${mode}. Must be 'relevant' or 'irrelevant'.`
-      );
-    }
-
-    if (!expected?.reference) {
-      throw new Error(
-        "reference is required in the expected data for noise sensitivity scorer"
-      );
-    }
-
-    if (!expected?.groundTruth || expected.groundTruth.length === 0) {
-      throw new Error(
-        "groundTruth (retrieved contexts) is required and must not be empty for noise sensitivity scorer"
-      );
-    }
-
-    if (isMultiTurnOutput(output)) {
-      throw new Error(
-        "Noise Sensitivity scorer does not support multi-turn output"
-      );
-    }
-
-    const referenceStatements = await decomposeIntoStatements(
-      input,
-      expected.reference,
-      model
+  if (!opts.groundTruth || opts.groundTruth.length === 0) {
+    throw new Error(
+      "groundTruth (retrieved contexts) is required and must not be empty for noise sensitivity scorer"
     );
+  }
 
-    const answerStatements = await decomposeIntoStatements(
-      input,
-      output,
-      model
+  if (typeof opts.answer !== "string") {
+    throw new Error(
+      "Noise Sensitivity scorer does not support multi-turn output"
     );
+  }
 
-    if (referenceStatements.length === 0) {
-      throw new Error("No statements were generated from the reference answer");
-    }
+  const referenceStatements = await decomposeIntoStatements(
+    opts.question,
+    opts.reference,
+    opts.model
+  );
 
-    if (answerStatements.length === 0) {
-      throw new Error("No statements were generated from the model output");
-    }
+  const answerStatements = await decomposeIntoStatements(
+    opts.question,
+    opts.answer,
+    opts.model
+  );
 
-    const retrievedToGroundTruth: boolean[][] = [];
-    const retrievedToAnswer: boolean[][] = [];
+  if (referenceStatements.length === 0) {
+    throw new Error("No statements were generated from the reference answer");
+  }
 
-    for (const context of expected.groundTruth) {
-      const groundTruthVerdicts = await evaluateStatementsSimple(
-        context,
-        referenceStatements,
-        model
-      );
-      retrievedToGroundTruth.push(groundTruthVerdicts.map((v) => v === 1));
+  if (answerStatements.length === 0) {
+    throw new Error("No statements were generated from the model output");
+  }
 
-      const answerVerdicts = await evaluateStatementsSimple(
-        context,
-        answerStatements,
-        model
-      );
-      retrievedToAnswer.push(answerVerdicts.map((v) => v === 1));
-    }
+  const retrievedToGroundTruth: boolean[][] = [];
+  const retrievedToAnswer: boolean[][] = [];
 
-    const groundTruthToAnswerVerdicts = await evaluateStatementsSimple(
-      expected.reference,
+  for (const context of opts.groundTruth) {
+    const groundTruthVerdicts = await evaluateStatementsSimple(
+      context,
+      referenceStatements,
+      opts.model
+    );
+    retrievedToGroundTruth.push(groundTruthVerdicts.map((v) => v === 1));
+
+    const answerVerdicts = await evaluateStatementsSimple(
+      context,
       answerStatements,
-      model
+      opts.model
     );
-    const groundTruthToAnswer = groundTruthToAnswerVerdicts.map((v) => v === 1);
+    retrievedToAnswer.push(answerVerdicts.map((v) => v === 1));
+  }
 
-    const result = computeScore({
-      retrievedToGroundTruth,
-      retrievedToAnswer,
-      groundTruthToAnswer,
+  const groundTruthToAnswerVerdicts = await evaluateStatementsSimple(
+    opts.reference,
+    answerStatements,
+    opts.model
+  );
+  const groundTruthToAnswer = groundTruthToAnswerVerdicts.map((v) => v === 1);
+
+  const result = computeScore({
+    retrievedToGroundTruth,
+    retrievedToAnswer,
+    groundTruthToAnswer,
+    mode,
+  });
+
+  return {
+    name: "Noise Sensitivity",
+    description:
+      "Evaluates whether incorrect answers are influenced by relevant or irrelevant retrieved contexts",
+    score: result.score,
+    metadata: {
+      referenceStatements,
+      answerStatements,
+      incorrectStatements: answerStatements.filter(
+        (_, i) => !groundTruthToAnswer[i]
+      ),
+      relevantContextIndices: result.relevantContextIndices,
+      irrelevantContextIndices: result.irrelevantContextIndices,
       mode,
-    });
-
-    return {
-      score: result.score,
-      metadata: {
-        referenceStatements,
-        answerStatements,
-        incorrectStatements: answerStatements.filter(
-          (_, i) => !groundTruthToAnswer[i]
-        ),
-        relevantContextIndices: result.relevantContextIndices,
-        irrelevantContextIndices: result.irrelevantContextIndices,
-        mode,
-        retrievedToGroundTruth: retrievedToGroundTruth,
-        retrievedToAnswer: retrievedToAnswer,
-        groundTruthToAnswer: groundTruthToAnswer,
-      },
-    };
-  },
-});
+      retrievedToGroundTruth: retrievedToGroundTruth,
+      retrievedToAnswer: retrievedToAnswer,
+      groundTruthToAnswer: groundTruthToAnswer,
+    },
+  };
+}
 
 function computeScore(params: {
   retrievedToGroundTruth: boolean[][];

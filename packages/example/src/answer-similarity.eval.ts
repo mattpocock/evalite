@@ -10,13 +10,26 @@ evalite("Answer Similarity", {
         reference: "Paris is the capital of France.",
       },
     },
+    {
+      input: "What is the capital of France?",
+      expected: {
+        reference: "Paris is the capital of France.",
+      },
+    },
   ],
   task: async () => {
     return "The capital city of France is Paris.";
   },
   scorers: [
-    answerSimilarity({
-      embeddingModel: openai.embedding("text-embedding-3-small"),
-    }),
+    {
+      name: "Answer Similarity",
+      description: "Evaluates semantic similarity",
+      scorer: ({ output, expected }) =>
+        answerSimilarity({
+          answer: output,
+          reference: expected.reference,
+          embeddingModel: openai.embedding("text-embedding-3-small"),
+        }),
+    },
   ],
 });

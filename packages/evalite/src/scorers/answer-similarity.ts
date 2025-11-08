@@ -1,6 +1,5 @@
+import { cosineSimilarity, embedMany, type EmbeddingModel } from "ai";
 import type { Evalite } from "../types.js";
-import { createEmbeddingScorer } from "./base.js";
-import { cosineSimilarity, embedMany } from "ai";
 
 /**
  * Checks how similar your AI's answer is to the
@@ -22,37 +21,37 @@ import { cosineSimilarity, embedMany } from "ai";
  * faithfulness), or need exact matches (use
  * exactMatch).
  *
- * - `expected.reference` (required): Reference answer
- * for comparison. Complete, accurate answer to
- * input question.
- *
  * Based on the SAS paper:
  * https://arxiv.org/pdf/2108.06130.pdf
+ *
+ * @param opts.answer - The AI's answer to evaluate
+ * @param opts.reference - Reference answer for comparison (complete, accurate answer)
+ * @param opts.embeddingModel - Embedding model to use for semantic similarity
  */
-export const answerSimilarity = createEmbeddingScorer<
-  never,
-  Evalite.Scorers.AnswerSimilarityExpected
->({
-  name: "Answer Similarity",
-  description:
-    "Evaluates the similarity of the model's response to the expected answer",
-  scorer: async ({ output, expected, embeddingModel }) => {
-    if (!expected?.reference) throw new Error("No reference answer provided");
+export async function answerSimilarity(
+  opts: Evalite.Scorers.AnswerSimilarityOpts
+) {
+  const { embeddings } = await embedMany({
+    model: opts.embeddingModel,
+    values: [opts.reference, opts.answer],
+  });
 
-    const { embeddings } = await embedMany({
-      model: embeddingModel,
-      values: [expected.reference, output],
-    });
+  const [referenceEmbedding, responseEmbedding] = embeddings;
 
-    const [referenceEmbedding, responseEmbedding] = embeddings;
-
-    if (!referenceEmbedding || !responseEmbedding) {
-      return { score: 0 };
-    }
-
-    const score = cosineSimilarity(referenceEmbedding, responseEmbedding);
+  if (!referenceEmbedding || !responseEmbedding) {
     return {
-      score,
+      name: "Answer Similarity",
+      description:
+        "Evaluates the similarity of the model's response to the expected answer",
+      score: 0,
     };
-  },
-});
+  }
+
+  const score = cosineSimilarity(referenceEmbedding, responseEmbedding);
+  return {
+    name: "Answer Similarity",
+    description:
+      "Evaluates the similarity of the model's response to the expected answer",
+    score,
+  };
+}

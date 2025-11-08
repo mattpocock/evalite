@@ -1,7 +1,5 @@
-import { generateObject, jsonSchema } from "ai";
+import { generateObject, jsonSchema, type LanguageModel } from "ai";
 import type { Evalite } from "../types.js";
-import { createLLMScorer } from "./base.js";
-import { isMultiTurnOutput } from "./utils.js";
 import { promptBuilder } from "./prompt-builder.js";
 
 const ContextRecallClassificationsSchema = jsonSchema<{
@@ -103,76 +101,51 @@ const classifyStatementsPrompt = promptBuilder({
  * system, or if your AI should use general
  * knowledge beyond retrieved docs.
  *
- * - `expected.groundTruth` (required): Array of
- * retrieved context documents/passages. Used to
- * verify if answer statements can be attributed
- * to retrieved contexts.
+ * @param opts.question - The question being asked
+ * @param opts.answer - The AI's answer to evaluate (string only, not multi-turn)
+ * @param opts.groundTruth - Array of retrieved context documents/passages
+ * @param opts.model - Language model to use for evaluation
  */
-export const contextRecall = createLLMScorer<
-  string,
-  Evalite.Scorers.ContextRecallExpected
->({
-  name: "Context Recall",
-  description:
-    "Estimates context recall by analyzing how much of the reference answer can be attributed to retrieved contexts",
-  scorer: async ({ input, output, expected, model }) => {
-    if (!expected?.groundTruth || expected?.groundTruth.length === 0)
-      throw new Error("No ground truth provided or the ground truth is empty");
+export async function contextRecall(opts: Evalite.Scorers.ContextRecallOpts) {
+  if (!opts.groundTruth || opts.groundTruth.length === 0) {
+    throw new Error("No ground truth provided or the ground truth is empty");
+  }
 
-    if (isMultiTurnOutput(output)) {
-      throw new Error(
-        "Context Recall scorer does not support multi-turn input"
-      );
-    }
+  if (typeof opts.answer !== "string") {
+    throw new Error("Context Recall scorer does not support multi-turn input");
+  }
 
-    const classifications = await classifyStatements(
-      input,
-      output,
-      expected.groundTruth
-    );
+  const context = opts.groundTruth.join("\n");
 
-    if (classifications.length === 0)
-      throw new Error("No classifications were found from the answer");
+  const result = await generateObject({
+    model: opts.model,
+    schema: ContextRecallClassificationsSchema,
+    prompt: classifyStatementsPrompt({
+      question: opts.question,
+      context,
+      answer: opts.answer,
+    }),
+  });
 
-    const score = calculateScore(classifications);
+  const classifications = result.object.classifications;
 
-    return {
-      score,
-      metadata: {
-        classifications,
-        reason: `${
-          classifications.filter((c) => c.attributed === 1).length
-        } out of ${
-          classifications.length
-        } statements from the response were attributed to the retrieved contexts`,
-      },
-    };
+  if (classifications.length === 0) {
+    throw new Error("No classifications were found from the answer");
+  }
 
-    function calculateScore(
-      classifications: Evalite.Scorers.ContextRecallClassifications
-    ) {
-      if (classifications.length === 0) return 0;
+  const attributedCount = classifications.filter(
+    (c) => c.attributed === 1
+  ).length;
+  const score = attributedCount / classifications.length;
 
-      const attributedClassifications = classifications.filter(
-        (c) => c.attributed === 1
-      ).length;
-      return attributedClassifications / classifications.length;
-    }
-
-    async function classifyStatements(
-      question: string,
-      answer: string,
-      groundTruth: string[]
-    ) {
-      const context = groundTruth.join("\n");
-
-      const result = await generateObject({
-        model: model,
-        schema: ContextRecallClassificationsSchema,
-        prompt: classifyStatementsPrompt({ question, context, answer }),
-      });
-
-      return result.object.classifications;
-    }
-  },
-});
+  return {
+    name: "Context Recall",
+    description:
+      "Estimates context recall by analyzing how much of the reference answer can be attributed to retrieved contexts",
+    score,
+    metadata: {
+      classifications,
+      reason: `${attributedCount} out of ${classifications.length} statements from the response were attributed to the retrieved contexts`,
+    },
+  };
+}

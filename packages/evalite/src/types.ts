@@ -1,7 +1,4 @@
-import type { EmbeddingModel, LanguageModel, ModelMessage } from "ai";
-
 export declare namespace Evalite {
-  export type LowInfer<T> = T & {};
   /**
    * Configuration options for Evalite
    */
@@ -765,96 +762,95 @@ export declare namespace Evalite {
    * Types for scorers and scorer-related functionality.
    */
   export namespace Scorers {
-    export type SingleTurnOutput = string;
-    export type MultiTurnOutput = ModelMessage[];
-    export type SingleOrMultiTurnOutput = SingleTurnOutput | MultiTurnOutput;
+    /**
+     * Options for the faithfulness scorer.
+     */
+    export type FaithfulnessOpts = {
+      question: string;
+      answer: string;
+      groundTruth: string[];
+      model: import("ai").LanguageModel;
+    };
 
-    export interface BaseResult {
-      score: number;
-      metadata?: unknown;
-    }
+    /**
+     * Options for the answer correctness scorer.
+     */
+    export type AnswerCorrectnessOpts = {
+      question: string;
+      answer: string;
+      reference: string;
+      model: import("ai").LanguageModel;
+      embeddingModel: import("ai").EmbeddingModel<string>;
+      weights?: [number, number];
+      beta?: number;
+    };
 
-    export interface SimpleScorerFactoryOpts<
-      TInput,
-      TExpected extends object,
-      TConfig extends object | void = void,
-    > {
-      name: string;
-      description?: string;
-      scorer: (
-        input: Evalite.ScoreInput<TInput, SingleOrMultiTurnOutput, TExpected> &
-          TConfig
-      ) => Evalite.MaybePromise<Evalite.UserProvidedScoreWithMetadata>;
-    }
+    /**
+     * Options for the answer relevancy scorer.
+     */
+    export type AnswerRelevancyOpts = {
+      question: string;
+      answer: string;
+      model: import("ai").LanguageModel;
+      embeddingModel: import("ai").EmbeddingModel<string>;
+    };
 
-    export interface LLMBasedScorerFactoryOpts<
-      TInput,
-      TExpected extends object,
-      TConfig extends object | void = void,
-    > {
-      name: string;
-      description?: string;
-      scorer: (
-        input: LLMBasedScorerOpts<TInput, TExpected> &
-          TConfig &
-          Evalite.Scorers.LLMBasedScorerBaseConfig
-      ) => Evalite.MaybePromise<Evalite.UserProvidedScoreWithMetadata>;
-    }
+    /**
+     * Options for the answer similarity scorer.
+     */
+    export type AnswerSimilarityOpts = {
+      answer: string;
+      reference: string;
+      embeddingModel: import("ai").EmbeddingModel<string>;
+    };
 
-    export interface LLMBasedScorerBaseConfig {
-      model: LanguageModel;
-    }
+    /**
+     * Options for the context recall scorer.
+     */
+    export type ContextRecallOpts = {
+      question: string;
+      answer: string;
+      groundTruth: string[];
+      model: import("ai").LanguageModel;
+    };
 
-    export interface LLMBasedScorerOpts<TInput, TExpected extends object>
-      extends Evalite.ScoreInput<TInput, SingleOrMultiTurnOutput, TExpected>,
-        LLMBasedScorerBaseConfig {}
+    /**
+     * Options for the noise sensitivity scorer.
+     */
+    export type NoiseSensitivityOpts = {
+      question: string;
+      answer: string;
+      reference: string;
+      groundTruth: string[];
+      model: import("ai").LanguageModel;
+      mode?: "relevant" | "irrelevant";
+    };
 
-    export interface EmbeddingBasedScorerFactoryOpts<
-      TInput,
-      TExpected extends object,
-      TConfig extends object | void = void,
-    > {
-      name: string;
-      description?: string;
-      scorer: (
-        input: EmbeddingBasedScorerOpts<TInput, TExpected> &
-          TConfig &
-          Evalite.Scorers.EmbeddingBasedScorerBaseConfig
-      ) => Evalite.MaybePromise<Evalite.UserProvidedScoreWithMetadata>;
-    }
+    /**
+     * Options for the tool call accuracy scorer.
+     */
+    export type ToolCallAccuracyOpts = {
+      actualCalls: ToolCall[];
+      expectedCalls: ToolCall[];
+      mode?: ToolCallAccuracyMode;
+      weights?: Partial<ToolCallAccuracyWeights>;
+    };
 
-    export interface EmbeddingBasedScorerBaseConfig {
-      embeddingModel: EmbeddingModel;
-    }
+    /**
+     * Options for the exact match scorer.
+     */
+    export type ExactMatchOpts = {
+      actual: string;
+      expected: string;
+    };
 
-    export interface EmbeddingBasedScorerOpts<TInput, TExpected extends object>
-      extends Evalite.ScoreInput<TInput, SingleOrMultiTurnOutput, TExpected>,
-        EmbeddingBasedScorerBaseConfig {}
-
-    export interface LLMAndEmbeddingBasedScorerFactoryOpts<
-      TInput,
-      TExpected extends object,
-      TConfig extends object,
-    > {
-      name: string;
-      description?: string;
-      scorer: (
-        input: LLMAndEmbeddingBasedScorerOpts<TInput, TExpected> &
-          TConfig &
-          Evalite.Scorers.LLMAndEmbeddingBasedScorerBaseConfig
-      ) => Evalite.MaybePromise<Evalite.UserProvidedScoreWithMetadata>;
-    }
-
-    export interface LLMAndEmbeddingBasedScorerBaseConfig {
-      model: LanguageModel;
-      embeddingModel: EmbeddingModel;
-    }
-
-    export interface LLMAndEmbeddingBasedScorerOpts<
-      TInput,
-      TExpected extends object,
-    > extends Evalite.ScoreInput<TInput, SingleOrMultiTurnOutput, TExpected>,
-        LLMAndEmbeddingBasedScorerBaseConfig {}
+    /**
+     * Options for the contains scorer.
+     */
+    export type ContainsOpts = {
+      actual: string;
+      expected: string;
+    };
 
     /**
      * Classification result for a single statement in context recall scoring.
@@ -890,69 +886,9 @@ export declare namespace Evalite {
      */
     export type FaithfulnessStatements = FaithfulnessStatement[];
 
-    /**
-     * Expected data shape for answer similarity scorer.
-     */
-    export type AnswerSimilarityExpected = {
-      /**
-       * Reference answer to measure semantic similarity against.
-       */
-      reference: string;
-    };
-
-    /**
-     * Expected data shape for exact match scorer.
-     */
-    export interface ExactMatchExpected {
-      /**
-       * Exact string that output should match character-for-character.
-       */
-      reference: string;
-    }
-
-    /**
-     * Expected data shape for contains scorer.
-     */
-    export type ContainsExpected = {
-      /**
-       * Substring that should appear anywhere in output.
-       */
-      reference: string;
-    };
-
-    /**
-     * Expected data shape for context recall scorer.
-     */
-    export type ContextRecallExpected = {
-      /**
-       * Array of retrieved context documents/passages. Used to verify if answer statements can be attributed to retrieved contexts.
-       */
-      groundTruth: string[];
-    };
-
-    /**
-     * Expected data shape for faithfulness scorer.
-     */
-    export type FaithfulnessExpected = {
-      /**
-       * Array of source documents/passages. Verifies all output statements are supported by these contexts (no hallucinations).
-       */
-      groundTruth: string[];
-    };
-
     export type ToolCall = {
       toolName: string;
       input?: unknown;
-    };
-
-    /**
-     * Expected data shape for tool call accuracy scorer.
-     */
-    export type ToolCallAccuracyExpected = {
-      /**
-       * Array of expected tool calls. Each call specifies `toolName` (required) and optionally `input` (expected arguments). Empty array or omitted = no tool calls expected.
-       */
-      referenceToolCalls: ToolCall[];
     };
 
     export type ToolCallAccuracyMode = "exact" | "flexible";
@@ -962,20 +898,6 @@ export declare namespace Evalite {
       nameOnly: number;
       extraPenalty: number;
       wrongPenalty: number;
-    };
-
-    /**
-     * Expected data shape for noise sensitivity scorer.
-     */
-    export type NoiseSensitivityExpected = {
-      /**
-       * Correct/reference answer to the question.
-       */
-      reference: string;
-      /**
-       * Array of retrieved context documents. Determines if incorrect statements influenced by relevant or irrelevant contexts.
-       */
-      groundTruth: string[];
     };
 
     export type NoiseSensitivityMode = "relevant" | "irrelevant";
@@ -1007,16 +929,6 @@ export declare namespace Evalite {
       TP: AnswerCorrectnessStatementWithReason[];
       FP: AnswerCorrectnessStatementWithReason[];
       FN: AnswerCorrectnessStatementWithReason[];
-    };
-
-    /**
-     * Expected data shape for answer correctness scorer.
-     */
-    export type AnswerCorrectnessExpected = {
-      /**
-       * Reference answer for comparison. Complete, accurate answer to input question.
-       */
-      reference: string;
     };
 
     /**

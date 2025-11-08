@@ -20,9 +20,18 @@ evalite("RAG Noise Sensitivity", {
     return "Lyon is the capital of France. And Paris is the largest city in France. And Marseille is the third-largest city in France.";
   },
   scorers: [
-    noiseSensitivity({
-      model: openai("gpt-4.1-mini"),
-      mode: "relevant",
-    }),
+    {
+      name: "Noise Sensitivity",
+      description: "Evaluates noise sensitivity",
+      scorer: ({ input, output, expected }) =>
+        noiseSensitivity({
+          question: input,
+          answer: output,
+          reference: expected.reference,
+          groundTruth: expected.groundTruth,
+          model: openai("gpt-4.1-mini"),
+          mode: "relevant",
+        }),
+    },
   ],
 });

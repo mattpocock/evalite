@@ -17,8 +17,16 @@ evalite("RAG Faithfulness", {
     return "John knows Python, Go, and JavaScript. He also invented TypeScript and works at Google.";
   },
   scorers: [
-    faithfulness({
-      model: openai("gpt-4.1-mini"),
-    }),
+    {
+      name: "Faithfulness",
+      description: "Evaluates faithfulness to ground truth",
+      scorer: ({ input, output, expected }) =>
+        faithfulness({
+          question: input,
+          answer: output,
+          groundTruth: expected.groundTruth,
+          model: openai("gpt-4.1-mini"),
+        }),
+    },
   ],
 });

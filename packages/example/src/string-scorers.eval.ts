@@ -10,10 +10,20 @@ evalite("Exact Match", {
       },
     },
   ],
-  scorers: [exactMatch()],
   task: async (input) => {
     return "Paris is the capital of France";
   },
+  scorers: [
+    {
+      name: "Exact Match",
+      description: "Checks exact match",
+      scorer: ({ output, expected }) =>
+        exactMatch({
+          actual: output,
+          expected: expected.reference,
+        }),
+    },
+  ],
 });
 
 evalite("Contains", {
@@ -28,5 +38,15 @@ evalite("Contains", {
   task: async (input) => {
     return "Paris is the capital of France";
   },
-  scorers: [contains()],
+  scorers: [
+    {
+      name: "Contains",
+      description: "Checks if output contains substring",
+      scorer: ({ output, expected }) =>
+        contains({
+          actual: output,
+          expected: expected.reference,
+        }),
+    },
+  ],
 });

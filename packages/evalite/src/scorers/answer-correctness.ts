@@ -1,6 +1,12 @@
-import { cosineSimilarity, embedMany, generateObject, jsonSchema } from "ai";
+import {
+  cosineSimilarity,
+  embedMany,
+  generateObject,
+  jsonSchema,
+  type EmbeddingModel,
+  type LanguageModel,
+} from "ai";
 import type { Evalite } from "../types.js";
-import { createLLMAndEmbeddingScorer } from "./base.js";
 import { promptBuilder } from "./prompt-builder.js";
 import { decomposeIntoStatements } from "./utils/statement-evaluation.js";
 import { computeFBetaScore } from "./utils/scoring.js";
@@ -184,135 +190,105 @@ const ANSWER_CORRECTNESS_DEFAULT_BETA = 1.0;
  * facts (use faithfulness), or only semantic
  * similarity (use answerSimilarity).
  *
- * - `expected.reference` (required): Reference answer
- * for comparison. Complete, accurate answer to
- * input question.
+ * @param opts.question - The question being asked
+ * @param opts.answer - The AI's answer to evaluate
+ * @param opts.reference - Reference answer for comparison (complete, accurate answer)
+ * @param opts.model - Language model to use for evaluation
+ * @param opts.embeddingModel - Embedding model to use for semantic similarity
+ * @param opts.weights - Weights for combining factuality and similarity scores (default: [0.75, 0.25])
+ * @param opts.beta - Beta parameter for F-beta score calculation (default: 1.0). Beta > 1 favors recall, beta < 1 favors precision
  */
-export const answerCorrectness = createLLMAndEmbeddingScorer<
-  string,
-  Evalite.Scorers.AnswerCorrectnessExpected,
-  {
-    /**
-     * Weights for combining factuality and similarity scores.
-     * @default [0.75, 0.25]
-     */
-    weights?: [number, number];
-    /**
-     * Beta parameter for F-beta score calculation.
-     * Beta > 1 gives more weight to recall, beta < 1 favors precision.
-     * @default 1.0 (F1 score)
-     */
-    beta?: number;
+export async function answerCorrectness(
+  opts: Evalite.Scorers.AnswerCorrectnessOpts
+) {
+  const weights = opts.weights ?? ANSWER_CORRECTNESS_DEFAULT_WEIGHTS;
+  const beta = opts.beta ?? ANSWER_CORRECTNESS_DEFAULT_BETA;
+
+  if (weights.length !== 2) {
+    throw new Error(
+      "Weights must be an array of two numbers: [factualityWeight, similarityWeight]"
+    );
   }
->({
-  name: "Answer Correctness",
-  description:
-    "Evaluates answer correctness using statement-level classification (TP/FP/FN) and semantic similarity",
-  scorer: async ({
-    input,
-    output,
-    expected,
-    model,
-    embeddingModel,
-    weights = ANSWER_CORRECTNESS_DEFAULT_WEIGHTS,
-    beta = ANSWER_CORRECTNESS_DEFAULT_BETA,
-  }) => {
-    if (!expected?.reference) {
-      throw new Error("Answer Correctness scorer requires expected.reference");
-    }
+  if (weights.every((w) => w === 0)) {
+    throw new Error("At least one weight must be non-zero");
+  }
+  if (!weights.every((w) => w >= 0)) {
+    throw new Error("Weights must be non-negative");
+  }
 
-    if (weights.length !== 2) {
-      throw new Error(
-        "Weights must be an array of two numbers: [factualityWeight, similarityWeight]"
-      );
-    }
-    if (weights.every((w) => w === 0)) {
-      throw new Error("At least one weight must be non-zero");
-    }
-    if (!weights.every((w) => w >= 0)) {
-      throw new Error("Weights must be non-negative");
-    }
+  if (typeof beta !== "number" || beta <= 0) {
+    throw new Error(
+      "Beta must be a positive number. Beta > 1 favors recall, beta < 1 favors precision"
+    );
+  }
 
-    if (typeof beta !== "number" || beta <= 0) {
-      throw new Error(
-        "Beta must be a positive number. Beta > 1 favors recall, beta < 1 favors precision"
-      );
-    }
+  const [responseStatements, referenceStatements] = await Promise.all([
+    decomposeIntoStatements(opts.question, opts.answer, opts.model),
+    decomposeIntoStatements(opts.question, opts.reference, opts.model),
+  ]);
 
-    const outputText =
-      typeof output === "string"
-        ? output
-        : output.map((msg) => msg.content).join("\n");
+  let factualityScore = 1.0;
+  let classification: Evalite.Scorers.AnswerCorrectnessClassification = {
+    TP: [],
+    FP: [],
+    FN: [],
+  };
 
-    const [responseStatements, referenceStatements] = await Promise.all([
-      decomposeIntoStatements(input, outputText, model),
-      decomposeIntoStatements(input, expected.reference, model),
-    ]);
+  if (responseStatements.length > 0 && referenceStatements.length > 0) {
+    const result = await generateObject({
+      model: opts.model,
+      schema: AnswerCorrectnessClassificationSchema,
+      prompt: correctnessClassifierPrompt({
+        question: opts.question,
+        answerStatements: responseStatements,
+        referenceStatements: referenceStatements,
+      }),
+    });
 
-    let factualityScore = 1.0;
-    let classification: Evalite.Scorers.AnswerCorrectnessClassification = {
-      TP: [],
-      FP: [],
-      FN: [],
-    };
+    classification = result.object.classification;
+    factualityScore = computeFBetaScore(classification, beta);
+  } else if (
+    responseStatements.length === 0 &&
+    referenceStatements.length === 0
+  ) {
+    factualityScore = 1.0;
+  } else {
+    factualityScore = 0.0;
+  }
 
-    if (responseStatements.length > 0 && referenceStatements.length > 0) {
-      const result = await generateObject({
-        model,
-        schema: AnswerCorrectnessClassificationSchema,
-        prompt: correctnessClassifierPrompt({
-          question: input,
-          answerStatements: responseStatements,
-          referenceStatements: referenceStatements,
-        }),
-      });
+  let similarityScore = 0.0;
+  if (weights[1] > 0) {
+    const { embeddings } = await embedMany({
+      model: opts.embeddingModel,
+      values: [opts.reference, opts.answer],
+    });
 
-      classification = result.object.classification;
-      factualityScore = computeFBetaScore(classification, beta);
-    } else if (
-      responseStatements.length === 0 &&
-      referenceStatements.length === 0
-    ) {
-      factualityScore = 1.0;
+    const [referenceEmbedding, responseEmbedding] = embeddings;
+
+    if (!referenceEmbedding || !responseEmbedding) {
+      similarityScore = 0.0;
     } else {
-      factualityScore = 0.0;
+      similarityScore = cosineSimilarity(referenceEmbedding, responseEmbedding);
     }
+  }
 
-    let similarityScore = 0.0;
-    if (weights[1] > 0) {
-      const { embeddings } = await embedMany({
-        model: embeddingModel,
-        values: [expected.reference, outputText],
-      });
+  const totalWeight = weights[0] + weights[1];
+  const finalScore =
+    (factualityScore * weights[0] + similarityScore * weights[1]) / totalWeight;
 
-      const [referenceEmbedding, responseEmbedding] = embeddings;
+  const metadata: Evalite.Scorers.AnswerCorrectnessMetadata = {
+    classification,
+    factualityScore,
+    similarityScore,
+    responseStatements,
+    referenceStatements,
+  };
 
-      if (!referenceEmbedding || !responseEmbedding) {
-        similarityScore = 0.0;
-      } else {
-        similarityScore = cosineSimilarity(
-          referenceEmbedding,
-          responseEmbedding
-        );
-      }
-    }
-
-    const totalWeight = weights[0] + weights[1];
-    const finalScore =
-      (factualityScore * weights[0] + similarityScore * weights[1]) /
-      totalWeight;
-
-    const metadata: Evalite.Scorers.AnswerCorrectnessMetadata = {
-      classification,
-      factualityScore,
-      similarityScore,
-      responseStatements,
-      referenceStatements,
-    };
-
-    return {
-      score: finalScore,
-      metadata,
-    };
-  },
-});
+  return {
+    name: "Answer Correctness",
+    description:
+      "Evaluates answer correctness using statement-level classification (TP/FP/FN) and semantic similarity",
+    score: finalScore,
+    metadata,
+  };
+}

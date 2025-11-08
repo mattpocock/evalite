@@ -1,7 +1,4 @@
-import type { ToolCallPart, AssistantModelMessage } from "ai";
 import type { Evalite } from "../types.js";
-import { createSimpleScorer } from "./base.js";
-import { isMultiTurnOutput } from "./utils.js";
 import { deepEqual, zip } from "../utils.js";
 
 const DEFAULT_WEIGHTS: Evalite.Scorers.ToolCallAccuracyWeights = {
@@ -35,50 +32,54 @@ const DEFAULT_WEIGHTS: Evalite.Scorers.ToolCallAccuracyWeights = {
  * **When NOT to use**: For simple text generation
  * tasks without function calling.
  *
- * - `expected.referenceToolCalls` (optional): Array of
- * expected tool calls. Each call specifies `toolName`
- * (required) and optionally `input` (expected arguments).
- * Empty/omitted = no tool calls expected.
+ * @param opts.actualCalls - The actual tool calls made by the AI (multi-turn output messages)
+ * @param opts.expectedCalls - Expected tool calls (array of {toolName, input?})
+ * @param opts.mode - Comparison mode: 'exact' (order matters) or 'flexible' (order doesn't matter)
+ * @param opts.weights - Custom weights for scoring components
  */
-export const toolCallAccuracy = createSimpleScorer<
-  unknown,
-  Evalite.Scorers.ToolCallAccuracyExpected,
-  {
-    mode?: Evalite.Scorers.ToolCallAccuracyMode;
-    weights?: Partial<Evalite.Scorers.ToolCallAccuracyWeights>;
+export async function toolCallAccuracy(
+  opts: Evalite.Scorers.ToolCallAccuracyOpts
+) {
+  const mode = opts.mode ?? "exact";
+  const weights = { ...DEFAULT_WEIGHTS, ...opts.weights };
+
+  const outputToolCalls = opts.actualCalls;
+  const referenceToolCalls = opts.expectedCalls;
+
+  const edgeCaseResult = validateToolCallArrays(
+    outputToolCalls,
+    referenceToolCalls
+  );
+  if (edgeCaseResult) {
+    return {
+      name: "Tool Call Accuracy",
+      description: "Checks if the tool calls are correct",
+      ...edgeCaseResult,
+    };
   }
->({
-  name: "Tool Call Accuracy",
-  description: "Checks if the tool calls are correct",
-  scorer: ({ output, expected, mode = "exact", weights = {} }) => {
-    if (!isMultiTurnOutput(output)) {
-      throw new Error("Not a multi-turn output");
-    }
 
-    const outputToolCalls = getToolCalls(output);
-    const referenceToolCalls = expected?.referenceToolCalls ?? [];
-
-    const edgeCaseResult = validateToolCallArrays(
+  if (mode === "exact") {
+    const result = scoreExactMode(outputToolCalls, referenceToolCalls, weights);
+    return {
+      name: "Tool Call Accuracy",
+      description: "Checks if the tool calls are correct",
+      ...result,
+    };
+  } else if (mode === "flexible") {
+    const result = scoreFlexibleMode(
       outputToolCalls,
-      referenceToolCalls
+      referenceToolCalls,
+      weights
     );
-    if (edgeCaseResult) return edgeCaseResult;
-
-    const mergedWeights = { ...DEFAULT_WEIGHTS, ...weights };
-
-    if (mode === "exact") {
-      return scoreExactMode(outputToolCalls, referenceToolCalls, mergedWeights);
-    } else if (mode === "flexible") {
-      return scoreFlexibleMode(
-        outputToolCalls,
-        referenceToolCalls,
-        mergedWeights
-      );
-    } else {
-      throw new Error(`Invalid mode: ${mode}`);
-    }
-  },
-});
+    return {
+      name: "Tool Call Accuracy",
+      description: "Checks if the tool calls are correct",
+      ...result,
+    };
+  } else {
+    throw new Error(`Invalid mode: ${mode}`);
+  }
+}
 
 function scoreExactMode(
   outputToolCalls: Evalite.Scorers.ToolCall[],
@@ -329,25 +330,6 @@ function computeTotalMissing(missingByName: Map<string, number>): number {
   return missing;
 }
 
-function getToolCalls(
-  output: Evalite.Scorers.MultiTurnOutput
-): Evalite.Scorers.ToolCall[] {
-  const toolCalls: Evalite.Scorers.ToolCall[] = [];
-  for (const message of output) {
-    if (message.role === "assistant") {
-      for (const part of message.content) {
-        if (isToolCall(part)) {
-          toolCalls.push({
-            toolName: part.toolName,
-            input: part.input as Record<string, unknown>,
-          });
-        }
-      }
-    }
-  }
-  return toolCalls;
-}
-
 function getArgumentScore(
   outputCall: Evalite.Scorers.ToolCall,
   refCall: Evalite.Scorers.ToolCall
@@ -362,14 +344,6 @@ function stringifyToolCall(toolCall: Evalite.Scorers.ToolCall): string {
     toolName: toolCall.toolName,
     input: stableSerialize(toolCall.input),
   });
-}
-
-function isToolCall(
-  part: AssistantModelMessage["content"][number]
-): part is ToolCallPart {
-  return (
-    typeof part === "object" && "type" in part && part.type === "tool-call"
-  );
 }
 
 function calculateDenominator(referenceLength: number): number {
