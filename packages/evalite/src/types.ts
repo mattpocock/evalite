@@ -173,6 +173,8 @@ export declare namespace Evalite {
   export type UserProvidedScoreWithMetadata = {
     score: number;
     metadata?: unknown;
+    name?: string;
+    description?: string;
   };
 
   export type ScoreInput<TInput, TOutput, TExpected> = {
@@ -240,7 +242,7 @@ export declare namespace Evalite {
   };
 
   export type ScorerOpts<TInput, TOutput, TExpected> = {
-    name: string;
+    name?: string;
     description?: string;
     scorer: (
       input: Evalite.ScoreInput<TInput, TOutput, TExpected>

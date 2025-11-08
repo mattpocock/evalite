@@ -53,3 +53,88 @@ it("Should fail if the custom scorer does not return an object containing score 
     })
   ).rejects.toThrowError("The scorer 'Is Same' must return a number.");
 });
+
+it("Should infer name and description from pre-built scorer return value", async () => {
+  const scorer = createScorer<string, string, never>({
+    scorer: async () => {
+      return {
+        name: "Tool Call Accuracy",
+        description: "Checks if the tool calls are correct",
+        score: 0.75,
+        metadata: { someData: "test" },
+      };
+    },
+  });
+
+  const result = await scorer({
+    expected: "" as never,
+    input: "",
+    output: "",
+  });
+
+  expect(result.name).toBe("Tool Call Accuracy");
+  expect(result.description).toBe("Checks if the tool calls are correct");
+  expect(result.score).toBe(0.75);
+  expect(result.metadata).toEqual({ someData: "test" });
+});
+
+it("Should use explicit name/description over scorer return value when provided", async () => {
+  const scorer = createScorer<string, string, never>({
+    name: "Custom Name",
+    description: "Custom Description",
+    scorer: async () => {
+      return {
+        name: "Tool Call Accuracy",
+        description: "Checks if the tool calls are correct",
+        score: 0.75,
+      };
+    },
+  });
+
+  const result = await scorer({
+    expected: "" as never,
+    input: "",
+    output: "",
+  });
+
+  expect(result.name).toBe("Custom Name");
+  expect(result.description).toBe("Custom Description");
+  expect(result.score).toBe(0.75);
+});
+
+it("Should use 'Unnamed Scorer' when no name provided and scorer returns number", async () => {
+  const scorer = createScorer<string, string, never>({
+    scorer: async () => {
+      return 0.5;
+    },
+  });
+
+  const result = await scorer({
+    expected: "" as never,
+    input: "",
+    output: "",
+  });
+
+  expect(result.name).toBe("Unnamed Scorer");
+  expect(result.score).toBe(0.5);
+});
+
+it("Should use 'Unnamed Scorer' when no name provided and scorer returns object without name", async () => {
+  const scorer = createScorer<string, string, never>({
+    scorer: async () => {
+      return {
+        score: 0.5,
+        metadata: { someData: "test" },
+      };
+    },
+  });
+
+  const result = await scorer({
+    expected: "" as never,
+    input: "",
+    output: "",
+  });
+
+  expect(result.name).toBe("Unnamed Scorer");
+  expect(result.score).toBe(0.5);
+});
