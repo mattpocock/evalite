@@ -26,10 +26,6 @@ export async function exactMatch(opts: Evalite.Scorers.ExactMatchOpts) {
     name: "Exact Match",
     description: "Checks if the output is the same as the expected value.",
     score: opts.actual === opts.expected ? 1 : 0,
-    metadata: {
-      expected: opts.expected,
-      output: opts.actual,
-    },
   };
 }
 
@@ -59,9 +55,5 @@ export async function contains(opts: Evalite.Scorers.ContainsOpts) {
     name: "Contains",
     description: "Checks if the output contains the expected value.",
     score: opts.actual.includes(opts.expected) ? 1 : 0,
-    metadata: {
-      expected: opts.expected,
-      output: opts.actual,
-    },
   };
 }
