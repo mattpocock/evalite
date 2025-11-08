@@ -34,7 +34,6 @@ evalite("Tool Calls", {
   },
   scorers: [
     {
-      name: "Tool Call Accuracy",
       scorer: ({ output }) => {
         return toolCallAccuracy({
           actualCalls: output,
