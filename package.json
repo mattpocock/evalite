@@ -14,7 +14,7 @@
     "build": "pnpm run build:evalite && pnpm run build:evalite-ui",
     "dev": "pnpm build:evalite && pnpm build:evalite-ui && pnpm --filter evalite --filter evalite-tests --parallel run dev",
     "test": "pnpm build && pnpm test:all",
-    "test:all": "pnpm --filter evalite --filter evalite-tests test",
+    "test:all": "pnpm --filter evalite --filter evalite-tests --filter evalite-ui test",
     "example": "pnpm build && pnpm --filter example --filter evalite-ui --filter evalite --parallel dev",
     "ci": "pnpm build && pnpm test:all && pnpm --filter evalite --filter evalite-tests lint && pnpm check-format",
     "docs:dev": "(cd apps/evalite-docs && pnpm run dev)",

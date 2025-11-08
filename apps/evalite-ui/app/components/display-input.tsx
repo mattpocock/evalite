@@ -14,6 +14,12 @@ import { downloadFile, serveFile } from "~/sdk";
 import { Response } from "./response";
 import { Button } from "./ui/button";
 import { cn } from "~/lib/utils";
+import {
+  analyzeForTableRendering,
+  analyzeForSingleRowTable,
+  tableDataToMarkdown,
+  singleRowTableToMarkdown,
+} from "~/utils/render-detection";
 
 // Helper function to find single string value in an object and its path
 const findSingleStringValue = (
@@ -126,7 +132,7 @@ const DisplayJSON = ({
   input: object;
   name: string | undefined;
 }) => {
-  // Check if object has only one string value
+  // Check if object has only one string value (legacy behavior)
   const singleStringResult = findSingleStringValue(input);
 
   if (singleStringResult) {
@@ -135,10 +141,12 @@ const DisplayJSON = ({
       <div>
         {singleStringResult.path.length > 0 && (
           <div className="flex items-center text-sm text-muted-foreground mb-2">
-            <span className="font-mono">{name ?? "object"}</span>
             {singleStringResult.path.map((segment, index) => (
               <React.Fragment key={index}>
-                <span className="font-mono">.{segment}</span>
+                <span className="font-mono">
+                  {index > 0 && "."}
+                  {segment}
+                </span>
               </React.Fragment>
             ))}
           </div>
@@ -149,6 +157,32 @@ const DisplayJSON = ({
           Wrapper={Fragment}
         />
       </div>
+    );
+  }
+
+  // Try to render as multi-row table (array of objects)
+  const tableData = analyzeForTableRendering(input);
+  if (tableData) {
+    const markdown = tableDataToMarkdown(tableData);
+    return (
+      <DisplayText
+        input={markdown}
+        shouldTruncateText={true}
+        Wrapper={Fragment}
+      />
+    );
+  }
+
+  // Try to render as single-row table (flat object)
+  const singleRowData = analyzeForSingleRowTable(input);
+  if (singleRowData) {
+    const markdown = singleRowTableToMarkdown(singleRowData);
+    return (
+      <DisplayText
+        input={markdown}
+        shouldTruncateText={true}
+        Wrapper={Fragment}
+      />
     );
   }
 
