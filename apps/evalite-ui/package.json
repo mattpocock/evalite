@@ -24,6 +24,7 @@
     "@tanstack/react-router": "^1.117.0",
     "@tanstack/router-devtools": "^1.117.0",
     "@tanstack/zod-adapter": "^1.117.0",
+    "ai": "^5.0.89",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
