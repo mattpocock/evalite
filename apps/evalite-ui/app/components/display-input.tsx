@@ -322,52 +322,75 @@ const DisplayError = ({
   );
 };
 
-const DisplayToolCall = ({ toolCall }: { toolCall: AISDKToolCall }) => {
-  return (
-    <div className="space-y-2">
-      {/* Tool name header */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <div className="flex items-center gap-2 text-sm font-mono text-foreground">
-          {toolCall.toolName}
-        </div>
-
-        {toolCall.invalid || toolCall.error ? (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-red-500/10 text-red-500 dark:text-red-400">
-            <AlertCircle className="size-3" />
-            Error
-          </span>
-        ) : null}
-      </div>
-
-      {/* Display error message if present */}
-      {toolCall.error ? (
-        <div className="text-xs text-red-500 dark:text-red-400">
-          {typeof toolCall.error === "string"
-            ? toolCall.error
-            : JSON.stringify(toolCall.error)}
-        </div>
-      ) : null}
-
-      {/* Tool input */}
-      <div className="">
-        <DisplayJSON input={toolCall.input as object} name={undefined} />
-      </div>
-    </div>
-  );
-};
-
 const DisplayAISDKToolCalls = ({
   toolCalls,
 }: {
   toolCalls: AISDKToolCall[];
 }) => {
   return (
-    <div className="space-y-4">
-      {toolCalls.map((toolCall, index) => (
-        <DisplayToolCall
-          key={toolCall.toolCallId || index}
-          toolCall={toolCall}
-        />
+    <DotList
+      items={toolCalls.map((toolCall) => {
+        return (
+          <div key={toolCall.toolCallId} className="space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2 text-sm font-mono text-foreground">
+                {toolCall.toolName}
+              </div>
+
+              {toolCall.invalid || toolCall.error ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-red-500/10 text-red-500 dark:text-red-400">
+                  <AlertCircle className="size-3" />
+                  Error
+                </span>
+              ) : null}
+            </div>
+
+            {/* Display error message if present */}
+            {toolCall.error ? (
+              <div className="text-xs text-red-500 dark:text-red-400">
+                {typeof toolCall.error === "string"
+                  ? toolCall.error
+                  : JSON.stringify(toolCall.error)}
+              </div>
+            ) : null}
+
+            {/* Tool input */}
+            <div className="">
+              <DisplayJSON input={toolCall.input as object} name={undefined} />
+            </div>
+          </div>
+        );
+      })}
+    />
+  );
+};
+
+const DotAndLine = (props: { hideLine?: boolean }) => {
+  return (
+    <div className="flex justify-start items-center flex-col">
+      <div className="size-2 rounded-full bg-muted-foreground/80 mt-1 flex-shrink-0 mb-2"></div>
+      {!props.hideLine && (
+        <div className="w-[2px] h-full bg-muted-foreground/20 mb-1 rounded-full"></div>
+      )}
+    </div>
+  );
+};
+
+export const DotList = (props: { items: React.ReactNode[] }) => {
+  return (
+    <div className="">
+      {props.items.map((item, index) => (
+        <div key={index} className="flex">
+          <DotAndLine hideLine={index === props.items.length - 1} />
+          <div
+            className={cn(
+              "ml-3",
+              index !== props.items.length - 1 ? "pb-6" : ""
+            )}
+          >
+            {item}
+          </div>
+        </div>
       ))}
     </div>
   );
@@ -378,12 +401,6 @@ const DisplayUIMessages = ({ messages }: { messages: UIMessage[] }) => {
     "no-show-more-button-required"
   );
   const contentRef = useRef<HTMLDivElement>(null);
-
-  // Check if we have both user and assistant messages
-  const hasMultipleRoles =
-    messages.length > 1 &&
-    messages.some((m) => m.role === "user") &&
-    messages.some((m) => m.role === "assistant" || m.role === "system");
 
   useLayoutEffect(() => {
     if (contentRef.current) {
@@ -404,58 +421,49 @@ const DisplayUIMessages = ({ messages }: { messages: UIMessage[] }) => {
         }}
         className=""
       >
-        {messages.map((message, index, messages) => (
-          <div key={message.id} className="flex">
-            <div className="flex justify-start items-center flex-col">
-              <div className="size-2 rounded-full bg-muted-foreground/80 mt-1 flex-shrink-0 mb-2"></div>
-              {index < messages.length - 1 && (
-                <div className="w-[2px] h-full bg-muted-foreground/20 mb-1 rounded-full"></div>
-              )}
-            </div>
-            <div
-              className={cn(
-                "ml-3 space-y-4",
-                index < messages.length - 1 ? "pb-6" : ""
-              )}
-            >
-              <div className="text-xs uppercase font-mono text-muted-foreground mb-1">
-                {message.role}
-              </div>
-              {message.parts.map((part, partIndex) => {
-                // Handle text parts
-                if (part.type === "text") {
+        <DotList
+          items={messages.map((message) => {
+            return (
+              <>
+                <div className="text-xs uppercase font-mono text-muted-foreground mb-1">
+                  {message.role}
+                </div>
+                {message.parts.map((part, partIndex) => {
+                  // Handle text parts
+                  if (part.type === "text") {
+                    return (
+                      <div key={partIndex}>
+                        <Response>{part.text}</Response>
+                      </div>
+                    );
+                  }
+
+                  // Handle reasoning parts
+                  if (part.type === "reasoning") {
+                    return (
+                      <div
+                        key={partIndex}
+                        className="text-sm text-muted-foreground break-words"
+                      >
+                        <Response>{part.text}</Response>
+                      </div>
+                    );
+                  }
+
+                  // Handle all other part types as JSON with label
                   return (
                     <div key={partIndex}>
-                      <Response>{part.text}</Response>
+                      <div className="text-xs uppercase font-mono text-muted-foreground mb-1">
+                        {part.type}
+                      </div>
+                      <DisplayJSON input={part} name={part.type} />
                     </div>
                   );
-                }
-
-                // Handle reasoning parts
-                if (part.type === "reasoning") {
-                  return (
-                    <div
-                      key={partIndex}
-                      className="text-sm text-muted-foreground break-words"
-                    >
-                      <Response>{part.text}</Response>
-                    </div>
-                  );
-                }
-
-                // Handle all other part types as JSON with label
-                return (
-                  <div key={partIndex}>
-                    <div className="text-xs uppercase font-mono text-muted-foreground mb-1">
-                      {part.type}
-                    </div>
-                    <DisplayJSON input={part} name={part.type} />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+                })}
+              </>
+            );
+          })}
+        />
       </div>
       {status === "showing-show-more-button" && (
         <Button
