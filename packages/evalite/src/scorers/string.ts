@@ -1,4 +1,3 @@
-import { createSimpleScorer } from "./base.js";
 import type { Evalite } from "../types.js";
 
 /**
@@ -15,29 +14,24 @@ import type { Evalite } from "../types.js";
  * wording are acceptable (use answerSimilarity
  * instead).
  *
- * - `expected.reference` (required): Exact string
- * that output should match character-for-character.
+ * @param opts.actual - The actual output to check
+ * @param opts.expected - The exact string that output should match
  */
-export const exactMatch = createSimpleScorer<
-  string,
-  Evalite.Scorers.ExactMatchExpected
->({
-  name: "Exact Match",
-  description: "Checks if the output is the same as the expected value.",
-  scorer: ({ output, expected }) => {
-    if (typeof output !== "string" || typeof expected?.reference !== "string") {
-      throw new Error("Output and expected must be strings");
-    }
+export async function exactMatch(opts: Evalite.Scorers.ExactMatchOpts) {
+  if (typeof opts.actual !== "string" || typeof opts.expected !== "string") {
+    throw new Error("Both actual and expected must be strings");
+  }
 
-    return {
-      score: output === expected.reference ? 1 : 0,
-      metadata: {
-        expected: expected.reference,
-        output,
-      },
-    };
-  },
-});
+  return {
+    name: "Exact Match",
+    description: "Checks if the output is the same as the expected value.",
+    score: opts.actual === opts.expected ? 1 : 0,
+    metadata: {
+      expected: opts.expected,
+      output: opts.actual,
+    },
+  };
+}
 
 /**
  * Checks if your AI's output contains the
@@ -53,26 +47,21 @@ export const exactMatch = createSimpleScorer<
  * (use exactMatch) or semantic similarity (use
  * answerSimilarity).
  *
- * - `expected.reference` (required): Substring
- * that should appear anywhere in output.
+ * @param opts.actual - The actual output to check
+ * @param opts.expected - Substring that should appear anywhere in output
  */
-export const contains = createSimpleScorer<
-  string,
-  Evalite.Scorers.ContainsExpected
->({
-  name: "Contains",
-  description: "Checks if the output contains the expected value.",
-  scorer: ({ output, expected }) => {
-    if (typeof output !== "string" || typeof expected?.reference !== "string") {
-      throw new Error("Output and expected must be strings");
-    }
+export async function contains(opts: Evalite.Scorers.ContainsOpts) {
+  if (typeof opts.actual !== "string" || typeof opts.expected !== "string") {
+    throw new Error("Both actual and expected must be strings");
+  }
 
-    return {
-      score: output.includes(expected.reference) ? 1 : 0,
-      metadata: {
-        expected: expected.reference,
-        output,
-      },
-    };
-  },
-});
+  return {
+    name: "Contains",
+    description: "Checks if the output contains the expected value.",
+    score: opts.actual.includes(opts.expected) ? 1 : 0,
+    metadata: {
+      expected: opts.expected,
+      output: opts.actual,
+    },
+  };
+}

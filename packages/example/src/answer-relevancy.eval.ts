@@ -42,12 +42,16 @@ evalite("Answer Relevancy", {
     return "I'm not sure about that.";
   },
   scorers: [
-    answerRelevancy({
-      model: openai("gpt-4.1-mini"),
-      embeddingModel: openai.embedding("text-embedding-3-small"),
-    }),
-    toolCallAccuracy({
-      mode: "exact",
-    }),
+    {
+      name: "Answer Relevancy",
+      description: "Evaluates answer relevancy",
+      scorer: ({ input, output }) =>
+        answerRelevancy({
+          question: input,
+          answer: output,
+          model: openai("gpt-4.1-mini"),
+          embeddingModel: openai.embedding("text-embedding-3-small"),
+        }),
+    },
   ],
 });

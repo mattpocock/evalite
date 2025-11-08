@@ -1,6 +1,5 @@
-import { createLLMScorer } from "./base.js";
 import type { Evalite } from "../types.js";
-import { isMultiTurnOutput } from "./utils.js";
+import type { LanguageModel } from "ai";
 import {
   decomposeIntoStatements,
   evaluateStatementFaithfulness,
@@ -27,58 +26,56 @@ import {
  * knowledge beyond the context, or for creative
  * tasks where invention is desired.
  *
- * - `expected.groundTruth` (required): Array of
- * source documents/passages. Verifies all output
- * statements are supported by these contexts
- * (no hallucinations).
+ * @param opts.question - The question being asked
+ * @param opts.answer - The AI's answer to evaluate (string only, not multi-turn)
+ * @param opts.groundTruth - Array of source documents/passages that should support all claims
+ * @param opts.model - Language model to use for evaluation
  */
-export const faithfulness = createLLMScorer<
-  string,
-  Evalite.Scorers.FaithfulnessExpected
->({
-  name: "Faithfulness",
-  description:
-    "Evaluates the faithfulness of the model's response to the retrieved contexts",
+export async function faithfulness(opts: Evalite.Scorers.FaithfulnessOpts) {
+  if (!opts.groundTruth || opts.groundTruth.length === 0) {
+    throw new Error("No ground truth provided or the ground truth is empty");
+  }
 
-  scorer: async ({ input, output, expected, model }) => {
-    if (!expected?.groundTruth || expected.groundTruth.length === 0)
-      throw new Error("No ground truth provided or the ground truth is empty");
+  if (typeof opts.answer !== "string") {
+    throw new Error("Faithfulness scorer does not support multi-turn output");
+  }
 
-    if (isMultiTurnOutput(output)) {
-      throw new Error("Faithfulness scorer does not support multi-turn output");
-    }
+  const statements = await decomposeIntoStatements(
+    opts.question,
+    opts.answer,
+    opts.model
+  );
+  if (statements.length === 0) {
+    throw new Error("No statements were generated from the answer");
+  }
 
-    const statements = await decomposeIntoStatements(input, output, model);
-    if (statements.length === 0)
-      throw new Error("No statements were generated from the answer");
+  const context = opts.groundTruth.join("\n");
+  const verdicts = await evaluateStatementFaithfulness(
+    context,
+    statements,
+    opts.model
+  );
 
-    const context = expected.groundTruth.join("\n");
-    const verdicts = await evaluateStatementFaithfulness(
-      context,
-      statements,
-      model
-    );
+  const score = computeScore(verdicts);
 
-    const score = computeScore(verdicts);
+  return {
+    name: "Faithfulness",
+    description:
+      "Evaluates the faithfulness of the model's response to the retrieved contexts",
+    score,
+    metadata: verdicts.map((s) => ({
+      statement: s.statement,
+      reason: s.reason,
+      verdict: s.verdict,
+    })),
+  };
+}
 
-    return {
-      score,
-      metadata: verdicts.map((s) => ({
-        statement: s.statement,
-        reason: s.reason,
-        verdict: s.verdict,
-      })),
-    };
+function computeScore(statements: Evalite.Scorers.FaithfulnessStatements) {
+  if (statements.length === 0) {
+    return 0;
+  }
 
-    function computeScore(statements: Evalite.Scorers.FaithfulnessStatements) {
-      if (statements.length === 0) {
-        return 0;
-      }
-
-      const faithfulStatements = statements.filter(
-        (s) => s.verdict === 1
-      ).length;
-      return faithfulStatements / statements.length;
-    }
-  },
-});
+  const faithfulStatements = statements.filter((s) => s.verdict === 1).length;
+  return faithfulStatements / statements.length;
+}

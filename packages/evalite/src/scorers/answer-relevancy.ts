@@ -1,8 +1,13 @@
-import { cosineSimilarity, embedMany, generateObject, jsonSchema } from "ai";
+import {
+  cosineSimilarity,
+  embedMany,
+  generateObject,
+  jsonSchema,
+  type EmbeddingModel,
+  type LanguageModel,
+} from "ai";
 import type { Evalite } from "../types.js";
-import { createLLMAndEmbeddingScorer } from "./base.js";
 import { promptBuilder } from "./prompt-builder.js";
-import { isMultiTurnOutput } from "./utils.js";
 
 const AnswerRelevancyOutputSchema = jsonSchema<{
   question: string;
@@ -70,114 +75,123 @@ const answerRelevancyPrompt = promptBuilder({
  *
  * **When NOT to use**: If your use case allows
  * tangential or exploratory responses.
+ *
+ * @param opts.question - The original question being asked
+ * @param opts.answer - The AI's answer to evaluate (string only, not multi-turn)
+ * @param opts.model - Language model to use for evaluation
+ * @param opts.embeddingModel - Embedding model to use for semantic similarity
  */
-export const answerRelevancy = createLLMAndEmbeddingScorer<string>({
-  name: "Answer Relevancy",
-  description:
-    "Evaluates how relevant the response is to the original question by generating hypothetical questions and computing semantic similarity",
+export async function answerRelevancy(
+  opts: Evalite.Scorers.AnswerRelevancyOpts
+) {
+  if (!opts.question.trim()) {
+    throw new Error("Question must be a non-empty string");
+  }
 
-  scorer: async ({ input, output, model, embeddingModel }) => {
-    if (typeof input !== "string" || !input.trim()) {
-      throw new Error(
-        "Answer Relevancy scorer requires a non-empty string input (the original question)"
-      );
-    }
-
-    if (isMultiTurnOutput(output)) {
-      throw new Error(
-        "Answer Relevancy scorer does not support multi-turn outputs"
-      );
-    }
-
-    const outputText = output;
-
-    if (!outputText.trim()) {
-      return {
-        score: 0,
-        metadata: {
-          generatedQuestions: [],
-          similarities: [],
-          allNoncommittal: false,
-        } satisfies Evalite.Scorers.AnswerRelevancyMetadata,
-      };
-    }
-
-    const strictness = 3;
-    const generatedQuestions: string[] = [];
-    const noncommittalFlags: boolean[] = [];
-
-    for (let i = 0; i < strictness; i++) {
-      try {
-        const result = await generateObject({
-          model,
-          schema: AnswerRelevancyOutputSchema,
-          prompt: answerRelevancyPrompt({ response: outputText }),
-        });
-
-        if (result.object.question && result.object.question.trim()) {
-          generatedQuestions.push(result.object.question.trim());
-          noncommittalFlags.push(result.object.noncommittal === 1);
-        }
-      } catch (error) {
-        console.warn(
-          `Failed to generate question ${i + 1}/${strictness}:`,
-          error
-        );
-      }
-    }
-
-    if (generatedQuestions.length === 0) {
-      return {
-        score: 0,
-        metadata: {
-          generatedQuestions: [],
-          similarities: [],
-          allNoncommittal: false,
-        } satisfies Evalite.Scorers.AnswerRelevancyMetadata,
-      };
-    }
-
-    const allNoncommittal = noncommittalFlags.every((flag) => flag);
-
-    const allTexts = [input, ...generatedQuestions];
-    const { embeddings } = await embedMany({
-      model: embeddingModel,
-      values: allTexts,
-    });
-
-    const originalQuestionEmbedding = embeddings[0];
-    const generatedQuestionEmbeddings = embeddings.slice(1);
-
-    if (
-      !originalQuestionEmbedding ||
-      generatedQuestionEmbeddings.some((emb) => !emb)
-    ) {
-      return {
-        score: 0,
-        metadata: {
-          generatedQuestions,
-          similarities: [],
-          allNoncommittal,
-        } satisfies Evalite.Scorers.AnswerRelevancyMetadata,
-      };
-    }
-
-    const similarities = generatedQuestionEmbeddings.map((genEmbed) =>
-      cosineSimilarity(originalQuestionEmbedding, genEmbed)
+  if (typeof opts.answer !== "string") {
+    throw new Error(
+      "Answer Relevancy scorer does not support multi-turn outputs"
     );
+  }
 
-    const meanSimilarity =
-      similarities.reduce((sum, sim) => sum + sim, 0) / similarities.length;
-
-    const finalScore = allNoncommittal ? 0 : meanSimilarity;
-
+  if (!opts.answer.trim()) {
     return {
-      score: finalScore,
+      name: "Answer Relevancy",
+      description:
+        "Evaluates how relevant the response is to the original question by generating hypothetical questions and computing semantic similarity",
+      score: 0,
+      metadata: {
+        generatedQuestions: [],
+        similarities: [],
+        allNoncommittal: false,
+      } satisfies Evalite.Scorers.AnswerRelevancyMetadata,
+    };
+  }
+
+  const strictness = 3;
+  const generatedQuestions: string[] = [];
+  const noncommittalFlags: boolean[] = [];
+
+  for (let i = 0; i < strictness; i++) {
+    try {
+      const result = await generateObject({
+        model: opts.model,
+        schema: AnswerRelevancyOutputSchema,
+        prompt: answerRelevancyPrompt({ response: opts.answer }),
+      });
+
+      if (result.object.question && result.object.question.trim()) {
+        generatedQuestions.push(result.object.question.trim());
+        noncommittalFlags.push(result.object.noncommittal === 1);
+      }
+    } catch (error) {
+      console.warn(
+        `Failed to generate question ${i + 1}/${strictness}:`,
+        error
+      );
+    }
+  }
+
+  if (generatedQuestions.length === 0) {
+    return {
+      name: "Answer Relevancy",
+      description:
+        "Evaluates how relevant the response is to the original question by generating hypothetical questions and computing semantic similarity",
+      score: 0,
+      metadata: {
+        generatedQuestions: [],
+        similarities: [],
+        allNoncommittal: false,
+      } satisfies Evalite.Scorers.AnswerRelevancyMetadata,
+    };
+  }
+
+  const allNoncommittal = noncommittalFlags.every((flag) => flag);
+
+  const allTexts = [opts.question, ...generatedQuestions];
+  const { embeddings } = await embedMany({
+    model: opts.embeddingModel,
+    values: allTexts,
+  });
+
+  const originalQuestionEmbedding = embeddings[0];
+  const generatedQuestionEmbeddings = embeddings.slice(1);
+
+  if (
+    !originalQuestionEmbedding ||
+    generatedQuestionEmbeddings.some((emb) => !emb)
+  ) {
+    return {
+      name: "Answer Relevancy",
+      description:
+        "Evaluates how relevant the response is to the original question by generating hypothetical questions and computing semantic similarity",
+      score: 0,
       metadata: {
         generatedQuestions,
-        similarities,
+        similarities: [],
         allNoncommittal,
       } satisfies Evalite.Scorers.AnswerRelevancyMetadata,
     };
-  },
-});
+  }
+
+  const similarities = generatedQuestionEmbeddings.map((genEmbed) =>
+    cosineSimilarity(originalQuestionEmbedding, genEmbed)
+  );
+
+  const meanSimilarity =
+    similarities.reduce((sum, sim) => sum + sim, 0) / similarities.length;
+
+  const finalScore = allNoncommittal ? 0 : meanSimilarity;
+
+  return {
+    name: "Answer Relevancy",
+    description:
+      "Evaluates how relevant the response is to the original question by generating hypothetical questions and computing semantic similarity",
+    score: finalScore,
+    metadata: {
+      generatedQuestions,
+      similarities,
+      allNoncommittal,
+    } satisfies Evalite.Scorers.AnswerRelevancyMetadata,
+  };
+}

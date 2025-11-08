@@ -27,9 +27,17 @@ evalite("Answer Correctness", {
     return "I don't know.";
   },
   scorers: [
-    answerCorrectness({
-      model: openai("gpt-4.1-mini"),
-      embeddingModel: openai.embedding("text-embedding-3-small"),
-    }),
+    {
+      name: "Answer Correctness",
+      description: "Evaluates answer correctness",
+      scorer: ({ input, output, expected }) =>
+        answerCorrectness({
+          question: input,
+          answer: output,
+          reference: expected.reference,
+          model: openai("gpt-4.1-mini"),
+          embeddingModel: openai.embedding("text-embedding-3-small"),
+        }),
+    },
   ],
 });
