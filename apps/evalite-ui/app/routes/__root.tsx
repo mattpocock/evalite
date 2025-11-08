@@ -241,7 +241,7 @@ export default function App() {
             </SidebarMenu>
           </SidebarGroup>
           <SidebarGroup>
-            <SidebarGroupLabel>Evals</SidebarGroupLabel>
+            <SidebarGroupLabel>Suites</SidebarGroupLabel>
             <SidebarMenu>
               {filteredGroupedEvals.map((item) => {
                 if (item.type === "single") {
