@@ -1,16 +1,19 @@
 import type { Evalite } from "evalite/types";
 import { EvaliteFile } from "evalite/utils";
+import type { UIMessage } from "ai";
 import {
   AlertCircle,
   ChevronDown,
   ChevronUp,
   DownloadIcon,
+  Code2,
 } from "lucide-react";
 import React, { Fragment, useLayoutEffect, useRef, useState } from "react";
 import { JSONTree } from "react-json-tree";
 import { downloadFile, serveFile } from "~/sdk";
 import { Response } from "./response";
 import { Button } from "./ui/button";
+import { cn } from "~/lib/utils";
 
 // Helper function to find single string value in an object and its path
 const findSingleStringValue = (
@@ -229,6 +232,28 @@ const isSerializedError = (
   );
 };
 
+// Helper function to check if input is an array of UIMessages
+const isUIMessageArray = (input: unknown): input is UIMessage[] => {
+  if (!Array.isArray(input) || input.length === 0) {
+    return false;
+  }
+
+  // Check if all elements have the UIMessage shape
+  return input.every(
+    (item) =>
+      typeof item === "object" &&
+      item !== null &&
+      "id" in item &&
+      "role" in item &&
+      "parts" in item &&
+      typeof item.id === "string" &&
+      (item.role === "user" ||
+        item.role === "assistant" ||
+        item.role === "system") &&
+      Array.isArray(item.parts)
+  );
+};
+
 const DisplayError = ({
   error,
 }: {
@@ -240,6 +265,116 @@ const DisplayError = ({
       <div className="whitespace-pre-wrap w-full break-words">
         {error.message}
       </div>
+    </div>
+  );
+};
+
+const DisplayUIMessages = ({ messages }: { messages: UIMessage[] }) => {
+  const [status, setStatus] = useState<DisplayStatus>(
+    "no-show-more-button-required"
+  );
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Check if we have both user and assistant messages
+  const hasMultipleRoles =
+    messages.length > 1 &&
+    messages.some((m) => m.role === "user") &&
+    messages.some((m) => m.role === "assistant" || m.role === "system");
+
+  useLayoutEffect(() => {
+    if (contentRef.current) {
+      if (contentRef.current.scrollHeight > MAX_HEIGHT) {
+        setStatus("showing-show-more-button");
+      }
+    }
+  }, [messages]);
+
+  return (
+    <div className="inline-block">
+      <div
+        ref={contentRef}
+        style={{
+          maxHeight:
+            status === "showing-show-more-button" ? `${MAX_HEIGHT}px` : "none",
+          overflow: "hidden",
+        }}
+        className=""
+      >
+        {messages.map((message, index, messages) => (
+          <div key={message.id} className="flex">
+            <div className="flex justify-start items-center flex-col">
+              <div className="size-2 rounded-full bg-muted-foreground/80 mt-1 flex-shrink-0 mb-2"></div>
+              {index < messages.length - 1 && (
+                <div className="w-[2px] h-full bg-muted-foreground/20 mb-1 rounded-full"></div>
+              )}
+            </div>
+            <div
+              className={cn(
+                "ml-3 space-y-4",
+                index < messages.length - 1 ? "pb-6" : ""
+              )}
+            >
+              <div className="text-xs uppercase font-mono text-muted-foreground mb-1">
+                {message.role}
+              </div>
+              {message.parts.map((part, partIndex) => {
+                // Handle text parts
+                if (part.type === "text") {
+                  return (
+                    <div key={partIndex}>
+                      <Response>{part.text}</Response>
+                    </div>
+                  );
+                }
+
+                // Handle reasoning parts
+                if (part.type === "reasoning") {
+                  return (
+                    <div
+                      key={partIndex}
+                      className="text-sm text-muted-foreground break-words"
+                    >
+                      <Response>{part.text}</Response>
+                    </div>
+                  );
+                }
+
+                // Handle all other part types as JSON with label
+                return (
+                  <div key={partIndex}>
+                    <div className="text-xs uppercase font-mono text-muted-foreground mb-1">
+                      {part.type}
+                    </div>
+                    <DisplayJSON input={part} name={part.type} />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+      {status === "showing-show-more-button" && (
+        <Button
+          onClick={() => setStatus("showing-more")}
+          variant="secondary"
+          size="sm"
+          className="mt-3 mb-5"
+        >
+          <ChevronDown />
+          Show more
+        </Button>
+      )}
+      {status === "showing-more" && (
+        <Button
+          onClick={() => setStatus("showing-show-more-button")}
+          variant="secondary"
+          size="sm"
+          className="mt-3 mb-5"
+        >
+          <ChevronUp />
+          Show less
+        </Button>
+      )}
     </div>
   );
 };
@@ -264,6 +399,15 @@ export const DisplayInput = (props: {
         className={props.className}
         shouldTruncateText={props.shouldTruncateText}
       />
+    );
+  }
+
+  // Check for UIMessage array before other checks
+  if (Array.isArray(props.input) && isUIMessageArray(props.input)) {
+    return (
+      <Wrapper className={props.className}>
+        <DisplayUIMessages messages={props.input} />
+      </Wrapper>
     );
   }
 
