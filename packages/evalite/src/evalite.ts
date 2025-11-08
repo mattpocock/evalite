@@ -110,13 +110,19 @@ evalite.skip = <TInput, TOutput, TExpected = undefined>(
 ) => registerEvalite(evalName, opts, { modifier: "skip" });
 
 evalite.each = <TVariant>(
-  variants: Array<{ name: string; input: TVariant }>
+  variants: Array<{ name: string; input: TVariant; only?: boolean }>
 ) => {
   return <TInput, TOutput, TExpected = undefined>(
     evalName: string,
     opts: Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant>
   ) => {
-    for (const variant of variants) {
+    // Filter variants if any has `only: true`
+    const hasOnlyFlag = variants.some((v) => v.only === true);
+    const filteredVariants = hasOnlyFlag
+      ? variants.filter((v) => v.only === true)
+      : variants;
+
+    for (const variant of filteredVariants) {
       registerEvalite(
         evalName,
         {

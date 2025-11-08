@@ -84,3 +84,25 @@ it("Should work with variants when only: true is present", async () => {
   expect(variantAEval?.[0]?.evals[0]?.input).toBe("test2");
   expect(variantBEval?.[0]?.evals[0]?.input).toBe("test2");
 });
+
+it("Should only run marked variant when only: true is on variant", async () => {
+  await using fixture = await loadFixture("only-flag-variants-only");
+
+  await fixture.run({
+    mode: "run-once-and-exit",
+  });
+
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
+
+  // Should only have variant-b (marked with only: true)
+  expect(evals["Only Flag Variants Only [variant-a]"]).toBeUndefined();
+  expect(evals["Only Flag Variants Only [variant-b]"]?.[0]?.evals).toHaveLength(
+    3
+  );
+
+  // Verify all data ran for variant-b
+  const inputs = evals["Only Flag Variants Only [variant-b]"]?.[0]?.evals.map(
+    (r) => r.input
+  );
+  expect(inputs).toEqual(expect.arrayContaining(["test1", "test2", "test3"]));
+});
