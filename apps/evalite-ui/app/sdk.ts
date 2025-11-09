@@ -166,3 +166,29 @@ export const downloadFile = (filepath: string) => {
   }
   return `${BASE_URL}/api/file?path=${filepath}&download=true`;
 };
+
+export const triggerRerun = async (): Promise<{
+  success: boolean;
+  error?: string;
+}> => {
+  try {
+    const response = await fetch(`${BASE_URL}/api/rerun`, {
+      method: "POST",
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: data.error || `Request failed with status ${response.status}`,
+      };
+    }
+
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+};

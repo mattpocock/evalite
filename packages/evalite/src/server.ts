@@ -74,6 +74,8 @@ export const createServer = (opts: { storage: Evalite.Storage }) => {
 
   const websockets = handleWebsockets(server);
 
+  let rerunFn: (() => Promise<void>) | undefined = undefined;
+
   server.get<{
     Reply: Evalite.ServerState;
   }>("/api/server-state", async (req, reply) => {
@@ -487,6 +489,19 @@ export const createServer = (opts: { storage: Evalite.Storage }) => {
     },
   });
 
+  server.route({
+    method: "POST",
+    url: "/api/rerun",
+    handler: async (req, res) => {
+      if (!rerunFn) {
+        return res.code(400).send({ error: "Rerun not available" });
+      }
+
+      await rerunFn();
+      return res.code(200).send({ success: true });
+    },
+  });
+
   return {
     updateState: websockets.updateState,
     start: (port: number) => {
@@ -501,6 +516,9 @@ export const createServer = (opts: { storage: Evalite.Storage }) => {
           }
         }
       );
+    },
+    setRerunFn: (fn: () => Promise<void>) => {
+      rerunFn = fn;
     },
   };
 };

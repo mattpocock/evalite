@@ -330,6 +330,19 @@ export const runEvalite = async (opts: {
     process.stdout
   );
 
+  const rerun = async () => {
+    await vitest.cancelCurrentRun("keyboard-input");
+    const testFiles = vitest.state.getFilepaths();
+    const specs = testFiles.flatMap((filepath) =>
+      vitest.getModuleSpecifications(filepath)
+    );
+    await vitest.rerunTestSpecifications(specs, true);
+  };
+
+  if (server) {
+    server.setRerunFn(rerun);
+  }
+
   const shouldKeepRunning =
     vitest.shouldKeepServer() || opts.mode === "run-once-and-serve";
 
@@ -350,5 +363,5 @@ export const runEvalite = async (opts: {
     }
   }
 
-  return vitest;
+  return { vitest, rerun };
 };
