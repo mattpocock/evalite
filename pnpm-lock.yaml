@@ -42,6 +42,9 @@ importers:
 
   apps/docs:
     dependencies:
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
       fumadocs-core:
         specifier: 16.0.8
         version: 16.0.8(@tanstack/react-router@1.117.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@types/react@19.2.2)(lucide-react@0.552.0(react@19.2.0))(next@16.0.1(@babel/core@7.26.10)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -63,6 +66,9 @@ importers:
       react-dom:
         specifier: ^19.2.0
         version: 19.2.0(react@19.2.0)
+      tailwind-merge:
+        specifier: ^3.3.1
+        version: 3.3.1
     devDependencies:
       '@eslint/eslintrc':
         specifier: ^3.3.1
