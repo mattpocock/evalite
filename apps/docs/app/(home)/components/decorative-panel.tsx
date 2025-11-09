@@ -7,7 +7,7 @@ export function DecorativePanel({ variant }: DecorativePanelProps) {
 
   return (
     <div
-      className={`flex-1 ${isLeft ? "border-r" : "border-l"} border-border relative overflow-hidden`}
+      className={`hidden lg:flex flex-1 ${isLeft ? "border-r" : "border-l"} border-border relative overflow-hidden`}
     >
       <div
         className="absolute inset-0"

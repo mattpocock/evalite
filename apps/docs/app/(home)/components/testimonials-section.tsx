@@ -47,24 +47,24 @@ const testimonials: Testimonial[] = [
 
 function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
   return (
-    <div className="shrink-0 w-[400px] mx-4">
-      <div className="border border-border bg-fd-background p-6 h-full">
+    <div className="shrink-0 w-[280px] sm:w-[320px] md:w-[400px] mx-2 sm:mx-4">
+      <div className="border border-border bg-fd-background p-4 sm:p-6 h-full">
         <div className="flex flex-col justify-between gap-4 h-full">
-          <p className="text-fd-muted-foreground leading-relaxed line-clamp-3">
+          <p className="text-fd-muted-foreground leading-relaxed line-clamp-3 text-sm sm:text-base">
             "{testimonial.content}"
           </p>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-fd-primary/10 flex items-center justify-center">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-fd-primary/10 flex items-center justify-center shrink-0">
               {testimonial.avatar ? (
                 <img
                   src={testimonial.avatar}
                   alt={testimonial.name}
                   width={40}
                   height={40}
-                  className="rounded-full"
+                  className="rounded-full w-full h-full"
                 />
               ) : (
-                <span className="text-sm font-semibold text-fd-primary">
+                <span className="text-xs sm:text-sm font-semibold text-fd-primary">
                   {testimonial.name
                     .split(" ")
                     .map((n) => n[0])
@@ -72,8 +72,10 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
                 </span>
               )}
             </div>
-            <div className="flex flex-col">
-              <span className="font-semibold text-sm">{testimonial.name}</span>
+            <div className="flex flex-col min-w-0">
+              <span className="font-semibold text-xs sm:text-sm truncate">
+                {testimonial.name}
+              </span>
             </div>
           </div>
         </div>
@@ -198,12 +200,12 @@ function TestimonialRow({
 
 export function TestimonialsSection() {
   return (
-    <section className="flex flex-col gap-8 py-24 border-b border-border w-full overflow-hidden">
-      <div className="flex flex-col items-center justify-center gap-2 px-10">
-        <h2 className="text-4xl font-semibold text-center">
+    <section className="flex flex-col gap-6 sm:gap-8 py-12 sm:py-16 lg:py-24 border-b border-border w-full overflow-hidden">
+      <div className="flex flex-col items-center justify-center gap-2 px-4 sm:px-6 lg:px-10">
+        <h2 className="text-3xl sm:text-4xl font-semibold text-center">
           Loved by developers
         </h2>
-        <p className="text-fd-muted-foreground text-center max-w-2xl">
+        <p className="text-fd-muted-foreground text-center max-w-2xl text-sm sm:text-base">
           See what developers are saying about Evalite
         </p>
       </div>

@@ -57,7 +57,7 @@ const features: Feature[] = [
 export function FeaturesSection() {
   return (
     <section className="flex flex-col border-b border-border w-full">
-      <div className="grid grid-cols-6 border-b border-fd-border">
+      <div className="hidden lg:grid grid-cols-6 border-b border-fd-border">
         <div className="col-span-1 py-13 w-full h-full relative overflow-hidden border-r border-fd-border">
           <div
             className="absolute inset-0"
@@ -102,24 +102,41 @@ export function FeaturesSection() {
           />
         </div>
       </div>
-      <div className="grid grid-cols-3 border-b border-fd-border">
+      <div className="lg:hidden flex flex-col items-center justify-center py-8 border-b border-fd-border">
+        <h2 className="text-3xl sm:text-4xl font-semibold text-center">
+          Features
+        </h2>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 border-b border-fd-border">
         {features.map((feature, index) => {
           const Icon = feature.icon;
           const isLastInRow = (index + 1) % 3 === 0;
           const isLastItem = index === features.length - 1;
           const isInFirstRow = index < 3;
+          const isSecondColInTwoCol = (index + 1) % 2 === 0; // For 2-column grid (sm)
+          const isThirdColInThreeCol = (index + 1) % 3 === 0; // For 3-column grid (lg)
           return (
             <div
               key={index}
               className={cn(
-                "flex flex-col gap-3 p-8 border-r border-fd-border",
-                (isLastInRow || isLastItem) && "border-r-0",
-                isInFirstRow && "border-b border-fd-border"
+                "flex flex-col gap-3 p-6 sm:p-8",
+                // Mobile: no border-r, border-b except last
+                "border-r-0 border-b border-fd-border last:border-b-0",
+                // Tablet (sm): border-r on left column only, border-b except last row
+                "sm:border-r",
+                isSecondColInTwoCol && "sm:border-r-0",
+                index >= features.length - 2 && "sm:border-b-0",
+                // Desktop (lg): border-r except right column, border-b only on first row
+                "lg:border-r lg:border-b-0",
+                isThirdColInThreeCol && "lg:border-r-0",
+                isInFirstRow && "lg:border-b border-fd-border"
               )}
             >
               <Icon className="size-8 text-fd-foreground" />
-              <h3 className="text-xl font-semibold">{feature.title}</h3>
-              <p className="text-fd-muted-foreground leading-relaxed">
+              <h3 className="text-lg sm:text-xl font-semibold">
+                {feature.title}
+              </h3>
+              <p className="text-fd-muted-foreground leading-relaxed text-sm sm:text-base">
                 {feature.description}
               </p>
             </div>
