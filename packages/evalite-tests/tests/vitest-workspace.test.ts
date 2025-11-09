@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
+import { getSuitesAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Should run evalite successfully despite vitest workspace config", async () => {
   await using fixture = await loadFixture("vitest-workspace");
@@ -15,12 +15,11 @@ it("Should run evalite successfully despite vitest workspace config", async () =
   expect(output).not.toContain("No result present");
 
   // Should not have run the unit test
-  // TODO: This currently fails - workspace config causes evalite to pick up .test.ts files
   expect(output).not.toContain("UNIT_TEST_RAN");
 
   // Should have run the eval successfully
-  // TODO: This currently fails - workspace config prevents .eval.ts files from being found
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
-  expect(evals.Basics).toHaveLength(1);
-  expect(evals.Basics?.[0]?.status).toBe("success");
+  const suites = await getSuitesAsRecordViaStorage(fixture.storage);
+  expect(suites.Basics).toHaveLength(1);
+  expect(suites.Basics?.[0]?.evals).toHaveLength(1);
+  expect(suites.Basics?.[0]?.evals?.[0]?.status).toBe("success");
 });
