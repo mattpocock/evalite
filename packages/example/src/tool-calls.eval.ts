@@ -10,6 +10,14 @@ evalite("Tool Calls", {
   data: [
     {
       input: "What calendar events do I have today?",
+      expected: [
+        {
+          toolName: "getCalendarEvents",
+          input: {
+            date: "2024-04-27",
+          },
+        },
+      ],
     },
   ],
   task: async (input) => {
@@ -34,18 +42,10 @@ evalite("Tool Calls", {
   },
   scorers: [
     {
-      scorer: ({ output }) => {
+      scorer: ({ output, expected }) => {
         return toolCallAccuracy({
           actualCalls: output,
-          expectedCalls: [
-            {
-              toolName: "getCalendarEvents",
-              input: {
-                date: "2024-04-27",
-              },
-            },
-          ],
-          mode: "flexible",
+          expectedCalls: expected,
         });
       },
     },
