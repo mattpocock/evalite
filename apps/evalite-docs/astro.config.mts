@@ -7,6 +7,9 @@ export default defineConfig({
     starlight({
       title: "Evalite",
       favicon: "/favicon.ico",
+      components: {
+        Banner: "./src/components/Header.astro",
+      },
       editLink: {
         baseUrl:
           "https://github.com/mattpocock/evalite/edit/main/apps/evalite-docs",
