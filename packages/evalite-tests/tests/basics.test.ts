@@ -32,7 +32,7 @@ it("Should save the basic information in a db", async () => {
           {
             scores: [
               {
-                name: "Levenshtein",
+                name: "Pass",
                 score: 1,
               },
             ],
