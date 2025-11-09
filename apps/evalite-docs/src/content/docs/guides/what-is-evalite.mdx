@@ -27,7 +27,7 @@ Instead of `.test.ts` files, Evalite uses `.eval.ts` files. They look like this:
 // my-eval.eval.ts
 
 import { evalite } from "evalite";
-import { Levenshtein } from "autoevals";
+import { exactMatch } from "evalite/scorers";
 
 evalite("My Eval", {
   // A set of data to test
@@ -38,9 +38,12 @@ evalite("My Eval", {
   },
   // Some methods to score the eval
   scorers: [
-    // For instance, Levenshtein distance measures
-    // the similarity between two strings
-    Levenshtein,
+    // For instance, exactMatch checks if the output
+    // matches the expected value exactly
+    {
+      scorer: ({ output, expected }) =>
+        exactMatch({ actual: output, expected }),
+    },
   ],
 });
 ```

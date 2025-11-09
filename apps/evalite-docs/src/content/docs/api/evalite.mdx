@@ -215,7 +215,7 @@ See [Comparing Different Approaches](/tips/comparing-different-approaches) for m
 ```typescript
 // example.eval.ts
 import { evalite } from "evalite";
-import { Levenshtein } from "autoevals";
+import { exactMatch } from "evalite/scorers";
 
 evalite("Greeting Generator", {
   data: async () => {
@@ -238,7 +238,12 @@ evalite("Greeting Generator", {
     });
     return response.choices[0].message.content;
   },
-  scorers: [Levenshtein],
+  scorers: [
+    {
+      scorer: ({ output, expected }) =>
+        exactMatch({ actual: output, expected }),
+    },
+  ],
   columns: ({ output }) => [{ label: "Length", value: output.length }],
 });
 ```

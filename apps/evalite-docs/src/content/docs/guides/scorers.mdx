@@ -8,11 +8,27 @@ Scorers are used to score the output of your LLM call.
 
 ## Built-in Scorers
 
-Evalite provides ready-to-use scorers for common evaluation patterns. See [Built-in Scorers](/api/scorers) for the complete list.
+Evalite provides ready-to-use scorers for common evaluation patterns:
 
-## Third-Party Scorers
+**String Scorers** (no AI SDK required):
 
-[Autoevals](https://github.com/braintrustdata/autoevals) is a great library of scorers to get you started.
+- [exactMatch](/api/scorers/exact-match) - Exact string comparison
+- [contains](/api/scorers/contains) - Substring matching
+
+**RAG Scorers** (require AI SDK):
+
+- [faithfulness](/api/scorers/faithfulness) - Hallucination detection
+- [answerSimilarity](/api/scorers/answer-similarity) - Semantic similarity
+- [answerCorrectness](/api/scorers/answer-correctness) - Comprehensive evaluation
+- [answerRelevancy](/api/scorers/answer-relevancy) - On-topic checking
+- [contextRecall](/api/scorers/context-recall) - Retrieval quality
+
+**Advanced Scorers**:
+
+- [toolCallAccuracy](/api/scorers/tool-call-accuracy) - Function calling (no AI SDK)
+- [noiseSensitivity](/api/scorers/noise-sensitivity) - RAG debugging (requires AI SDK)
+
+See [Built-in Scorers](/api/scorers) for complete documentation.
 
 ## Inline Scorers
 
@@ -129,6 +145,6 @@ This will be visible along with the score in the Evalite UI.
 
 <Aside type="tip">
 
-This is especially useful for debugging LLM-as-a-judge evals. In autoevals `Factuality` scorer, the metadata will include a rationale for why the scorer gave the score it did.
+This is especially useful for debugging LLM-as-a-judge evals. For built-in scorers like `faithfulness`, the metadata includes verdicts and reasoning for each statement evaluated.
 
 </Aside>

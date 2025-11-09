@@ -9,10 +9,10 @@ We're going to walk through setting up Evalite in an existing project.
 
 <Steps>
 
-1. Install `evalite`, `vitest`, and a scoring library like `autoevals`:
+1. Install `evalite` and `vitest`.
 
    ```bash
-   pnpm add -D evalite vitest autoevals
+   pnpm add -D evalite vitest
    ```
 
 2. Add an `eval:dev` script to your package.json:
@@ -31,7 +31,7 @@ We're going to walk through setting up Evalite in an existing project.
    // my-eval.eval.ts
 
    import { evalite } from "evalite";
-   import { Levenshtein } from "autoevals";
+   import { exactMatch } from "evalite/scorers";
 
    evalite("My Eval", {
      // An array of test data
@@ -43,7 +43,12 @@ We're going to walk through setting up Evalite in an existing project.
        return input + " World!";
      },
      // The scoring methods for the eval
-     scorers: [Levenshtein],
+     scorers: [
+       {
+         scorer: ({ output, expected }) =>
+           exactMatch({ actual: output, expected }),
+       },
+     ],
    });
    ```
 

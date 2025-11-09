@@ -15,19 +15,23 @@ Wrap your AI SDK model in `traceAISDKModel` to automatically track all LLM calls
 
 import { openai } from "@ai-sdk/openai";
 import { streamText } from "ai";
-import { Factuality, Levenshtein } from "autoevals";
 import { evalite } from "evalite";
+import { faithfulness } from "evalite/scorers";
 import { traceAISDKModel } from "evalite/ai-sdk";
 
 evalite("Test Capitals", {
   data: async () => [
     {
       input: `What's the capital of France?`,
-      expected: `Paris`,
+      expected: {
+        groundTruth: [`France's capital city is Paris.`],
+      },
     },
     {
       input: `What's the capital of Germany?`,
-      expected: `Berlin`,
+      expected: {
+        groundTruth: [`Germany's capital city is Berlin.`],
+      },
     },
   ],
   task: async (input) => {
@@ -44,7 +48,17 @@ evalite("Test Capitals", {
 
     return await result.text;
   },
-  scorers: [Factuality, Levenshtein],
+  scorers: [
+    {
+      scorer: ({ input, output, expected }) =>
+        faithfulness({
+          question: input,
+          answer: output,
+          groundTruth: expected.groundTruth,
+          model: openai("gpt-4o-mini"),
+        }),
+    },
+  ],
 });
 ```
 
@@ -69,8 +83,8 @@ The three type parameters for `evalite` are:
 
 import { openai } from "@ai-sdk/openai";
 import { streamText, type CoreMessage } from "ai";
-import { Levenshtein } from "autoevals";
 import { evalite } from "evalite";
+import { exactMatch } from "evalite/scorers";
 import { traceAISDKModel } from "evalite/ai-sdk";
 
 evalite<CoreMessage[], string, string>("Test Capitals", {
@@ -99,6 +113,11 @@ evalite<CoreMessage[], string, string>("Test Capitals", {
 
     return await result.text;
   },
-  scorers: [Levenshtein],
+  scorers: [
+    {
+      scorer: ({ output, expected }) =>
+        exactMatch({ actual: output, expected }),
+    },
+  ],
 });
 ```

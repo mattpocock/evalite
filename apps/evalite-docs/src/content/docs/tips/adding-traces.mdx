@@ -13,6 +13,7 @@ Report a trace by calling `reportTrace` inside an `evalite` eval:
 ```ts
 import { evalite, type Evalite } from "evalite";
 import { reportTrace } from "evalite/traces";
+import { exactMatch } from "evalite/scorers";
 
 evalite("My Eval", {
   data: [{ input: "Hello", expected: "Hello World!" }],
@@ -44,7 +45,12 @@ evalite("My Eval", {
     // Return the output
     return result.output;
   },
-  scorers: [Levenshtein],
+  scorers: [
+    {
+      scorer: ({ output, expected }) =>
+        exactMatch({ actual: output, expected }),
+    },
+  ],
 });
 ```
 
