@@ -289,7 +289,12 @@ const isUIMessageArray = (input: unknown): input is UIMessage[] => {
   );
 };
 
-type AISDKToolCall = StaticToolCall<any> | DynamicToolCall;
+type AISDKToolCall = {
+  toolName: string;
+  toolCallId?: string;
+  error?: unknown;
+  input: unknown;
+};
 
 // Helper function to check if input is an array of AI SDK tool calls
 const isAISDKToolCallArray = (input: unknown): input is AISDKToolCall[] => {
@@ -300,9 +305,8 @@ const isAISDKToolCallArray = (input: unknown): input is AISDKToolCall[] => {
       (tc: any) =>
         typeof tc === "object" &&
         tc !== null &&
-        tc.type === "tool-call" &&
         "toolName" in tc &&
-        "toolCallId" in tc
+        "input" in tc
     )
   );
 };
@@ -337,7 +341,7 @@ const DisplayAISDKToolCalls = ({
                 {toolCall.toolName}
               </div>
 
-              {toolCall.invalid || toolCall.error ? (
+              {toolCall.error ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-red-500/10 text-red-500 dark:text-red-400">
                   <AlertCircle className="size-3" />
                   Error
