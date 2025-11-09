@@ -8,7 +8,7 @@ export default defineConfig({
       title: "Evalite",
       favicon: "/favicon.ico",
       components: {
-        Banner: "./src/components/Banner.astro",
+        Banner: "./src/components/Header.astro",
       },
       editLink: {
         baseUrl:
