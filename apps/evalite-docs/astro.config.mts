@@ -3,6 +3,26 @@ import starlight from "@astrojs/starlight";
 
 // https://astro.build/config
 export default defineConfig({
+  redirects: {
+    // Top-level pages moved to guides
+    "/what-is-evalite": "/guides/what-is-evalite",
+    "/quickstart": "/guides/quickstart",
+
+    // Guides reorganization
+    "/guides/traces": "/api/traces",
+    "/guides/variant-comparison": "/tips/comparing-different-approaches",
+    "/guides/multi-modal": "/tips/images-and-media",
+    "/guides/cli": "/api/cli",
+    "/guides/running-programmatically": "/api/run-evalite",
+    "/guides/ci": "/tips/run-evals-on-ci-cd",
+    "/guides/customizing-the-ui": "/tips/customize-the-ui",
+    "/guides/environment-variables": "/guides/quickstart",
+    "/guides/streams": "/guides/quickstart",
+    "/guides/skipping": "/guides/dev-loop",
+
+    // Examples moved to tips
+    "/examples/ai-sdk": "/tips/vercel-ai-sdk",
+  },
   integrations: [
     starlight({
       title: "Evalite",
