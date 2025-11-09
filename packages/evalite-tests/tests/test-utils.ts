@@ -57,13 +57,14 @@ export const loadFixture = async (
       configDebugMode?: boolean;
       disableServer?: boolean;
     }) => {
-      vitestInstance = await runEvalite({
+      const result = await runEvalite({
         ...opts,
         cwd: dirPath,
         storage,
         testOutputWritable: captured.writable,
         disableServer: true,
       });
+      vitestInstance = result.vitest;
       return vitestInstance;
     },
     waitForTestRunEnd: async (): Promise<void> => {

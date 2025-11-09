@@ -15,8 +15,8 @@ import { z } from "zod";
 import { zodValidator } from "@tanstack/zod-adapter";
 
 import type { Evalite } from "evalite/types";
-import { FolderOpen, Search, X } from "lucide-react";
-import { lazy } from "react";
+import { FolderOpen, Search, X, RotateCw } from "lucide-react";
+import { lazy, useState } from "react";
 import Logo from "~/components/logo";
 import { getScoreState, Score, type ScoreState } from "~/components/score";
 import {
@@ -42,6 +42,8 @@ import {
   InputGroupInput,
   InputGroupText,
 } from "~/components/ui/input-group";
+import { isStaticMode, triggerRerun } from "~/sdk";
+import { cn } from "~/lib/utils";
 
 const TanStackRouterDevtools =
   process.env.NODE_ENV === "production"
@@ -138,8 +140,9 @@ export default function App() {
     {
       data: { groupedEvals, score, prevScore, hasScores, runStatus },
     },
+    { data: serverState },
   ] = useSuspenseQueries({
-    queries: [getMenuItemsWithSelect],
+    queries: [getMenuItemsWithSelect, getServerStateQueryOptions],
   });
 
   const search = Route.useSearch();
@@ -149,6 +152,17 @@ export default function App() {
   const queryClient = useQueryClient();
 
   useSubscribeToSocket(queryClient);
+
+  const [isRerunning, setIsRerunning] = useState(false);
+
+  const handleRerun = async () => {
+    setIsRerunning(true);
+    const result = await triggerRerun();
+    if (!result.success) {
+      console.error("Rerun failed:", result.error);
+    }
+    setIsRerunning(false);
+  };
 
   const filteredGroupedEvals = searchQuery
     ? groupedEvals.filter((item) => {
@@ -198,50 +212,64 @@ export default function App() {
               <p className="text-xs font-medium text-sidebar-foreground/70 mb-2">
                 Summary
               </p>
-              <div className="text-foreground/60 font-medium text-2xl">
-                <Score
-                  score={score}
-                  state={getScoreState({
-                    score,
-                    prevScore,
-                    status: runStatus,
-                  })}
-                  iconClassName="size-4"
-                  hasScores={hasScores}
-                />
+              <div className="flex items-center justify-between">
+                <div className="text-foreground/60 font-medium text-2xl">
+                  <Score
+                    score={score}
+                    state={getScoreState({
+                      score,
+                      prevScore,
+                      status: runStatus,
+                    })}
+                    iconClassName="size-4"
+                    hasScores={hasScores}
+                  />
+                </div>
+                {!isStaticMode() && (
+                  <button
+                    onClick={handleRerun}
+                    disabled={serverState.type === "running" || isRerunning}
+                    className={cn(
+                      "flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-colors",
+                      serverState.type === "running" || isRerunning
+                        ? "text-foreground/40 cursor-not-allowed"
+                        : "text-foreground/80 hover:bg-foreground/20"
+                    )}
+                    title="Rerun all evals"
+                  >
+                    <RotateCw
+                      className={cn("size-3", isRerunning && "animate-spin")}
+                    />
+                    Rerun
+                  </button>
+                )}
               </div>
             </div>
           </SidebarGroup>
           <SidebarGroup>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <InputGroup className="h-8">
-                  <InputGroupAddon align="inline-start">
-                    <InputGroupText>
-                      <Search />
-                    </InputGroupText>
-                  </InputGroupAddon>
-                  <InputGroupInput
-                    placeholder="Search"
-                    value={searchQuery ?? ""}
-                    onChange={(e) => handleSearchChange(e.target.value)}
-                  />
-                  {searchQuery && (
-                    <InputGroupAddon align="inline-end">
-                      <InputGroupButton
-                        size="icon-xs"
-                        onClick={() => handleSearchChange("")}
-                      >
-                        <X />
-                      </InputGroupButton>
-                    </InputGroupAddon>
-                  )}
-                </InputGroup>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroup>
-          <SidebarGroup>
             <SidebarGroupLabel>Suites</SidebarGroupLabel>
+            <InputGroup className="h-8 mb-2">
+              <InputGroupAddon align="inline-start">
+                <InputGroupText>
+                  <Search />
+                </InputGroupText>
+              </InputGroupAddon>
+              <InputGroupInput
+                placeholder="Search"
+                value={searchQuery ?? ""}
+                onChange={(e) => handleSearchChange(e.target.value)}
+              />
+              {searchQuery && (
+                <InputGroupAddon align="inline-end">
+                  <InputGroupButton
+                    size="icon-xs"
+                    onClick={() => handleSearchChange("")}
+                  >
+                    <X />
+                  </InputGroupButton>
+                </InputGroupAddon>
+              )}
+            </InputGroup>
             <SidebarMenu>
               {filteredGroupedEvals.map((item) => {
                 if (item.type === "single") {
