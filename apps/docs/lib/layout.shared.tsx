@@ -6,5 +6,6 @@ export function baseOptions(): BaseLayoutProps {
     nav: {
       title: <Logo />,
     },
+    githubUrl: "https://github.com/mattpocock/evalite",
   };
 }
