@@ -20,6 +20,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     images: ["/og-image.jpg"],
   },
+  title: "Evalite",
 };
 
 export default function Layout({ children }: LayoutProps<"/">) {
