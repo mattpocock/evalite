@@ -1,4 +1,8 @@
+import type { TestUserConfig } from "vitest/config";
+
 export declare namespace Evalite {
+  export type StrictOmit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
+
   /**
    * Configuration options for Evalite
    */
@@ -95,6 +99,41 @@ export declare namespace Evalite {
      * ```
      */
     setupFiles?: string[];
+
+    /**
+     * Pass-through Vite/Vitest configuration options.
+     * This allows you to import and use your existing vite.config.ts explicitly.
+     *
+     * Note: testTimeout, maxConcurrency, and setupFiles must be configured at
+     * the root level of evalite.config.ts, not in viteConfig.test.
+     *
+     * @example
+     * ```ts
+     * import { defineConfig } from "evalite/config";
+     * import viteConfig from "./vite.config.ts";
+     *
+     * export default defineConfig({
+     *   viteConfig: viteConfig,
+     *   testTimeout: 60000, // Must be at root level
+     *   setupFiles: ["./setup.ts"], // Must be at root level
+     * })
+     * ```
+     */
+    viteConfig?: {
+      test?: StrictOmit<
+        TestUserConfig,
+        | "testTimeout"
+        | "maxConcurrency"
+        | "setupFiles"
+        | "browser"
+        | "config"
+        | "include"
+        | "watch"
+        | "mode"
+        | "reporters"
+        | "testNamePattern"
+      >;
+    };
   }
 
   export type RunType = "full" | "partial";
