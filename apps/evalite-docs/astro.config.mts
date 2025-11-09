@@ -113,6 +113,10 @@ export default defineConfig({
               label: "Configuration",
               slug: "guides/configuration",
             },
+            {
+              label: "Storage",
+              slug: "guides/storage",
+            },
           ],
         },
         {
@@ -145,7 +149,7 @@ export default defineConfig({
           ],
         },
         {
-          label: "Built-in Scorers",
+          label: "Scorers",
           items: [
             {
               label: "Overview",
