@@ -38,7 +38,6 @@ export default defineConfig({
 - Persistent storage across runs
 - Automatic schema management
 - History tracking for comparing runs
-- Used by default when no storage is configured
 
 ### `createInMemoryStorage()`
 
@@ -67,7 +66,8 @@ export default defineConfig({
 
 - Fast (no I/O operations)
 - No persistence
-- Useful for testing or ephemeral runs
+- Used by default when no storage is configured
+- Useful for local development and quick iteration
 
 ## Storage Interface
 
@@ -323,8 +323,8 @@ const scores = await storage.scores.getMany({ eval_id: evalId });
 
 ## Best Practices
 
-1. **Use SQLite for persistence** - Default and recommended for most use cases
-2. **Use in-memory for CI** - Faster, no cleanup needed
+1. **Use in-memory for local development** - Default, fast, no cleanup needed
+2. **Use SQLite for persistence** - When you need to compare runs over time
 3. **Implement proper cleanup** - Use `close()` and `[Symbol.asyncDispose]()`
 4. **Handle JSON fields** - input/output/expected/metadata are stored as JSON
 5. **Index appropriately** - Optimize queries for run_id, suite_id, eval_id lookups

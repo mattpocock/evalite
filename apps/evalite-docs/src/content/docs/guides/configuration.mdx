@@ -68,3 +68,19 @@ export default defineConfig({
   testTimeout: 60000, // 60 seconds
 });
 ```
+
+## Passing Vitest Configuration
+
+You can pass your existing Vitest configuration to Evalite using the `viteConfig` option.
+
+```ts
+// evalite.config.ts
+import viteConfig from "./vite.config.ts";
+import { defineConfig } from "evalite/config";
+
+export default defineConfig({
+  viteConfig: viteConfig,
+});
+```
+
+This allows you to reuse your existing Vitest configuration file and plugins if needed.

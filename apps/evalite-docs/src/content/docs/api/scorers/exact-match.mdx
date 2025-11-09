@@ -1,0 +1,68 @@
+---
+title: exactMatch
+---
+
+Checks if your AI's output exactly matches the expected text character-for-character. Returns 1 if they match, 0 otherwise.
+
+**When to use**: For testing structured outputs like JSON, code, or specific phrases that must be exact.
+
+**When NOT to use**: When slight variations in wording are acceptable (use answerSimilarity instead).
+
+## Example
+
+```ts
+import { evalite } from "evalite";
+import { exactMatch } from "evalite/scorers";
+
+evalite("Exact Match", {
+  data: [
+    {
+      input: "What is the capital of France?",
+      expected: {
+        reference: "Paris is the capital of France",
+      },
+    },
+  ],
+  task: async (input) => {
+    return "Paris is the capital of France";
+  },
+  scorers: [
+    {
+      scorer: ({ output, expected }) =>
+        exactMatch({
+          actual: output,
+          expected: expected.reference,
+        }),
+    },
+  ],
+});
+```
+
+## Signature
+
+```ts
+async function exactMatch(opts: { actual: string; expected: string }): Promise<{
+  name: string;
+  description: string;
+  score: number;
+}>;
+```
+
+## Parameters
+
+### actual
+
+**Type:** `string`
+
+The actual output to check.
+
+### expected
+
+**Type:** `string`
+
+The exact string that output should match.
+
+## See Also
+
+- [createScorer()](/api/create-scorer)
+- [contains](/api/scorers/contains)

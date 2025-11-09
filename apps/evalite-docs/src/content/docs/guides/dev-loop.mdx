@@ -2,68 +2,56 @@
 title: The Dev Loop
 ---
 
-Speed up development by running evals efficiently with watch mode, file filtering, and selective execution.
+When you're developing evals, you want to iterate quickly. Running your entire test suite every time you make a change can be slow and frustrating.
+
+Evalite gives you several tools to speed up your development workflow: watch mode for automatic re-runs, file filtering to run specific evals, and selective execution to focus on particular test cases.
 
 ## Watch Mode
 
-Watch mode re-runs evals when files change for fast iteration.
+Watch mode automatically re-runs your evals whenever you make changes to your files.
 
 ```bash
 evalite watch
 ```
 
-Watches `.eval.ts` files and re-runs on changes.
+This command watches all `.eval.ts` files in your project and re-runs them whenever they change.
 
-### Hide Table Output
+## Serve Mode
 
-When debugging with `console.log`, hide detailed table to see logs:
-
-```bash
-evalite watch --hideTable
-```
-
-Keeps score summary, removes results table.
-
-### Serve Mode Alternative
-
-Run evals once and serve UI without re-running on changes:
+If you have slow-running evals, you might not want them to re-run every time you make a change. Serve mode runs your evals once and then keeps the UI available for inspection.
 
 ```bash
 evalite serve
 ```
 
-Runs once, keeps UI at `http://localhost:3006`. Tests won't re-run on file changes.
+This runs your evals once and then serves the UI at `http://localhost:3006`. Your tests won't re-run when files change.
 
-To re-run after changes, restart `evalite serve`.
-
-Useful for slow-running evals.
+You can then re-run your evals by pressing the "Rerun" button in the UI.
 
 ## Run Specific Files
 
-Run specific eval files instead of all evals:
+Sometimes you don't want to run your entire eval suite. You can run specific eval files by passing them as arguments:
 
 ```bash
 evalite my-eval.eval.ts
 ```
 
-Multiple files:
+You can also run multiple files at once:
 
 ```bash
 evalite eval1.eval.ts eval2.eval.ts
 ```
 
-Works with `watch` and `serve`:
+This works with both `watch` and `serve` modes:
 
 ```bash
 evalite watch my-eval.eval.ts
 evalite serve my-eval.eval.ts
 ```
 
-Useful when working on specific eval, avoiding full suite.
-
 ## Skip Entire Evals
 
-Use `evalite.skip()` to skip eval without running:
+If you want to temporarily disable an eval without deleting it, you can use `evalite.skip()`:
 
 ```ts
 evalite.skip("My Eval", {
@@ -72,11 +60,9 @@ evalite.skip("My Eval", {
 });
 ```
 
-Useful for temporarily disabling eval during development.
-
 ## Focus on Specific Test Cases
 
-Use `only` flag on data entries to focus on specific inputs:
+Sometimes you want to focus on a single test case within an eval. You can use the `only` flag to do this:
 
 ```ts
 evalite("My Eval", {
@@ -91,4 +77,4 @@ evalite("My Eval", {
 });
 ```
 
-When any data entry has `only: true`, only those evals run.
+When any data entry has `only: true`, only those entries will run.

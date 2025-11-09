@@ -1,0 +1,68 @@
+---
+title: contains
+---
+
+Checks if your AI's output contains the expected substring anywhere in the text. Returns 1 if found, 0 otherwise.
+
+**When to use**: To verify specific keywords or phrases appear in the response, regardless of surrounding text.
+
+**When NOT to use**: When you need exact matches (use exactMatch) or semantic similarity (use answerSimilarity).
+
+## Example
+
+```ts
+import { evalite } from "evalite";
+import { contains } from "evalite/scorers";
+
+evalite("Contains", {
+  data: [
+    {
+      input: "What is the capital of France?",
+      expected: {
+        reference: "Paris",
+      },
+    },
+  ],
+  task: async (input) => {
+    return "Paris is the capital of France";
+  },
+  scorers: [
+    {
+      scorer: ({ output, expected }) =>
+        contains({
+          actual: output,
+          expected: expected.reference,
+        }),
+    },
+  ],
+});
+```
+
+## Signature
+
+```ts
+async function contains(opts: { actual: string; expected: string }): Promise<{
+  name: string;
+  description: string;
+  score: number;
+}>;
+```
+
+## Parameters
+
+### actual
+
+**Type:** `string`
+
+The actual output to check.
+
+### expected
+
+**Type:** `string`
+
+Substring that should appear anywhere in output.
+
+## See Also
+
+- [createScorer()](/api/create-scorer)
+- [exactMatch](/api/scorers/exact-match)

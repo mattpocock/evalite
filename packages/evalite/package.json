@@ -77,7 +77,6 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/ws": "^8.18.1",
     "ai": "^5.0.59",
-    "autoevals": "^0.0.131",
     "better-sqlite3": "^11.6.0",
     "unstorage": "^1.17.1"
   }

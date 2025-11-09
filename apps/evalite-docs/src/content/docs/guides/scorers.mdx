@@ -4,13 +4,17 @@ title: Scorers
 
 import { Aside } from "@astrojs/starlight/components";
 
-Scorers are used to score the output of your LLM call.
+Evals are great for putting a ton of data through your system and checking the outputs. But scanning through all that data manually is hard work.
 
-[Autoevals](https://github.com/braintrustdata/autoevals) is a great library of scorers to get you started.
+Scorers give you a way to benchmark your system. Instead of "yeah, that looks good", you can say "our system scored 90% on this test".
 
-## Inline Scorers
+## Built-in Scorers
 
-If you don't need your scorer to be reusable, you can define it inline.
+Evalite provides ready-to-use scorers for common evaluation patterns. See [Built-in Scorers](/api/scorers) for the complete list.
+
+## Custom Scorers
+
+Evalite lets you create custom scorers to suit your needs. You specify them in the `scorers` array of the `evalite` function:
 
 ```ts
 import { evalite } from "evalite";
@@ -32,73 +36,29 @@ evalite("My Eval", {
 });
 ```
 
-## Creating Reusable Scorers
+### The `scorer` function
 
-If you have a scorer you want to use across multiple files, you can use `createScorer` to create a reusable scorer.
-
-```ts
-import { createScorer } from "evalite";
-
-const containsParis = createScorer<string, string>({
-  name: "Contains Paris",
-  description: "Checks if the output contains the word 'Paris'.",
-  scorer: ({ output }) => {
-    return output.includes("Paris") ? 1 : 0;
-  },
-});
-
-evalite("My Eval", {
-  data: [{ input: "Hello" }],
-  task: async (input) => {
-    return input + " World!";
-  },
-  scorers: [containsParis],
-});
-```
-
-The `name` and `description` of the scorer will be displayed in the Evalite UI.
-
-## Score Properties
-
-The `score` function receives three properties on the object passed:
+The `scorer` function receives the input, output, and expected values. It must return a number between 0 and 1.
 
 ```ts
-import { createScorer } from "evalite";
-
-const containsParis = createScorer<string, string>({
-  name: "Contains Paris",
-  description: "Checks if the output contains the word 'Paris'.",
-  scorer: ({ input, output, expected }) => {
-    // input comes from `data`
-    // expected also comes from `data`
-    // output is the output of `task`
-    return output.includes("Paris") ? 1 : 0;
-  },
-});
+({ input, output, expected }) => {
+  return output.includes("Paris") ? 1 : 0;
+},
 ```
 
-These are typed using the three type arguments passed to `createScorer`:
+It can also be `async`, allowing you to perform asynchronous like contacting LLM's or searching databases:
 
 ```ts
-import { createScorer } from "evalite";
+({ input, output, expected }) => {
+  const response = await generateObject({
+    // Your AI SDK call here
+  })
 
-const containsParis = createScorer<
-  string, // Type of 'input'
-  string, // Type of 'output'
-  string // Type of 'expected'
->({
-  name: "Contains Word",
-  description: "Checks if the output contains the specified word.",
-  scorer: ({ output, input, expected }) => {
-    // output is typed as string!
-    return output.includes(expected) ? 1 : 0;
-  },
-});
+  return response.object.score;
+},
 ```
 
-If `expected` is omitted, it will be inferred from the type of `output`.
-
-## Scorer Metadata
+### Metadata
 
 You can provide metadata along with your custom scorer:
 
@@ -119,10 +79,26 @@ const containsParis = createScorer<string>({
 });
 ```
 
-This will be visible along with the score in the Evalite UI.
+This will be visible along with the score in the Evalite UI. This is especially useful when you call LLM's inside scorers - you can include the reasoning from the LLM in the metadata.
 
-<Aside type="tip">
+## Reusable Scorers
 
-This is especially useful for debugging LLM-as-a-judge evals. In autoevals `Factuality` scorer, the metadata will include a rationale for why the scorer gave the score it did.
+If you have a scorer you want to use across multiple files, you can use `createScorer` to create a reusable scorer. See [createScorer()](/api/create-scorer) for more details.
 
-</Aside>
+These are typed using the three type arguments passed to `createScorer`:
+
+```ts
+import { createScorer } from "evalite";
+
+const containsParis = createScorer<
+  string, // Type of 'input'
+  string, // Type of 'output'
+  string // Type of 'expected'
+>({
+  name: "Contains Word",
+  description: "Checks if the output contains the specified word.",
+  scorer: ({ output, input, expected }) => {
+    return output.includes(expected) ? 1 : 0;
+  },
+});
+```

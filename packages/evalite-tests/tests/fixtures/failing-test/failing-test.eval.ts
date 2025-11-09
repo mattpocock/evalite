@@ -1,5 +1,4 @@
 import { evalite } from "evalite";
-import { Levenshtein } from "autoevals";
 import { setTimeout } from "timers/promises";
 
 evalite("Failing", {
@@ -15,5 +14,10 @@ evalite("Failing", {
     await setTimeout(10);
     throw new Error("This is a failing test");
   },
-  scorers: [Levenshtein],
+  scorers: [
+    {
+      name: "Pass",
+      scorer: () => ({ score: 1 }),
+    },
+  ],
 });

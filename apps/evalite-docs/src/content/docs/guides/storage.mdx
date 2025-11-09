@@ -1,0 +1,67 @@
+---
+title: Storage
+---
+
+You'll often want to persist the results of your evals so that you can compare results across time or share them with your team.
+
+Evalite uses **storage adapters** to persist your results. By default, Evalite stores results in memory, which is fast but ephemeral. For persistent storage across runs, you can use SQLite or build a custom storage adapter.
+
+## Default: In-Memory Storage
+
+Evalite uses in-memory storage by default. This is the recommended option for most users because:
+
+- **Fast**: No disk I/O overhead
+- **Simple**: Zero configuration required
+- **Ideal for local development**: Quick iteration without cluttering your filesystem
+
+Data is lost when the process exits, which keeps your workspace clean during active development.
+
+## Using SQLite Storage
+
+For persistent storage across runs, use the SQLite adapter. This is useful when you need to:
+
+- **Compare runs over time**: Track how changes affect eval performance
+- **CI/CD environments**: Preserve results for reporting or archival
+- **Historical analysis**: Review past eval results
+
+### Setting Up SQLite Storage
+
+First, install the required peer dependency:
+
+```bash
+pnpm add -D better-sqlite3
+```
+
+Then configure Evalite to use SQLite storage:
+
+```ts
+// evalite.config.ts
+import { defineConfig } from "evalite/config";
+import { createSqliteStorage } from "evalite/sqlite-storage";
+
+export default defineConfig({
+  storage: () => createSqliteStorage("./evalite.db"),
+});
+```
+
+The database file will be created automatically at the specified path. Parent directories will also be created if they don't exist.
+
+## Custom Storage Adapters
+
+You can build your own storage adapter to integrate with remote databases, cloud storage, or custom data pipelines. This is useful for:
+
+- **Remote databases**: PostgreSQL, MySQL, MongoDB, etc.
+- **Enterprise requirements**: Integration with existing data infrastructure
+- **Custom workflows**: Specialized data processing or reporting
+
+To create a custom adapter, implement the `Evalite.Storage` interface. This interface defines methods for creating and querying five entity types:
+
+- **Runs**: Full or partial test runs
+- **Suites**: Test suites within runs
+- **Evals**: Individual eval executions
+- **Scores**: Scorer results for evals
+- **Traces**: Nested LLM call traces
+
+See the [Storage API Reference](/api/storage) for the complete interface definition, entity schemas, and implementation examples.
+
+In the future, the Evalite team plans to integrate with popular observability platforms, databases, and more. If you have a specific request, please [open an issue](https://github.com/mattpocock/evalite/issues/new) or implement a storage adapter yourself!

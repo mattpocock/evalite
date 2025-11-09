@@ -1,0 +1,235 @@
+---
+title: toolCallAccuracy
+---
+
+Checks if your AI is calling the right functions with the right parameters.
+
+**When to use**: For AI agents that need to call external functions/APIs. Essential for:
+
+- Multi-step agents that orchestrate API calls
+- Assistants that execute user commands via tools
+- Workflow automation systems
+- Testing function calling reliability
+
+**When NOT to use**: For simple text generation tasks without function calling. Use `exactMatch` or `answerSimilarity` instead.
+
+## Example
+
+```ts
+import { openai } from "@ai-sdk/openai";
+import { generateText, tool } from "ai";
+import { evalite } from "evalite";
+import { toolCallAccuracy } from "evalite/scorers";
+import { z } from "zod";
+
+evalite("Tool Calls", {
+  data: [
+    {
+      input: "What calendar events do I have today?",
+      expected: [
+        {
+          toolName: "getCalendarEvents",
+          input: {
+            date: "2024-04-27",
+          },
+        },
+      ],
+    },
+  ],
+  task: async (input) => {
+    const result = await generateText({
+      model: openai("gpt-4o-mini"),
+      prompt: input,
+      tools: {
+        getCalendarEvents: tool({
+          description: "Get calendar events",
+          inputSchema: z.object({
+            date: z.string(),
+          }),
+          execute: async ({ date }) => {
+            return `You have a meeting with John on ${date}`;
+          },
+        }),
+      },
+      system: `You are a helpful assistant. Today's date is 2024-04-27.`,
+    });
+
+    return result.toolCalls;
+  },
+  scorers: [
+    {
+      scorer: ({ output, expected }) => {
+        return toolCallAccuracy({
+          actualCalls: output,
+          expectedCalls: expected,
+        });
+      },
+    },
+  ],
+});
+```
+
+## Signature
+
+```ts
+async function toolCallAccuracy(opts: {
+  actualCalls: ToolCall[];
+  expectedCalls: ToolCall[];
+  mode?: "exact" | "flexible";
+  weights?: Partial<{
+    exact: number;
+    nameOnly: number;
+    extraPenalty: number;
+    wrongPenalty: number;
+  }>;
+}): Promise<{
+  name: string;
+  description: string;
+  score: number;
+  metadata: {
+    mode: "exact" | "flexible";
+    exactMatches: number;
+    nameOnlyMatches: number;
+    // Mode-specific fields
+  };
+}>;
+
+type ToolCall = {
+  toolName: string;
+  input?: unknown;
+};
+```
+
+## Parameters
+
+### actualCalls
+
+**Type:** `ToolCall[]`
+
+The actual tool calls made by the AI. Typically the `toolCalls` array from your AI SDK response.
+
+### expectedCalls
+
+**Type:** `ToolCall[]`
+
+Expected tool calls as an array of objects with `toolName` and optional `input` properties.
+
+### mode
+
+**Type:** `"exact" | "flexible"`
+**Default:** `"exact"`
+
+Comparison mode:
+
+- `"exact"`: Calls must happen in exact order with exact arguments
+- `"flexible"`: Calls can happen in any order, only checks correct functions were called
+
+### weights
+
+**Type:** `Partial<ToolCallAccuracyWeights>`
+
+Custom weights for scoring components:
+
+- `exact` (default: 1.0) - Full credit for correct function + correct arguments
+- `nameOnly` (default: 0.5) - Partial credit for correct function + wrong arguments
+- `extraPenalty` (default: 0.25) - Penalty for extra calls (flexible mode only)
+- `wrongPenalty` (default: 0.25) - Penalty for wrong/missing calls (exact mode only)
+
+## Scoring Modes
+
+### Exact Mode
+
+Enforces strict ordering. Calls must appear in the same sequence as expected.
+
+```ts
+toolCallAccuracy({
+  actualCalls: [
+    { toolName: "getTasks" },
+    { toolName: "createTask", input: { title: "Buy milk" } },
+  ],
+  expectedCalls: [
+    { toolName: "getTasks" },
+    { toolName: "createTask", input: { title: "Buy milk" } },
+  ],
+  mode: "exact",
+});
+// Score: 1.0 (perfect match)
+```
+
+### Flexible Mode
+
+Allows calls in any order. Useful for multi-step agents where execution order varies.
+
+```ts
+toolCallAccuracy({
+  actualCalls: [
+    { toolName: "createTask", input: { title: "Buy milk" } },
+    { toolName: "getTasks" }, // Order swapped
+  ],
+  expectedCalls: [
+    { toolName: "getTasks" },
+    { toolName: "createTask", input: { title: "Buy milk" } },
+  ],
+  mode: "flexible",
+});
+// Score: 1.0 (still perfect - order doesn't matter)
+```
+
+## Return Value
+
+Returns an object with:
+
+- `name`: "Tool Call Accuracy"
+- `description`: "Checks if the tool calls are correct"
+- `score`: Number between 0-1
+- `metadata`: Object with match counts and mode-specific details
+
+### Exact Mode Metadata
+
+```ts
+{
+  mode: "exact",
+  exactMatches: number,
+  nameOnlyMatches: number,
+  wrongOrMissing: number,
+  totals: {
+    reference: number,
+    output: number
+  }
+}
+```
+
+### Flexible Mode Metadata
+
+```ts
+{
+  mode: "flexible",
+  exactMatches: number,
+  nameOnlyMatches: number,
+  extras: number,
+  missing: number,
+  totals: {
+    reference: number,
+    output: number
+  },
+  details: {
+    matches: ToolCall[],
+    nameOnlyMatches: ToolCall[],
+    extras: ToolCall[],
+    missingToolCalls: ToolCall[]
+  }
+}
+```
+
+import { Aside } from "@astrojs/starlight/components";
+
+<Aside type="tip">
+  This scorer is deterministic and requires no AI SDK. It uses pure TypeScript
+  comparison of tool call structures.
+</Aside>
+
+## See Also
+
+- [createScorer()](/api/create-scorer)
+- [Vercel AI SDK](/tips/vercel-ai-sdk)
+- [exactMatch](/api/scorers/exact-match)
