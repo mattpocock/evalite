@@ -145,6 +145,51 @@ export default defineConfig({
           ],
         },
         {
+          label: "Built-in Scorers",
+          items: [
+            {
+              label: "Overview",
+              slug: "api/scorers",
+            },
+            {
+              label: "answerCorrectness",
+              slug: "api/scorers/answer-correctness",
+            },
+            {
+              label: "answerRelevancy",
+              slug: "api/scorers/answer-relevancy",
+            },
+            {
+              label: "answerSimilarity",
+              slug: "api/scorers/answer-similarity",
+            },
+            {
+              label: "contains",
+              slug: "api/scorers/contains",
+            },
+            {
+              label: "contextRecall",
+              slug: "api/scorers/context-recall",
+            },
+            {
+              label: "exactMatch",
+              slug: "api/scorers/exact-match",
+            },
+            {
+              label: "faithfulness",
+              slug: "api/scorers/faithfulness",
+            },
+            {
+              label: "noiseSensitivity",
+              slug: "api/scorers/noise-sensitivity",
+            },
+            {
+              label: "toolCallAccuracy",
+              slug: "api/scorers/tool-call-accuracy",
+            },
+          ],
+        },
+        {
           label: "Reference",
           items: [
             {
