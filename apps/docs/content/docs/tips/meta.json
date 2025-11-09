@@ -1,0 +1,11 @@
+{
+  "title": "Tips",
+  "pages": [
+    "customize-the-ui",
+    "comparing-different-approaches",
+    "adding-traces",
+    "vercel-ai-sdk",
+    "images-and-media",
+    "run-evals-on-ci-cd"
+  ]
+}

@@ -1,0 +1,101 @@
+---
+title: Images And Media
+---
+
+Test multi-modal LLM features by including images, audio, and video in your evals.
+
+## Files In Memory
+
+A common way to work with media in Evalite is to read it into memory.
+
+### What Are Files In Memory?
+
+If you've got a file in memory, it's probably going to be in a buffer, or a `Uint8Array`. For instance, in Node, calling `readFileSync` will return a `Buffer`:
+
+```ts
+import { readFileSync } from "fs";
+
+const fileContents = readFileSync("path/to/file.jpg");
+//    ^ Buffer
+```
+
+This `Buffer` contains all the information about the file, stored in memory. You can write it to another file like so:
+
+```ts
+import { writeFileSync } from "fs";
+
+writeFileSync("path/to/new-file.jpg", fileContents);
+```
+
+It doesn't matter what the file extension is - when you read it into memory, it'll be a `Buffer`.
+
+<Callout>
+  A `Buffer` is just a `Uint8Array` with some extra methods, so from now on I'll
+  just refer to them as `Uint8Array` objects.
+</Callout>
+
+### Evalite And Files In Memory
+
+Evalite can automatically detect `Uint8Array` objects in your evals and handle them for you.
+
+```ts
+import { evalite } from "evalite";
+import { reportTrace } from "evalite/traces";
+
+evalite("My Eval", {
+  data: [
+    {
+      // 1. In inputs...
+      input: readFileSync("path/to/file.jpg"),
+      // 2. ...in expected...
+      expected: readFileSync("path/to/file.jpg"),
+    },
+  ],
+  task: async (input) => {
+    reportTrace({
+      // 3. ...in traces...
+      input: readFileSync("path/to/file.jpg"),
+      output: readFileSync("path/to/file.jpg"),
+    });
+
+    // 4. ...returned from the task itself...
+    return readFileSync("path/to/new-file.jpg", input);
+  },
+  columns: async () => {
+    return [
+      {
+        label: "File",
+        // 5. ...and returned from customColumns:
+        value: readFileSync("path/to/new-file.jpg", input),
+      },
+    ];
+  },
+  scorers: [],
+});
+```
+
+When Evalite finds a `Uint8Array`, it saves the file to a local cache, in `./node_modules/.evalite/files`.
+
+Then in the UI, it'll reference that local file.
+
+## Files On Disk
+
+If you're working with files on disk, you can use the `EvaliteFile.fromPath` method to reference them:
+
+```ts
+import { EvaliteFile, evalite } from "evalite";
+
+evalite("My Eval", {
+  data: [
+    {
+      input: EvaliteFile.fromPath("path/to/file.jpg"),
+    },
+  ],
+  task: async (input) => {
+    console.log(input.path); // "path/to/file.jpg"
+  },
+  scorers: [],
+});
+```
+
+This lets you display an image in the UI without having to read it into memory.

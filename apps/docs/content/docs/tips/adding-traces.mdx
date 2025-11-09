@@ -1,0 +1,55 @@
+---
+title: Adding Traces
+---
+
+Track timing, token usage, and input/output for each LLM call within your task using traces.
+
+## `reportTrace`
+
+Report a trace by calling `reportTrace` inside an `evalite` eval:
+
+```ts
+import { evalite, type Evalite } from "evalite";
+import { reportTrace } from "evalite/traces";
+
+evalite("My Eval", {
+  data: [{ input: "Hello", expected: "Hello World!" }],
+  task: async (input) => {
+    // Track the start time
+    const start = performance.now();
+
+    // Call our LLM
+    const result = await myLLMCall();
+
+    // Report the trace once it's finished
+    reportTrace({
+      start,
+      end: performance.now(),
+      output: result.output,
+      input: [
+        {
+          role: "user",
+          content: input,
+        },
+      ],
+      usage: {
+        inputTokens: result.inputTokens,
+        outputTokens: result.outputTokens,
+        totalTokens: result.totalTokens,
+      },
+    });
+
+    // Return the output
+    return result.output;
+  },
+  scorers: [Levenshtein],
+});
+```
+
+<Callout>
+
+`reportTrace` is a no-op in production, so you can leave it in your code without worrying about performance.
+
+</Callout>
+
+If you're using the Vercel AI SDK, see the [Vercel AI SDK](/docs/tips/vercel-ai-sdk) tip for automatic tracing with `traceAISDKModel`.

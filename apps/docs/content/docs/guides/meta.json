@@ -1,0 +1,10 @@
+{
+  "title": "Guides",
+  "pages": [
+    "what-is-evalite",
+    "quickstart",
+    "dev-loop",
+    "scorers",
+    "configuration"
+  ]
+}
