@@ -200,7 +200,6 @@ export declare namespace Evalite {
     /**
      * A number between 0 and 1.
      *
-     * Added null for compatibility with {@link https://github.com/braintrustdata/autoevals | autoevals}.
      * null scores will be reported as 0.
      */
     score: number | null;

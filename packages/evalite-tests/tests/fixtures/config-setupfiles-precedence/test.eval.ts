@@ -1,5 +1,4 @@
 import { evalite } from "evalite";
-import { Levenshtein } from "autoevals";
 
 evalite("Precedence Test", {
   data: () => [
@@ -11,5 +10,10 @@ evalite("Precedence Test", {
   task: async (input) => {
     return process.env.SETUP_ORDER as string;
   },
-  scorers: [Levenshtein],
+  scorers: [
+    {
+      name: "Pass",
+      scorer: () => ({ score: 1 }),
+    },
+  ],
 });

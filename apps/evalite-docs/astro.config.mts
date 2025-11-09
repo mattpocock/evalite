@@ -3,6 +3,26 @@ import starlight from "@astrojs/starlight";
 
 // https://astro.build/config
 export default defineConfig({
+  redirects: {
+    // Top-level pages moved to guides
+    "/what-is-evalite": "/guides/what-is-evalite",
+    "/quickstart": "/guides/quickstart",
+
+    // Guides reorganization
+    "/guides/traces": "/api/traces",
+    "/guides/variant-comparison": "/tips/comparing-different-approaches",
+    "/guides/multi-modal": "/tips/images-and-media",
+    "/guides/cli": "/api/cli",
+    "/guides/running-programmatically": "/api/run-evalite",
+    "/guides/ci": "/tips/run-evals-on-ci-cd",
+    "/guides/customizing-the-ui": "/tips/customize-the-ui",
+    "/guides/environment-variables": "/guides/quickstart",
+    "/guides/streams": "/guides/quickstart",
+    "/guides/skipping": "/guides/dev-loop",
+
+    // Examples moved to tips
+    "/examples/ai-sdk": "/tips/vercel-ai-sdk",
+  },
   integrations: [
     starlight({
       title: "Evalite",
@@ -113,6 +133,10 @@ export default defineConfig({
               label: "Configuration",
               slug: "guides/configuration",
             },
+            {
+              label: "Storage",
+              slug: "guides/storage",
+            },
           ],
         },
         {
@@ -141,6 +165,51 @@ export default defineConfig({
             {
               label: "CI/CD",
               slug: "tips/run-evals-on-ci-cd",
+            },
+          ],
+        },
+        {
+          label: "Scorers",
+          items: [
+            {
+              label: "Overview",
+              slug: "api/scorers",
+            },
+            {
+              label: "answerCorrectness",
+              slug: "api/scorers/answer-correctness",
+            },
+            {
+              label: "answerRelevancy",
+              slug: "api/scorers/answer-relevancy",
+            },
+            {
+              label: "answerSimilarity",
+              slug: "api/scorers/answer-similarity",
+            },
+            {
+              label: "contains",
+              slug: "api/scorers/contains",
+            },
+            {
+              label: "contextRecall",
+              slug: "api/scorers/context-recall",
+            },
+            {
+              label: "exactMatch",
+              slug: "api/scorers/exact-match",
+            },
+            {
+              label: "faithfulness",
+              slug: "api/scorers/faithfulness",
+            },
+            {
+              label: "noiseSensitivity",
+              slug: "api/scorers/noise-sensitivity",
+            },
+            {
+              label: "toolCallAccuracy",
+              slug: "api/scorers/tool-call-accuracy",
             },
           ],
         },

@@ -1,9 +1,9 @@
 import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import { evalite } from "evalite";
+import { exactMatch } from "evalite/scorers";
 import { createStorage } from "unstorage";
 import fsDriver from "unstorage/drivers/fs";
-import { Factuality, Levenshtein } from "autoevals";
 import { cacheModel } from "./cache-model.js";
 import { traceAISDKModel } from "evalite/ai-sdk";
 
@@ -56,5 +56,10 @@ evalite.each([
 
     return result.text;
   },
-  scorers: [Factuality, Levenshtein],
+  scorers: [
+    {
+      scorer: ({ output, expected }) =>
+        exactMatch({ actual: output, expected }),
+    },
+  ],
 });

@@ -1,5 +1,4 @@
 import { evalite } from "evalite";
-import { Levenshtein } from "autoevals";
 
 // Test with direct array data (new polymorphic feature)
 evalite("Direct Array Data", {
@@ -12,7 +11,12 @@ evalite("Direct Array Data", {
   task: async (input) => {
     return input + "data";
   },
-  scorers: [Levenshtein],
+  scorers: [
+    {
+      name: "Pass",
+      scorer: () => ({ score: 1 }),
+    },
+  ],
 });
 
 // Test with function data (existing feature)
@@ -28,5 +32,10 @@ evalite("Function Data", {
   task: async (input) => {
     return input + "bar";
   },
-  scorers: [Levenshtein],
+  scorers: [
+    {
+      name: "Pass",
+      scorer: () => ({ score: 1 }),
+    },
+  ],
 });

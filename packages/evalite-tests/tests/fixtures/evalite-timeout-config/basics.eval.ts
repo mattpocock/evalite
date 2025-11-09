@@ -1,5 +1,4 @@
 import { evalite } from "evalite";
-import { Levenshtein } from "autoevals";
 
 evalite("Basics", {
   data: () => {
@@ -14,5 +13,10 @@ evalite("Basics", {
     await new Promise((resolve) => setTimeout(resolve, 10));
     return input + "def";
   },
-  scorers: [Levenshtein],
+  scorers: [
+    {
+      name: "Pass",
+      scorer: () => ({ score: 1 }),
+    },
+  ],
 });

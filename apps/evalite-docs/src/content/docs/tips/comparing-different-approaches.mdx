@@ -18,7 +18,7 @@ A/B test different models, prompts, or configurations on the same dataset using 
 import { evalite } from "evalite";
 import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
-import { Factuality, Levenshtein } from "autoevals";
+import { exactMatch } from "evalite/scorers";
 
 evalite.each([
   { name: "GPT-4o mini", input: { model: "gpt-4o-mini", temp: 0.7 } },
@@ -36,7 +36,12 @@ evalite.each([
       prompt: input,
     });
   },
-  scorers: [Factuality, Levenshtein],
+  scorers: [
+    {
+      scorer: ({ output, expected }) =>
+        exactMatch({ actual: output, expected }),
+    },
+  ],
 });
 ```
 
@@ -77,6 +82,11 @@ Now answer the question.`,
       prompt: input,
     });
   },
-  scorers: [Levenshtein],
+  scorers: [
+    {
+      scorer: ({ output, expected }) =>
+        exactMatch({ actual: output, expected }),
+    },
+  ],
 });
 ```

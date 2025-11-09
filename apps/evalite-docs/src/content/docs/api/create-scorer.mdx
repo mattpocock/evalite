@@ -195,24 +195,6 @@ evalite("My Eval", {
 
 Both approaches are equivalent. Use `createScorer()` when you want to reuse the scorer across multiple evals.
 
-## Using Third-Party Scorers
-
-Evalite is compatible with scorers from [autoevals](https://github.com/braintrustdata/autoevals):
-
-```typescript
-import { evalite } from "evalite";
-import { Levenshtein, Factuality } from "autoevals";
-
-evalite("My Eval", {
-  data: [{ input: "Hello", expected: "Hi there!" }],
-  task: async (input) => callLLM(input),
-  scorers: [
-    Levenshtein, // String similarity
-    Factuality, // Fact checking
-  ],
-});
-```
-
 ## See Also
 
 - [Scorers Guide](/guides/scorers) - Overview of scoring strategies

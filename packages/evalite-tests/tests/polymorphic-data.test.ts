@@ -30,7 +30,7 @@ it("Should save results correctly with polymorphic data", async () => {
           {
             scores: [
               {
-                name: "Levenshtein",
+                name: "Pass",
                 score: 1,
               },
             ],
@@ -45,7 +45,7 @@ it("Should save results correctly with polymorphic data", async () => {
           {
             scores: [
               {
-                name: "Levenshtein",
+                name: "Pass",
                 score: 1,
               },
             ],
