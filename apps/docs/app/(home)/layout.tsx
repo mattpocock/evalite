@@ -1,6 +1,5 @@
 import { HomeLayout } from "fumadocs-ui/layouts/home";
 import { baseOptions } from "@/lib/layout.shared";
-import { BookOpen } from "lucide-react";
 
 export default function Layout({ children }: LayoutProps<"/">) {
   return (
@@ -9,7 +8,6 @@ export default function Layout({ children }: LayoutProps<"/">) {
       links={[
         {
           label: "Docs",
-          icon: <BookOpen />,
           text: "Docs",
           url: "/docs",
         },
