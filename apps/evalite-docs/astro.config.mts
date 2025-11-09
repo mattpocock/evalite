@@ -61,6 +61,22 @@ export default defineConfig({
             content: "https://evalite.dev/og-image.jpg",
           },
         },
+        {
+          tag: "script",
+          attrs: {
+            src: "https://www.googletagmanager.com/gtag/js?id=G-KBWLHSRCHD",
+            async: true,
+          },
+        },
+        {
+          tag: "script",
+          content: `
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-KBWLHSRCHD');
+          `,
+        },
       ],
       social: {
         github: "https://github.com/mattpocock/evalite",
