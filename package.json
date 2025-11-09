@@ -30,7 +30,7 @@
   "author": "Matt Pocock",
   "license": "MIT",
   "dependencies": {
-    "@changesets/cli": "^2.27.10",
+    "@changesets/cli": "^2.29.7",
     "@total-typescript/tsconfig": "^1.0.4",
     "@types/node": "^22.7.7",
     "husky": "^9.1.7",

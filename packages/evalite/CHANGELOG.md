@@ -1,5 +1,58 @@
 # evalite
 
+## 1.0.0-beta.0
+
+### Major Changes
+
+- 8c9fe90: Export command now uses the storage specified in the config and auto-runs if empty.
+- 8c9fe90: Changed default storage to in-memory. SQLite still available via config.
+- ba3d876: Removed implicit reading of vitest.config.ts/vite.config.ts files. Users must now explicitly pass Vite config via evalite.config.ts using the new `viteConfig` option. This change makes configuration more explicit and less confusing.
+
+  **Migration Guide:**
+
+  Before:
+
+  ```ts
+  // vitest.config.ts was automatically read
+  export default defineConfig({
+    test: {
+      testTimeout: 60000,
+    },
+  });
+  ```
+
+  After:
+
+  ```ts
+  // evalite.config.ts
+  import { defineConfig } from "evalite/config";
+  import viteConfig from "./vite.config.ts";
+
+  export default defineConfig({
+    viteConfig: viteConfig,
+    // Note: testTimeout, maxConcurrency, and setupFiles
+    // must be at root level, not in viteConfig.test
+    testTimeout: 60000,
+    setupFiles: ["./setup.ts"],
+  });
+  ```
+
+- e8a43c2: Moved storage API from evals -> suites, results -> evals. This will likely cause issues for existing SQLite databases when released, so will need migration.
+
+### Minor Changes
+
+- 9f0a2aa: Removed streaming text support from tasks. Process streams before returning from task() (e.g., await result.text for AI SDK).
+- fb39ab9: Support .env files by default via dotenv/config. Environment variables from .env files are now automatically loaded without any configuration needed. Users no longer need to manually add `setupFiles: ["dotenv/config"]` to their evalite.config.ts.
+
+### Patch Changes
+
+- a9a8883: Made scorer `name` field optional. When using pre-built scorers, name and description are now automatically extracted from the scorer's return value.
+- 9263870: Added rerun button to UI in watch and serve modes
+- a5a0c56: Added `only` option to variants in `evalite.each()` to selectively run specific variants.
+- 8f9495c: Made it so passing UI messages (from AI SDK) directly into Evalite spawns a custom UI.
+- bdc5115: UI now renders simple arrays of objects and flat objects as markdown tables instead of JSON trees for better readability
+- 288523b: Made better-sqlite3 an optional peer dependency
+
 ## 0.19.0
 
 ### Minor Changes

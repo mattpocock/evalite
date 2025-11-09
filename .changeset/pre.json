@@ -1,0 +1,26 @@
+{
+  "mode": "pre",
+  "tag": "beta",
+  "initialVersions": {
+    "evalite": "0.19.0",
+    "evalite-docs": "0.0.1",
+    "evalite-tests": "0.0.11",
+    "example": "0.0.11"
+  },
+  "changesets": [
+    "0000-export-command-change",
+    "0000-in-memory-default",
+    "0000-optional-scorer-name",
+    "0000-remove-implicit-vitest-config",
+    "0000-remove-streaming",
+    "0000-rerun-button",
+    "0000-variant-only",
+    "0234-auto-dotenv-support",
+    "angry-dogs-sort",
+    "long-olives-give",
+    "real-phones-join",
+    "table-rendering",
+    "thick-birds-design",
+    "wet-clocks-camp"
+  ]
+}
