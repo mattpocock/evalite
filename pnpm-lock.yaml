@@ -6523,46 +6523,6 @@ packages:
       terser:
         optional: true
 
-  vite@7.1.10:
-    resolution: {integrity: sha512-CmuvUBzVJ/e3HGxhg6cYk88NGgTnBoOo7ogtfJJ0fefUWAxN/WDSUa50o+oVBxuIhO8FoEZW0j2eW7sfjs5EtA==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    hasBin: true
-    peerDependencies:
-      '@types/node': ^20.19.0 || >=22.12.0
-      jiti: '>=1.21.0'
-      less: ^4.0.0
-      lightningcss: ^1.21.0
-      sass: ^1.70.0
-      sass-embedded: ^1.70.0
-      stylus: '>=0.54.8'
-      sugarss: ^5.0.0
-      terser: ^5.16.0
-      tsx: ^4.8.1
-      yaml: ^2.4.2
-    peerDependenciesMeta:
-      '@types/node':
-        optional: true
-      jiti:
-        optional: true
-      less:
-        optional: true
-      lightningcss:
-        optional: true
-      sass:
-        optional: true
-      sass-embedded:
-        optional: true
-      stylus:
-        optional: true
-      sugarss:
-        optional: true
-      terser:
-        optional: true
-      tsx:
-        optional: true
-      yaml:
-        optional: true
-
   vite@7.1.12:
     resolution: {integrity: sha512-ZWyE8YXEXqJrrSLvYgrRP7p62OziLW7xI5HYGWFzOvupfAlrLvURSzv/FyGyy0eidogEM3ujU+kUG1zuHgb6Ug==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -9282,14 +9242,14 @@ snapshots:
       chai: 6.2.0
       tinyrainbow: 3.0.3
 
-  '@vitest/mocker@4.0.1(msw@2.11.3(@types/node@22.7.7)(typescript@5.6.2))(vite@7.1.10(@types/node@22.7.7)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.31.5)(tsx@4.19.0)(yaml@2.8.1))':
+  '@vitest/mocker@4.0.1(msw@2.11.3(@types/node@22.7.7)(typescript@5.6.2))(vite@7.1.12(@types/node@22.7.7)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.31.5)(tsx@4.19.0)(yaml@2.8.1))':
     dependencies:
       '@vitest/spy': 4.0.1
       estree-walker: 3.0.3
       magic-string: 0.30.19
     optionalDependencies:
       msw: 2.11.3(@types/node@22.7.7)(typescript@5.6.2)
-      vite: 7.1.10(@types/node@22.7.7)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.31.5)(tsx@4.19.0)(yaml@2.8.1)
+      vite: 7.1.12(@types/node@22.7.7)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.31.5)(tsx@4.19.0)(yaml@2.8.1)
 
   '@vitest/pretty-format@4.0.1':
     dependencies:
@@ -14107,7 +14067,7 @@ snapshots:
       lightningcss: 1.30.1
       terser: 5.31.5
 
-  vite@7.1.10(@types/node@22.7.7)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.31.5)(tsx@4.19.0)(yaml@2.8.1):
+  vite@7.1.12(@types/node@22.7.7)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.31.5)(tsx@4.19.0)(yaml@2.8.1):
     dependencies:
       esbuild: 0.25.11
       fdir: 6.5.0(picomatch@4.0.3)
@@ -14122,23 +14082,6 @@ snapshots:
       lightningcss: 1.30.1
       terser: 5.31.5
       tsx: 4.19.0
-      yaml: 2.8.1
-
-  vite@7.1.10(@types/node@22.7.7)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.31.5)(tsx@4.19.3)(yaml@2.8.1):
-    dependencies:
-      esbuild: 0.25.11
-      fdir: 6.5.0(picomatch@4.0.3)
-      picomatch: 4.0.3
-      postcss: 8.5.6
-      rollup: 4.52.4
-      tinyglobby: 0.2.15
-    optionalDependencies:
-      '@types/node': 22.7.7
-      fsevents: 2.3.3
-      jiti: 2.6.1
-      lightningcss: 1.30.1
-      terser: 5.31.5
-      tsx: 4.19.3
       yaml: 2.8.1
 
   vite@7.1.12(@types/node@22.7.7)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.31.5)(tsx@4.19.3)(yaml@2.8.1):
@@ -14165,7 +14108,7 @@ snapshots:
   vitest@4.0.1(@types/debug@4.1.12)(@types/node@22.7.7)(jiti@2.6.1)(lightningcss@1.30.1)(msw@2.11.3(@types/node@22.7.7)(typescript@5.6.2))(terser@5.31.5)(tsx@4.19.0)(yaml@2.8.1):
     dependencies:
       '@vitest/expect': 4.0.1
-      '@vitest/mocker': 4.0.1(msw@2.11.3(@types/node@22.7.7)(typescript@5.6.2))(vite@7.1.10(@types/node@22.7.7)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.31.5)(tsx@4.19.0)(yaml@2.8.1))
+      '@vitest/mocker': 4.0.1(msw@2.11.3(@types/node@22.7.7)(typescript@5.6.2))(vite@7.1.12(@types/node@22.7.7)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.31.5)(tsx@4.19.0)(yaml@2.8.1))
       '@vitest/pretty-format': 4.0.1
       '@vitest/runner': 4.0.1
       '@vitest/snapshot': 4.0.1
@@ -14182,7 +14125,7 @@ snapshots:
       tinyexec: 0.3.2
       tinyglobby: 0.2.15
       tinyrainbow: 3.0.3
-      vite: 7.1.10(@types/node@22.7.7)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.31.5)(tsx@4.19.0)(yaml@2.8.1)
+      vite: 7.1.12(@types/node@22.7.7)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.31.5)(tsx@4.19.0)(yaml@2.8.1)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/debug': 4.1.12
@@ -14204,7 +14147,7 @@ snapshots:
   vitest@4.0.1(@types/debug@4.1.12)(@types/node@22.7.7)(jiti@2.6.1)(lightningcss@1.30.1)(msw@2.11.3(@types/node@22.7.7)(typescript@5.6.2))(terser@5.31.5)(tsx@4.19.3)(yaml@2.8.1):
     dependencies:
       '@vitest/expect': 4.0.1
-      '@vitest/mocker': 4.0.1(msw@2.11.3(@types/node@22.7.7)(typescript@5.6.2))(vite@7.1.10(@types/node@22.7.7)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.31.5)(tsx@4.19.0)(yaml@2.8.1))
+      '@vitest/mocker': 4.0.1(msw@2.11.3(@types/node@22.7.7)(typescript@5.6.2))(vite@7.1.12(@types/node@22.7.7)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.31.5)(tsx@4.19.0)(yaml@2.8.1))
       '@vitest/pretty-format': 4.0.1
       '@vitest/runner': 4.0.1
       '@vitest/snapshot': 4.0.1
@@ -14221,7 +14164,7 @@ snapshots:
       tinyexec: 0.3.2
       tinyglobby: 0.2.15
       tinyrainbow: 3.0.3
-      vite: 7.1.10(@types/node@22.7.7)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.31.5)(tsx@4.19.3)(yaml@2.8.1)
+      vite: 7.1.12(@types/node@22.7.7)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.31.5)(tsx@4.19.3)(yaml@2.8.1)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/debug': 4.1.12

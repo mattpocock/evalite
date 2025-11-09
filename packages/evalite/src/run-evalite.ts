@@ -3,13 +3,14 @@ import path from "path";
 import { Writable } from "stream";
 import { createVitest, registerConsoleShortcuts } from "vitest/node";
 import { FILES_LOCATION } from "./backend-only-constants.js";
-import { loadEvaliteConfig, loadVitestSetupFiles } from "./config.js";
+import { loadEvaliteConfig } from "./config.js";
 import { DEFAULT_SERVER_PORT } from "./constants.js";
 import EvaliteReporter from "./reporter.js";
 import { createServer } from "./server.js";
 import { createInMemoryStorage } from "./storage/in-memory.js";
 import { computeAverageScores } from "./storage/utils.js";
 import type { Evalite } from "./types.js";
+import type { ViteUserConfig } from "vitest/config";
 
 declare module "vitest" {
   export interface ProvidedContext {
@@ -202,8 +203,17 @@ export const runEvalite = async (opts: {
   // Load config file if present
   const config = await loadEvaliteConfig(cwd);
 
-  // Load setupFiles from vitest.config.ts
-  const vitestSetupFiles = await loadVitestSetupFiles(cwd);
+  // Validate viteConfig doesn't contain forbidden properties
+  if (config?.viteConfig?.test) {
+    const forbiddenProps = ["testTimeout", "maxConcurrency", "setupFiles"];
+    for (const prop of forbiddenProps) {
+      if (prop in config.viteConfig.test) {
+        throw new Error(
+          `Invalid configuration: '${prop}' must be configured at the root level of evalite.config.ts, not in viteConfig.test. Please move it to the root level.`
+        );
+      }
+    }
+  }
 
   // Merge options: opts (highest priority) > config > defaults
   let storage = opts.storage;
@@ -225,13 +235,8 @@ export const runEvalite = async (opts: {
 
   // Merge setupFiles:
   // 1. Always include env-setup-file first to load .env files
-  // 2. Add setupFiles from vitest.config.ts
-  // 3. Add setupFiles from evalite.config.ts (takes precedence)
-  const setupFiles = [
-    "evalite/env-setup-file",
-    ...vitestSetupFiles,
-    ...(config?.setupFiles || []),
-  ];
+  // 2. Add setupFiles from evalite.config.ts
+  const setupFiles = ["evalite/env-setup-file", ...(config?.setupFiles || [])];
 
   const filters = opts.path ? [opts.path] : undefined;
   process.env.EVALITE_REPORT_TRACES = "true";
@@ -251,14 +256,26 @@ export const runEvalite = async (opts: {
 
   let exitCode: number | undefined = undefined;
 
+  // Merge user's viteConfig with evalite defaults
+  const mergedViteConfig: ViteUserConfig = {
+    ...config?.viteConfig,
+    test: {
+      ...config?.viteConfig?.test,
+      // Evalite-controlled values that override user config
+      testTimeout: testTimeout ?? 30_000,
+      maxConcurrency: maxConcurrency,
+      setupFiles: setupFiles,
+      sequence: {
+        ...config?.viteConfig?.test?.sequence,
+        concurrent: config?.viteConfig?.test?.sequence?.concurrent ?? true,
+      },
+    },
+  };
+
   const vitest = await createVitest(
     "test",
     {
-      // Everything passed here cannot be
-      // overridden by the user
-      root: cwd,
-      include: ["**/*.eval.?(m)ts"],
-      watch: opts.mode === "watch-for-file-changes",
+      ...mergedViteConfig.test,
       reporters: [
         new EvaliteReporter({
           logNewState: (newState) => {
@@ -277,62 +294,30 @@ export const runEvalite = async (opts: {
           hideTable: hideTable,
         }),
       ],
+      root: cwd,
+      include: ["**/*.eval.?(m)ts"],
+      watch: opts.mode === "watch-for-file-changes",
       mode: "test",
       browser: undefined,
+      config: false,
     },
     {
-      plugins: [
-        {
-          name: "evalite-config-plugin",
-          // Everything inside this config CAN be overridden by user's vite.config.ts
-          // EXCEPT when evalite.config.ts explicitly sets values - those override vite.config.ts
-
-          // When we moved to Vitest v4, I found a strange type error where
-          // `config` was not being inferred correctly. In the TS playground,
-          // this code works fine, so it may be some kind of package resolution issue.
-          // Since this code is fully tested, I feel OK with an 'any' for now.
-          config(config: any) {
-            config.test ??= {};
-            // If evalite.config.ts specifies these values, override user's vite.config.ts
-            // Otherwise use vite.config.ts value or fallback to default
-            if (testTimeout !== undefined) {
-              config.test.testTimeout = testTimeout;
-            } else {
-              config.test.testTimeout ??= 30_000;
-            }
-
-            if (maxConcurrency !== undefined) {
-              config.test.maxConcurrency = maxConcurrency;
-            }
-            // Note: no fallback for maxConcurrency - let Vitest use its own default
-
-            if (setupFiles !== undefined) {
-              config.test.setupFiles = setupFiles;
-            }
-            // Note: no fallback for setupFiles - let Vitest use its own default
-
-            config.test.sequence ??= {};
-            config.test.sequence.concurrent ??= true;
-          },
-          // See comment about any on config() above
-          configResolved(config: any) {
-            if (opts.configDebugMode) {
-              const debugMessage = `[Evalite Config Debug] testTimeout: ${config.test?.testTimeout}, maxConcurrency: ${config.test?.maxConcurrency}\n`;
-              if (opts.testOutputWritable) {
-                opts.testOutputWritable.write(debugMessage);
-              } else {
-                process.stdout.write(debugMessage);
-              }
-            }
-          },
-        },
-      ],
+      ...mergedViteConfig,
     },
     {
       stdout: opts.testOutputWritable || process.stdout,
       stderr: opts.testOutputWritable || process.stderr,
     }
   );
+
+  if (opts.configDebugMode) {
+    const debugMessage = `[Evalite Config Debug] testTimeout: ${mergedViteConfig.test?.testTimeout}, maxConcurrency: ${mergedViteConfig.test?.maxConcurrency}\n`;
+    if (opts.testOutputWritable) {
+      opts.testOutputWritable.write(debugMessage);
+    } else {
+      process.stdout.write(debugMessage);
+    }
+  }
 
   vitest.provide("cwd", cwd);
   vitest.provide("trialCount", config?.trialCount);

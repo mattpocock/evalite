@@ -1,20 +1,8 @@
-import { expect, it, vi } from "vitest";
+import { expect, it } from "vitest";
 import { getSuitesAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
-it("Should ignore includes in a vite.config.ts", async () => {
-  await using fixture = await loadFixture("config-includes");
-
-  await fixture.run({
-    mode: "run-once-and-exit",
-  });
-
-  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
-
-  expect(evals.Basics).toHaveLength(1);
-});
-
-it("evalite.config.ts should override vite.config.ts for testTimeout and maxConcurrency", async () => {
-  await using fixture = await loadFixture("config-precedence");
+it("testTimeout in evalite.config.ts should be applied", async () => {
+  await using fixture = await loadFixture("config-timeout");
 
   await fixture.run({
     mode: "run-once-and-exit",
@@ -23,15 +11,32 @@ it("evalite.config.ts should override vite.config.ts for testTimeout and maxConc
 
   const output = fixture.getOutput();
 
-  // Verify evalite.config.ts values (60000, 10) override vite.config.ts values (5000, 2)
+  // Verify testTimeout is applied
   expect(output).toContain("testTimeout: 60000");
-  expect(output).toContain("maxConcurrency: 10");
 
   const evals = await getSuitesAsRecordViaStorage(fixture.storage);
 
   // Should complete successfully without timing out
-  expect(evals["Config Precedence Test"]).toHaveLength(1);
-  expect(evals["Config Precedence Test"]?.[0]?.status).toBe("success");
+  expect(evals["Timeout Test"]).toHaveLength(1);
+  expect(evals["Timeout Test"]?.[0]?.status).toBe("success");
+});
+
+it("maxConcurrency in evalite.config.ts should be applied", async () => {
+  await using fixture = await loadFixture("config-concurrency");
+
+  await fixture.run({
+    mode: "run-once-and-exit",
+    configDebugMode: true,
+  });
+
+  const output = fixture.getOutput();
+
+  // Verify maxConcurrency is applied
+  expect(output).toContain("maxConcurrency: 10");
+
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
+
+  expect(evals["Concurrency Test"]).toHaveLength(1);
 });
 
 it("setupFiles in evalite.config.ts should load environment variables", async () => {
@@ -51,8 +56,8 @@ it("setupFiles in evalite.config.ts should load environment variables", async ()
   );
 });
 
-it("setupFiles in vitest.config.ts should be supported", async () => {
-  await using fixture = await loadFixture("config-setupfiles-vitest");
+it("viteConfig in evalite.config.ts should be passed through to Vitest", async () => {
+  await using fixture = await loadFixture("config-viteconfig");
 
   await fixture.run({
     mode: "run-once-and-exit",
@@ -60,25 +65,41 @@ it("setupFiles in vitest.config.ts should be supported", async () => {
 
   const evals = await getSuitesAsRecordViaStorage(fixture.storage);
 
-  // Should complete successfully with env var loaded from vitest.config.ts
-  expect(evals["Vitest Setup Test"]).toHaveLength(1);
-  expect(evals["Vitest Setup Test"]?.[0]?.status).toBe("success");
-  expect(evals["Vitest Setup Test"]?.[0]?.evals[0]?.output).toBe(
-    "from_vitest_config"
-  );
+  // Should complete successfully with globals enabled via viteConfig
+  expect(evals["ViteConfig Test"]).toHaveLength(1);
+  expect(evals["ViteConfig Test"]?.[0]?.status).toBe("success");
 });
 
-it("setupFiles in evalite.config.ts should take precedence over vitest.config.ts", async () => {
-  await using fixture = await loadFixture("config-setupfiles-precedence");
+it("should throw error if viteConfig.test.testTimeout is set", async () => {
+  await using fixture = await loadFixture("config-viteconfig-invalid-timeout");
 
-  await fixture.run({
-    mode: "run-once-and-exit",
-  });
+  await expect(
+    fixture.run({
+      mode: "run-once-and-exit",
+    })
+  ).rejects.toThrow(/testTimeout.*evalite\.config\.ts/i);
+});
 
-  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
+it("should throw error if viteConfig.test.maxConcurrency is set", async () => {
+  await using fixture = await loadFixture(
+    "config-viteconfig-invalid-concurrency"
+  );
 
-  // Should complete successfully with env var from evalite setup (which runs after vitest)
-  expect(evals["Precedence Test"]).toHaveLength(1);
-  expect(evals["Precedence Test"]?.[0]?.status).toBe("success");
-  expect(evals["Precedence Test"]?.[0]?.evals[0]?.output).toBe("evalite");
+  await expect(
+    fixture.run({
+      mode: "run-once-and-exit",
+    })
+  ).rejects.toThrow(/maxConcurrency.*evalite\.config\.ts/i);
+});
+
+it("should throw error if viteConfig.test.setupFiles is set", async () => {
+  await using fixture = await loadFixture(
+    "config-viteconfig-invalid-setupfiles"
+  );
+
+  await expect(
+    fixture.run({
+      mode: "run-once-and-exit",
+    })
+  ).rejects.toThrow(/setupFiles.*evalite\.config\.ts/i);
 });
