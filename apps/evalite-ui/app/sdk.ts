@@ -1,8 +1,7 @@
 import { notFound } from "@tanstack/react-router";
-import { DEFAULT_SERVER_PORT } from "evalite/constants";
 import type { Evalite } from "evalite/types";
 
-const BASE_URL = `http://localhost:${DEFAULT_SERVER_PORT}`;
+const BASE_URL = window.location.origin;
 
 declare global {
   interface Window {
