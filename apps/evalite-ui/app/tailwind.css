@@ -159,4 +159,8 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  .disable-transitions * {
+    transition: none !important;
+  }
 }

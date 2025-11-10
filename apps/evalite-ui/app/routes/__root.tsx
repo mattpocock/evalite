@@ -44,6 +44,7 @@ import {
 } from "~/components/ui/input-group";
 import { isStaticMode, triggerRerun } from "~/sdk";
 import { cn } from "~/lib/utils";
+import { ThemeProvider } from "~/components/theme-provider";
 
 const TanStackRouterDevtools =
   process.env.NODE_ENV === "production"
@@ -195,112 +196,114 @@ export default function App() {
   }
 
   return (
-    <SidebarProvider className="w-full">
-      <Sidebar className="border-r-0">
-        <SidebarHeader>
-          <SidebarMenu>
-            <SidebarMenuItem className="border-b md:-mx-3 -mx-2 md:px-3 px-2 pb-1.5">
-              <div className="px-2 py-1">
-                <Logo />
-              </div>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarHeader>
-        <SidebarContent>
-          <SidebarGroup>
-            <div className="px-2">
-              <p className="text-xs font-medium text-sidebar-foreground/70 mb-2">
-                Summary
-              </p>
-              <div className="flex items-center justify-between">
-                <div className="text-foreground/60 font-medium text-2xl">
-                  <Score
-                    score={score}
-                    state={getScoreState({
-                      score,
-                      prevScore,
-                      status: runStatus,
-                    })}
-                    iconClassName="size-4"
-                    hasScores={hasScores}
-                  />
-                </div>
-                {!isStaticMode() && (
-                  <button
-                    onClick={handleRerun}
-                    disabled={serverState.type === "running" || isRerunning}
-                    className={cn(
-                      "flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-colors",
-                      serverState.type === "running" || isRerunning
-                        ? "text-foreground/40 cursor-not-allowed"
-                        : "text-foreground/80 hover:bg-foreground/20"
-                    )}
-                    title="Rerun all evals"
-                  >
-                    <RotateCw
-                      className={cn("size-3", isRerunning && "animate-spin")}
-                    />
-                    Rerun
-                  </button>
-                )}
-              </div>
-            </div>
-          </SidebarGroup>
-          <SidebarGroup>
-            <SidebarGroupLabel>Suites</SidebarGroupLabel>
-            <InputGroup className="h-8 mb-2">
-              <InputGroupAddon align="inline-start">
-                <InputGroupText>
-                  <Search />
-                </InputGroupText>
-              </InputGroupAddon>
-              <InputGroupInput
-                placeholder="Search"
-                value={searchQuery ?? ""}
-                onChange={(e) => handleSearchChange(e.target.value)}
-              />
-              {searchQuery && (
-                <InputGroupAddon align="inline-end">
-                  <InputGroupButton
-                    size="icon-xs"
-                    onClick={() => handleSearchChange("")}
-                  >
-                    <X />
-                  </InputGroupButton>
-                </InputGroupAddon>
-              )}
-            </InputGroup>
+    <ThemeProvider>
+      <SidebarProvider className="w-full">
+        <Sidebar className="border-r-0">
+          <SidebarHeader>
             <SidebarMenu>
-              {filteredGroupedEvals.map((item) => {
-                if (item.type === "single") {
-                  return (
-                    <EvalSidebarItem
-                      key={`eval-${item.suite.name}`}
-                      name={item.suite.name}
-                      score={item.suite.score}
-                      state={item.suite.state}
-                      suiteStatus={item.suite.suiteStatus}
-                      hasScores={item.suite.hasScores}
-                    />
-                  );
-                } else {
-                  return (
-                    <VariantGroup
-                      key={`group-${item.groupName}`}
-                      groupName={item.groupName}
-                      variants={item.variants}
-                    />
-                  );
-                }
-              })}
+              <SidebarMenuItem className="border-b md:-mx-3 -mx-2 md:px-3 px-2 pb-1.5">
+                <div className="px-2 py-1">
+                  <Logo />
+                </div>
+              </SidebarMenuItem>
             </SidebarMenu>
-          </SidebarGroup>
-        </SidebarContent>
-      </Sidebar>
-      <Outlet />
-      <TanStackRouterDevtools />
-      <ReactQueryDevtools />
-    </SidebarProvider>
+          </SidebarHeader>
+          <SidebarContent>
+            <SidebarGroup>
+              <div className="px-2">
+                <p className="text-xs font-medium text-sidebar-foreground/70 mb-2">
+                  Summary
+                </p>
+                <div className="flex items-center justify-between">
+                  <div className="text-foreground/60 font-medium text-2xl">
+                    <Score
+                      score={score}
+                      state={getScoreState({
+                        score,
+                        prevScore,
+                        status: runStatus,
+                      })}
+                      iconClassName="size-4"
+                      hasScores={hasScores}
+                    />
+                  </div>
+                  {!isStaticMode() && (
+                    <button
+                      onClick={handleRerun}
+                      disabled={serverState.type === "running" || isRerunning}
+                      className={cn(
+                        "flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-colors",
+                        serverState.type === "running" || isRerunning
+                          ? "text-foreground/40 cursor-not-allowed"
+                          : "text-foreground/80 hover:bg-foreground/20"
+                      )}
+                      title="Rerun all evals"
+                    >
+                      <RotateCw
+                        className={cn("size-3", isRerunning && "animate-spin")}
+                      />
+                      Rerun
+                    </button>
+                  )}
+                </div>
+              </div>
+            </SidebarGroup>
+            <SidebarGroup>
+              <SidebarGroupLabel>Suites</SidebarGroupLabel>
+              <InputGroup className="h-8 mb-2">
+                <InputGroupAddon align="inline-start">
+                  <InputGroupText>
+                    <Search />
+                  </InputGroupText>
+                </InputGroupAddon>
+                <InputGroupInput
+                  placeholder="Search"
+                  value={searchQuery ?? ""}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                />
+                {searchQuery && (
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupButton
+                      size="icon-xs"
+                      onClick={() => handleSearchChange("")}
+                    >
+                      <X />
+                    </InputGroupButton>
+                  </InputGroupAddon>
+                )}
+              </InputGroup>
+              <SidebarMenu>
+                {filteredGroupedEvals.map((item) => {
+                  if (item.type === "single") {
+                    return (
+                      <EvalSidebarItem
+                        key={`eval-${item.suite.name}`}
+                        name={item.suite.name}
+                        score={item.suite.score}
+                        state={item.suite.state}
+                        suiteStatus={item.suite.suiteStatus}
+                        hasScores={item.suite.hasScores}
+                      />
+                    );
+                  } else {
+                    return (
+                      <VariantGroup
+                        key={`group-${item.groupName}`}
+                        groupName={item.groupName}
+                        variants={item.variants}
+                      />
+                    );
+                  }
+                })}
+              </SidebarMenu>
+            </SidebarGroup>
+          </SidebarContent>
+        </Sidebar>
+        <Outlet />
+        <TanStackRouterDevtools />
+        <ReactQueryDevtools />
+      </SidebarProvider>
+    </ThemeProvider>
   );
 }
 
