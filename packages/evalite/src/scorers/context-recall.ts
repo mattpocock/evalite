@@ -1,6 +1,7 @@
 import { generateObject, jsonSchema, type LanguageModel } from "ai";
 import type { Evalite } from "../types.js";
 import { promptBuilder } from "./prompt-builder.js";
+import { cacheModel } from "../ai-sdk.js";
 
 const ContextRecallClassificationsSchema = jsonSchema<{
   classifications: Evalite.Scorers.ContextRecallClassifications;
@@ -118,7 +119,7 @@ export async function contextRecall(opts: Evalite.Scorers.ContextRecallOpts) {
   const context = opts.groundTruth.join("\n");
 
   const result = await generateObject({
-    model: opts.model,
+    model: cacheModel(opts.model),
     schema: ContextRecallClassificationsSchema,
     prompt: classifyStatementsPrompt({
       question: opts.question,

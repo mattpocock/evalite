@@ -174,7 +174,7 @@ const fixCacheResponse = (
   if (obj?.response?.timestamp) {
     obj.response.timestamp = new Date(obj.response.timestamp);
   }
-  return obj as any;
+  return obj as Awaited<ReturnType<LanguageModelV2["doGenerate"]>>;
 };
 
 export const cacheModel = (

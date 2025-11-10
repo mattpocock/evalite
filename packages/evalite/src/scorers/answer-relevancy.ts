@@ -8,6 +8,7 @@ import {
 } from "ai";
 import type { Evalite } from "../types.js";
 import { promptBuilder } from "./prompt-builder.js";
+import { cacheModel } from "../ai-sdk.js";
 
 const AnswerRelevancyOutputSchema = jsonSchema<{
   question: string;
@@ -112,10 +113,12 @@ export async function answerRelevancy(
   const generatedQuestions: string[] = [];
   const noncommittalFlags: boolean[] = [];
 
+  const cachedModel = cacheModel(opts.model);
+
   for (let i = 0; i < strictness; i++) {
     try {
       const result = await generateObject({
-        model: opts.model,
+        model: cachedModel,
         schema: AnswerRelevancyOutputSchema,
         prompt: answerRelevancyPrompt({ response: opts.answer }),
       });

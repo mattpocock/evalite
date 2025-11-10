@@ -1,4 +1,5 @@
 import type { TestUserConfig } from "vitest/config";
+import type { LanguageModelV2, EmbeddingModelV2 } from "@ai-sdk/provider";
 
 export declare namespace Evalite {
   export type StrictOmit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
@@ -845,7 +846,7 @@ export declare namespace Evalite {
       question: string;
       answer: string;
       groundTruth: string[];
-      model: import("ai").LanguageModel;
+      model: LanguageModelV2;
     };
 
     /**
@@ -855,8 +856,8 @@ export declare namespace Evalite {
       question: string;
       answer: string;
       reference: string;
-      model: import("ai").LanguageModel;
-      embeddingModel: import("ai").EmbeddingModel<string>;
+      model: LanguageModelV2;
+      embeddingModel: EmbeddingModelV2<string>;
       weights?: [number, number];
       beta?: number;
     };
@@ -867,8 +868,8 @@ export declare namespace Evalite {
     export type AnswerRelevancyOpts = {
       question: string;
       answer: string;
-      model: import("ai").LanguageModel;
-      embeddingModel: import("ai").EmbeddingModel<string>;
+      model: LanguageModelV2;
+      embeddingModel: EmbeddingModelV2<string>;
     };
 
     /**
@@ -877,7 +878,7 @@ export declare namespace Evalite {
     export type AnswerSimilarityOpts = {
       answer: string;
       reference: string;
-      embeddingModel: import("ai").EmbeddingModel<string>;
+      embeddingModel: EmbeddingModelV2<string>;
     };
 
     /**
@@ -887,7 +888,7 @@ export declare namespace Evalite {
       question: string;
       answer: string;
       groundTruth: string[];
-      model: import("ai").LanguageModel;
+      model: LanguageModelV2;
     };
 
     /**
@@ -898,7 +899,7 @@ export declare namespace Evalite {
       answer: string;
       reference: string;
       groundTruth: string[];
-      model: import("ai").LanguageModel;
+      model: LanguageModelV2;
       mode?: "relevant" | "irrelevant";
     };
 
