@@ -16,6 +16,7 @@
     "dev:evalite": "pnpm --filter evalite dev",
     "dev:evalite-ui": "pnpm --filter evalite-ui dev",
     "dev:evalite-tests": "pnpm --filter evalite-tests dev",
+    "dev:example": "pnpm --filter example dev",
     "dev:docs": "pnpm --filter evalite-docs dev",
     "test": "pnpm build && pnpm test:all",
     "test:all": "pnpm --filter evalite --filter evalite-tests --filter evalite-ui test",

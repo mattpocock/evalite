@@ -5,6 +5,7 @@ import type {
 } from "@ai-sdk/provider";
 import { wrapLanguageModel } from "ai";
 import { reportTrace, shouldReportTrace } from "./traces.js";
+import { getCacheContext, generateCacheKey, reportCacheHit } from "./cache.js";
 
 const handlePromptContent = (
   content: LanguageModelV2CallOptions["prompt"][number]["content"][number]
@@ -155,6 +156,200 @@ export const traceAISDKModel = (model: LanguageModelV2): LanguageModelV2 => {
                   }
                 : undefined,
             });
+          },
+        });
+
+        return {
+          stream: stream.pipeThrough(transformStream),
+          ...rest,
+        };
+      },
+    },
+  });
+};
+
+const fixCacheResponse = (
+  obj: any
+): Awaited<ReturnType<LanguageModelV2["doGenerate"]>> => {
+  if (obj?.response?.timestamp) {
+    obj.response.timestamp = new Date(obj.response.timestamp);
+  }
+  return obj as any;
+};
+
+export const cacheModel = (
+  model: LanguageModelV2,
+  options?: { enabled?: boolean }
+): LanguageModelV2 => {
+  const enabled = options?.enabled ?? true;
+
+  if (!enabled || !getCacheContext()?.serverPort) {
+    return model;
+  }
+
+  return wrapLanguageModel({
+    model,
+    middleware: {
+      wrapGenerate: async (opts) => {
+        const context = getCacheContext()!;
+
+        // Generate cache key
+        const keyHash = generateCacheKey({
+          model: model.modelId,
+          params: opts.params,
+          callType: "generate",
+          callParams: opts.params,
+        });
+
+        // Try to get from cache
+        try {
+          const cacheResponse = await fetch(
+            `http://localhost:${context.serverPort}/api/cache/${keyHash}`
+          );
+
+          if (cacheResponse.ok) {
+            const cached = (await cacheResponse.json()) as {
+              value?: unknown;
+              duration: number;
+            };
+            if (cached?.value) {
+              reportCacheHit({
+                keyHash,
+                hit: true,
+                savedDuration: cached.duration,
+              });
+
+              // Return cached result with 0 tokens to show it was cached
+              const result = fixCacheResponse(cached.value) as Awaited<
+                ReturnType<typeof opts.doGenerate>
+              >;
+              result.usage = {
+                inputTokens: 0,
+                outputTokens: 0,
+                totalTokens: 0,
+              };
+              return result;
+            }
+          }
+        } catch (error) {
+          // Cache fetch failed, continue with normal execution
+          console.warn("Cache fetch failed:", error);
+        }
+
+        // Cache miss - execute and cache
+        const start = performance.now();
+        const result = await opts.doGenerate();
+        const duration = performance.now() - start;
+
+        // Store in cache
+        try {
+          await fetch(
+            `http://localhost:${context.serverPort}/api/cache/${keyHash}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ value: result, duration }),
+            }
+          );
+        } catch (error) {
+          // Cache write failed, but we have the result
+          console.warn("Cache write failed:", error);
+        }
+
+        reportCacheHit({ keyHash, hit: false, savedDuration: 0 });
+
+        return result;
+      },
+      wrapStream: async ({ doStream, params }) => {
+        const context = getCacheContext()!;
+
+        // Generate cache key
+        const keyHash = generateCacheKey({
+          model: model.modelId,
+          params: params,
+          callType: "stream",
+          callParams: params,
+        });
+
+        // Try to get from cache
+        try {
+          const cacheResponse = await fetch(
+            `http://localhost:${context.serverPort}/api/cache/${keyHash}`
+          );
+
+          if (cacheResponse.ok) {
+            const cached = (await cacheResponse.json()) as {
+              value?: unknown;
+              duration: number;
+            };
+            if (cached?.value) {
+              reportCacheHit({
+                keyHash,
+                hit: true,
+                savedDuration: cached.duration,
+              });
+
+              // Reconstruct stream from cached parts
+              const cachedParts = cached.value as LanguageModelV2StreamPart[];
+              const stream = new ReadableStream<LanguageModelV2StreamPart>({
+                async start(controller) {
+                  for (const part of cachedParts) {
+                    controller.enqueue(part);
+                    // Small delay to simulate streaming
+                    await new Promise((resolve) => setTimeout(resolve, 10));
+                  }
+                  controller.close();
+                },
+              });
+
+              return {
+                stream,
+                rawResponse: { headers: new Headers() },
+                warnings: [],
+              };
+            }
+          }
+        } catch (error) {
+          // Cache fetch failed, continue with normal execution
+          console.warn("Cache fetch failed:", error);
+        }
+
+        // Cache miss - execute, collect, and cache
+        const start = performance.now();
+        const { stream, ...rest } = await doStream();
+
+        const fullResponse: LanguageModelV2StreamPart[] = [];
+
+        const transformStream = new TransformStream<
+          LanguageModelV2StreamPart,
+          LanguageModelV2StreamPart
+        >({
+          transform(chunk, controller) {
+            fullResponse.push(chunk);
+            controller.enqueue(chunk);
+          },
+          async flush() {
+            const duration = performance.now() - start;
+
+            // Store in cache
+            try {
+              await fetch(
+                `http://localhost:${context.serverPort}/api/cache/${keyHash}`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    value: fullResponse,
+                    duration,
+                  }),
+                }
+              );
+            } catch (error) {
+              // Cache write failed
+              console.warn("Cache write failed:", error);
+            }
+
+            reportCacheHit({ keyHash, hit: false, savedDuration: 0 });
           },
         });
 

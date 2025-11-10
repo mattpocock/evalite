@@ -8,6 +8,10 @@ import type { Evalite } from "./types.js";
 import { FILES_LOCATION } from "./backend-only-constants.js";
 import { createScorer } from "./index.js";
 import { serializeAnnotation } from "./reporter/events.js";
+import {
+  cacheContextLocalStorage,
+  reportCacheHitLocalStorage,
+} from "./cache.js";
 
 const makeSerializable = (obj: unknown): unknown => {
   try {
@@ -312,6 +316,19 @@ function registerEvalite<TInput, TOutput, TExpected>(
 
         const traces: Evalite.Trace[] = [];
         reportTraceLocalStorage.enterWith((trace) => traces.push(trace));
+
+        const cacheHits: Array<{
+          keyHash: string;
+          hit: boolean;
+          savedDuration: number;
+        }> = [];
+        reportCacheHitLocalStorage.enterWith((hit) => cacheHits.push(hit));
+
+        cacheContextLocalStorage.enterWith({
+          trialCount: inject("trialCount"),
+          evalName: evalName,
+          serverPort: inject("serverPort"),
+        });
 
         const [inputForMeta, expectedForMeta] = await Promise.all([
           createEvaliteFileIfNeeded({ rootDir, input: data.input }),

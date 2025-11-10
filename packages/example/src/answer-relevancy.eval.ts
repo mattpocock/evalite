@@ -1,5 +1,6 @@
 import { openai } from "@ai-sdk/openai";
 import { evalite } from "evalite";
+import { cacheModel } from "evalite/ai-sdk";
 import { answerRelevancy, toolCallAccuracy } from "evalite/scorers";
 
 evalite("Answer Relevancy", {
@@ -49,7 +50,7 @@ evalite("Answer Relevancy", {
         answerRelevancy({
           question: input,
           answer: output,
-          model: openai("gpt-4.1-mini"),
+          model: cacheModel(openai("gpt-4.1-mini")),
           embeddingModel: openai.embedding("text-embedding-3-small"),
         }),
     },
