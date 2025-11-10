@@ -200,7 +200,7 @@ function TestimonialRow({
 
 export function TestimonialsSection() {
   return (
-    <section className="flex flex-col gap-6 sm:gap-8 py-12 sm:py-16 lg:py-24 border-b border-border w-full overflow-hidden">
+    <section className="flex flex-col gap-6 sm:gap-8 py-12 sm:py-14 lg:py-16 border-b border-border w-full overflow-hidden">
       <div className="flex flex-col items-center justify-center gap-2 px-4 sm:px-6 lg:px-10">
         <h2 className="text-3xl sm:text-4xl font-semibold text-center">
           Loved by developers
