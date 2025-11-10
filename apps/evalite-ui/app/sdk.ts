@@ -1,7 +1,6 @@
 import { notFound } from "@tanstack/react-router";
 import type { Evalite } from "evalite/types";
-
-const BASE_URL = window.location.origin;
+import { BASE_URL } from "./constants";
 
 declare global {
   interface Window {

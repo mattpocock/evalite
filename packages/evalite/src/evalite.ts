@@ -224,6 +224,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
               output: datasetResult.error,
               scores: [],
               traces: [],
+              cacheHits: [],
               renderedColumns: [],
             },
           })
@@ -378,6 +379,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
                 output: serializableOutput,
                 scores,
                 traces: tracesWithFiles,
+                cacheHits,
                 status: "success",
                 renderedColumns,
                 variantName: vitestOpts.variantName,
@@ -413,6 +415,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
                 output: serializedError,
                 scores: [],
                 traces: await handleFilesInTraces(rootDir, traces),
+                cacheHits,
                 status: "fail",
                 renderedColumns: [],
                 variantName: vitestOpts.variantName,

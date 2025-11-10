@@ -171,20 +171,24 @@ export declare namespace Evalite {
 
   export type RunType = "full" | "partial";
 
-  export type RunningServerState = {
+  export interface SharedServerState {
+    cacheHitsByEval: Record<number, number>;
+  }
+
+  export interface RunningServerState extends SharedServerState {
     type: "running";
     runType: RunType;
     filepaths: string[];
     runId: number | bigint | undefined;
     suiteNamesRunning: string[];
     evalIdsRunning: (number | bigint)[];
-  };
+  }
 
-  export type ServerState =
-    | RunningServerState
-    | {
-        type: "idle";
-      };
+  export interface IdleServerState extends SharedServerState {
+    type: "idle";
+  }
+
+  export type ServerState = RunningServerState | IdleServerState;
 
   export type MaybePromise<T> = T | Promise<T>;
 
@@ -226,6 +230,7 @@ export declare namespace Evalite {
     scores: Score[];
     duration: number;
     traces: Trace[];
+    cacheHits: Array<{ keyHash: string; hit: boolean; savedDuration: number }>;
     renderedColumns: RenderedColumn[];
   }
 

@@ -3,6 +3,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import { getServerStateQueryOptions } from "./queries";
 import type { Evalite } from "evalite/types";
 import { isStaticMode } from "~/sdk";
+import { BASE_URL } from "~/constants";
 
 export const useSubscribeToSocket = (queryClient: QueryClient) => {
   useEffect(() => {
@@ -11,7 +12,7 @@ export const useSubscribeToSocket = (queryClient: QueryClient) => {
       return;
     }
 
-    const socket = new WebSocket(`${window.location.origin}/api/socket`);
+    const socket = new WebSocket(`${BASE_URL}/api/socket`);
 
     socket.onmessage = async (event) => {
       const newState: Evalite.ServerState = JSON.parse(event.data);

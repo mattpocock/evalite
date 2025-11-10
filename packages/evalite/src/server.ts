@@ -11,15 +11,18 @@ export type Server = ReturnType<typeof createServer>;
 
 const THROTTLE_TIME = 100;
 
+const INITIAL_STATE: Evalite.IdleServerState = {
+  type: "idle",
+  cacheHitsByEval: {},
+};
+
 export const handleWebsockets = (server: fastify.FastifyInstance) => {
   const websocketListeners = new Map<
     string,
     (event: Evalite.ServerState) => void
   >();
 
-  let currentState: Evalite.ServerState = {
-    type: "idle",
-  };
+  let currentState: Evalite.ServerState = INITIAL_STATE;
 
   let timeout: NodeJS.Timeout | undefined;
 
