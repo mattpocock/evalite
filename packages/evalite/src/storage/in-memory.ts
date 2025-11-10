@@ -6,6 +6,10 @@ export class InMemoryStorage implements Evalite.Storage {
   private evalsStore = new Map<number, Evalite.Storage.Entities.Eval>();
   private scoresStore = new Map<number, Evalite.Storage.Entities.Score>();
   private tracesStore = new Map<number, Evalite.Storage.Entities.Trace>();
+  private cacheStore = new Map<
+    string,
+    { value: unknown; duration: number; createdAt: number }
+  >();
 
   private nextRunId = 1;
   private nextSuiteId = 1;
@@ -355,6 +359,49 @@ export class InMemoryStorage implements Evalite.Storage {
         input: JSON.parse(t.input as string),
         output: JSON.parse(t.output as string),
       }));
+    },
+  };
+
+  cache = {
+    get: async (
+      keyHash: string
+    ): Promise<{ value: unknown; duration: number } | null> => {
+      const entry = this.cacheStore.get(keyHash);
+
+      if (!entry) {
+        return null;
+      }
+
+      // Clean up expired entries (older than 1 day)
+      const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+      if (entry.createdAt < oneDayAgo) {
+        this.cacheStore.delete(keyHash);
+        return null;
+      }
+
+      return {
+        value: entry.value,
+        duration: entry.duration,
+      };
+    },
+
+    set: async (
+      keyHash: string,
+      data: { value: unknown; duration: number }
+    ): Promise<void> => {
+      this.cacheStore.set(keyHash, {
+        value: data.value,
+        duration: data.duration,
+        createdAt: Date.now(),
+      });
+    },
+
+    delete: async (keyHash: string): Promise<void> => {
+      this.cacheStore.delete(keyHash);
+    },
+
+    clear: async (): Promise<void> => {
+      this.cacheStore.clear();
     },
   };
 

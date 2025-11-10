@@ -502,6 +502,43 @@ export const createServer = (opts: { storage: Evalite.Storage }) => {
     },
   });
 
+  server.route<{
+    Params: {
+      keyHash: string;
+    };
+    Reply: { value: unknown; duration: number } | null;
+  }>({
+    method: "GET",
+    url: "/api/cache/:keyHash",
+    handler: async (req, res) => {
+      const result = await opts.storage.cache.get(req.params.keyHash);
+      return res.code(200).send(result);
+    },
+  });
+
+  server.route<{
+    Params: {
+      keyHash: string;
+    };
+    Body: { value: unknown; duration: number };
+  }>({
+    method: "POST",
+    url: "/api/cache/:keyHash",
+    handler: async (req, res) => {
+      await opts.storage.cache.set(req.params.keyHash, req.body);
+      return res.code(200).send({ success: true });
+    },
+  });
+
+  server.route({
+    method: "DELETE",
+    url: "/api/cache",
+    handler: async (req, res) => {
+      await opts.storage.cache.clear();
+      return res.code(200).send({ success: true });
+    },
+  });
+
   return {
     updateState: websockets.updateState,
     start: (port: number) => {

@@ -489,6 +489,36 @@ export declare namespace Evalite {
     };
 
     /**
+     * Operations for managing cache.
+     */
+    cache: {
+      /**
+       * Get a cached value by its key hash.
+       */
+      get(
+        keyHash: string
+      ): Promise<{ value: unknown; duration: number } | null>;
+
+      /**
+       * Set a cached value with its key hash.
+       */
+      set(
+        keyHash: string,
+        data: { value: unknown; duration: number }
+      ): Promise<void>;
+
+      /**
+       * Delete a cached value by its key hash.
+       */
+      delete(keyHash: string): Promise<void>;
+
+      /**
+       * Clear all cached values.
+       */
+      clear(): Promise<void>;
+    };
+
+    /**
      * Close/cleanup the storage (e.g., close database connection).
      */
     close(): Promise<void>;

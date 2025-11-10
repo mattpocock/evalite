@@ -986,6 +986,161 @@ describe("Evalite.Storage", () => {
     });
   });
 
+  describe("cache", () => {
+    testAllStorage(
+      "set and get - stores and retrieves value",
+      async (getStorage) => {
+        await using storage = await getStorage();
+
+        const keyHash = "test-key-hash";
+        const data = {
+          value: { foo: "bar", nested: { count: 42 } },
+          duration: 1500,
+        };
+
+        await storage.cache.set(keyHash, data);
+        const result = await storage.cache.get(keyHash);
+
+        expect(result).not.toBeNull();
+        expect(result?.value).toEqual(data.value);
+        expect(result?.duration).toBe(data.duration);
+      }
+    );
+
+    testAllStorage(
+      "get returns null for non-existent key",
+      async (getStorage) => {
+        await using storage = await getStorage();
+
+        const result = await storage.cache.get("non-existent-key");
+
+        expect(result).toBeNull();
+      }
+    );
+
+    testAllStorage("set overwrites existing value", async (getStorage) => {
+      await using storage = await getStorage();
+
+      const keyHash = "overwrite-key";
+      await storage.cache.set(keyHash, { value: "first", duration: 100 });
+      await storage.cache.set(keyHash, { value: "second", duration: 200 });
+
+      const result = await storage.cache.get(keyHash);
+
+      expect(result?.value).toBe("second");
+      expect(result?.duration).toBe(200);
+    });
+
+    testAllStorage("delete removes specific entry", async (getStorage) => {
+      await using storage = await getStorage();
+
+      const keyHash = "delete-key";
+      await storage.cache.set(keyHash, { value: "test", duration: 100 });
+
+      await storage.cache.delete(keyHash);
+      const result = await storage.cache.get(keyHash);
+
+      expect(result).toBeNull();
+    });
+
+    testAllStorage(
+      "delete is idempotent (doesn't error on missing key)",
+      async (getStorage) => {
+        await using storage = await getStorage();
+
+        await expect(
+          storage.cache.delete("non-existent")
+        ).resolves.not.toThrow();
+      }
+    );
+
+    testAllStorage("clear removes all entries", async (getStorage) => {
+      await using storage = await getStorage();
+
+      await storage.cache.set("key1", { value: "value1", duration: 100 });
+      await storage.cache.set("key2", { value: "value2", duration: 200 });
+      await storage.cache.set("key3", { value: "value3", duration: 300 });
+
+      await storage.cache.clear();
+
+      const result1 = await storage.cache.get("key1");
+      const result2 = await storage.cache.get("key2");
+      const result3 = await storage.cache.get("key3");
+
+      expect(result1).toBeNull();
+      expect(result2).toBeNull();
+      expect(result3).toBeNull();
+    });
+
+    testAllStorage("handles complex JSON values", async (getStorage) => {
+      await using storage = await getStorage();
+
+      const keyHash = "complex-json";
+      const complexValue = {
+        string: "test",
+        number: 42,
+        boolean: true,
+        null: null,
+        array: [1, 2, 3, { nested: "value" }],
+        nested: {
+          deep: {
+            structure: {
+              value: "deep",
+            },
+          },
+        },
+      };
+
+      await storage.cache.set(keyHash, { value: complexValue, duration: 500 });
+      const result = await storage.cache.get(keyHash);
+
+      expect(result?.value).toEqual(complexValue);
+    });
+
+    testAllStorage("handles empty objects and arrays", async (getStorage) => {
+      await using storage = await getStorage();
+
+      await storage.cache.set("empty-obj", { value: {}, duration: 100 });
+      await storage.cache.set("empty-arr", { value: [], duration: 100 });
+
+      const obj = await storage.cache.get("empty-obj");
+      const arr = await storage.cache.get("empty-arr");
+
+      expect(obj?.value).toEqual({});
+      expect(arr?.value).toEqual([]);
+    });
+
+    testAllStorage(
+      "stores duration as number with decimals",
+      async (getStorage) => {
+        await using storage = await getStorage();
+
+        const keyHash = "duration-test";
+        const duration = 1234.5678;
+
+        await storage.cache.set(keyHash, { value: "test", duration });
+        const result = await storage.cache.get(keyHash);
+
+        expect(result?.duration).toBe(duration);
+      }
+    );
+
+    testAllStorage("different keys store independently", async (getStorage) => {
+      await using storage = await getStorage();
+
+      await storage.cache.set("key1", { value: "value1", duration: 100 });
+      await storage.cache.set("key2", { value: "value2", duration: 200 });
+
+      const result1 = await storage.cache.get("key1");
+      const result2 = await storage.cache.get("key2");
+
+      expect(result1?.value).toBe("value1");
+      expect(result1?.duration).toBe(100);
+      expect(result2?.value).toBe("value2");
+      expect(result2?.duration).toBe(200);
+    });
+  });
+
   describe("lifecycle", () => {
     testAllStorage("close method works", async (getStorage) => {
       const storage = await getStorage();
