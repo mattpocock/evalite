@@ -1,0 +1,13 @@
+{
+  "title": "Reference",
+  "pages": [
+    "evalite",
+    "cli",
+    "define-config",
+    "create-scorer",
+    "evalite-file",
+    "traces",
+    "run-evalite",
+    "storage"
+  ]
+}

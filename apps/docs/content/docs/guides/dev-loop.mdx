@@ -1,0 +1,94 @@
+---
+title: The Dev Loop
+---
+
+Speed up development by running evals efficiently with watch mode, file filtering, and selective execution.
+
+## Watch Mode
+
+Watch mode re-runs evals when files change for fast iteration.
+
+```bash
+evalite watch
+```
+
+Watches `.eval.ts` files and re-runs on changes.
+
+### Hide Table Output
+
+When debugging with `console.log`, hide detailed table to see logs:
+
+```bash
+evalite watch --hideTable
+```
+
+Keeps score summary, removes results table.
+
+### Serve Mode Alternative
+
+Run evals once and serve UI without re-running on changes:
+
+```bash
+evalite serve
+```
+
+Runs once, keeps UI at `http://localhost:3006`. Tests won't re-run on file changes.
+
+To re-run after changes, restart `evalite serve`.
+
+Useful for slow-running evals.
+
+## Run Specific Files
+
+Run specific eval files instead of all evals:
+
+```bash
+evalite my-eval.eval.ts
+```
+
+Multiple files:
+
+```bash
+evalite eval1.eval.ts eval2.eval.ts
+```
+
+Works with `watch` and `serve`:
+
+```bash
+evalite watch my-eval.eval.ts
+evalite serve my-eval.eval.ts
+```
+
+Useful when working on specific eval, avoiding full suite.
+
+## Skip Entire Evals
+
+Use `evalite.skip()` to skip eval without running:
+
+```ts
+evalite.skip("My Eval", {
+  data: () => [],
+  task: () => {},
+});
+```
+
+Useful for temporarily disabling eval during development.
+
+## Focus on Specific Test Cases
+
+Use `only` flag on data entries to focus on specific inputs:
+
+```ts
+evalite("My Eval", {
+  data: () => [
+    { input: "test1", expected: "output1" },
+    { input: "test2", expected: "output2", only: true },
+    { input: "test3", expected: "output3" },
+  ],
+  task: async (input) => {
+    // Only runs for "test2"
+  },
+});
+```
+
+When any data entry has `only: true`, only those evals run.
