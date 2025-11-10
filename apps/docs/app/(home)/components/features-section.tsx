@@ -49,7 +49,7 @@ const features: Feature[] = [
   {
     title: "Built-in Scorers",
     description:
-      "Create custom scorers or use pre-built ones from autoevals. Score outputs with ease.",
+      "Create custom scorers or use pre-built ones from evalite. Score outputs with ease.",
     icon: Target,
   },
 ];
