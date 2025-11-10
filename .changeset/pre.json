@@ -10,6 +10,7 @@
   "changesets": [
     "0000-export-command-change",
     "0000-in-memory-default",
+    "0000-levenshtein-scorer",
     "0000-optional-scorer-name",
     "0000-remove-implicit-vitest-config",
     "0000-remove-streaming",
@@ -19,6 +20,7 @@
     "angry-dogs-sort",
     "long-olives-give",
     "real-phones-join",
+    "sixty-jeans-melt",
     "table-rendering",
     "thick-birds-design",
     "wet-clocks-camp"

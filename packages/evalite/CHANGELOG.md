@@ -1,5 +1,15 @@
 # evalite
 
+## 1.0.0-beta.1
+
+### Major Changes
+
+- b64d1bb: Dropped compatibility with autoevals, and implemented our own built-in library of scorers.
+
+### Patch Changes
+
+- 6033c8c: Added Levenshtein distance scorer for fuzzy string matching
+
 ## 1.0.0-beta.0
 
 ### Major Changes
