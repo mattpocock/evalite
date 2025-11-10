@@ -18,6 +18,7 @@ type ProgramOpts = {
   threshold: number | undefined;
   outputPath: string | undefined;
   hideTable: boolean | undefined;
+  noCache: boolean | undefined;
 };
 
 const commonParameters = {
@@ -45,6 +46,11 @@ const commonParameters = {
       brief: "Hides the detailed table output in the CLI.",
       optional: true,
     },
+    noCache: {
+      kind: "boolean",
+      brief: "Disables caching of AI SDK model outputs.",
+      optional: true,
+    },
   },
 } as const;
 
@@ -52,6 +58,7 @@ type Flags = {
   threshold: number | undefined;
   outputPath: string | undefined;
   hideTable: boolean | undefined;
+  noCache: boolean | undefined;
 };
 
 export const createProgram = (commands: {
@@ -72,6 +79,7 @@ export const createProgram = (commands: {
         threshold: flags.threshold,
         outputPath: flags.outputPath,
         hideTable: flags.hideTable,
+        noCache: flags.noCache,
       });
     },
     docs: {
@@ -87,6 +95,7 @@ export const createProgram = (commands: {
         threshold: flags.threshold,
         outputPath: flags.outputPath,
         hideTable: flags.hideTable,
+        noCache: flags.noCache,
       });
     },
     docs: {
@@ -107,6 +116,7 @@ export const createProgram = (commands: {
         threshold: flags.threshold,
         outputPath: flags.outputPath,
         hideTable: flags.hideTable,
+        noCache: flags.noCache,
       });
     },
     docs: {
@@ -193,6 +203,7 @@ export const program = createProgram({
       mode: "watch-for-file-changes",
       outputPath: path.outputPath,
       hideTable: path.hideTable,
+      cacheEnabled: path.noCache ? false : undefined,
     });
   },
   runOnceAtPath: (path) => {
@@ -202,6 +213,7 @@ export const program = createProgram({
       cwd: undefined,
       mode: "run-once-and-exit",
       outputPath: path.outputPath,
+      cacheEnabled: path.noCache ? false : undefined,
     });
   },
   serve: (path) => {
@@ -211,6 +223,7 @@ export const program = createProgram({
       cwd: undefined,
       mode: "run-once-and-serve",
       outputPath: path.outputPath,
+      cacheEnabled: path.noCache ? false : undefined,
     });
   },
   export: async (opts) => {

@@ -328,6 +328,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
           trialCount: inject("trialCount"),
           evalName: evalName,
           serverPort: inject("serverPort"),
+          cacheEnabled: inject("cacheEnabled"),
         });
 
         const [inputForMeta, expectedForMeta] = await Promise.all([

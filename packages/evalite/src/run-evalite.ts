@@ -27,6 +27,10 @@ declare module "vitest" {
      * Used by cache and other features that need to communicate with the server.
      */
     serverPort: number;
+    /**
+     * Whether caching is enabled for AI SDK model outputs.
+     */
+    cacheEnabled: boolean;
   }
 }
 
@@ -201,6 +205,7 @@ export const runEvalite = async (opts: {
   storage?: Evalite.Storage;
   configDebugMode?: boolean;
   disableServer?: boolean;
+  cacheEnabled?: boolean;
 }) => {
   const cwd = opts.cwd ?? process.cwd();
   const filesLocation = path.join(cwd, FILES_LOCATION);
@@ -238,6 +243,17 @@ export const runEvalite = async (opts: {
   const serverPort = config?.server?.port ?? DEFAULT_SERVER_PORT;
   const testTimeout = config?.testTimeout;
   const maxConcurrency = config?.maxConcurrency;
+
+  // Determine cache enabled: opts > config > default (true)
+  let cacheEnabled = true;
+  if (opts.cacheEnabled !== undefined) {
+    cacheEnabled = opts.cacheEnabled;
+  } else if (config?.cache !== undefined) {
+    cacheEnabled =
+      typeof config.cache === "boolean"
+        ? config.cache
+        : (config.cache.enabled ?? true);
+  }
 
   // Merge setupFiles:
   // 1. Always include env-setup-file first to load .env files
@@ -337,6 +353,7 @@ export const runEvalite = async (opts: {
   vitest.provide("cwd", cwd);
   vitest.provide("trialCount", config?.trialCount);
   vitest.provide("serverPort", actualServerPort);
+  vitest.provide("cacheEnabled", cacheEnabled);
 
   await vitest.start(filters);
 

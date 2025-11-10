@@ -5,6 +5,7 @@ export const cacheContextLocalStorage = new AsyncLocalStorage<{
   trialCount: number | undefined;
   evalName: string;
   serverPort: number;
+  cacheEnabled: boolean;
 }>();
 
 export const getCacheContext = () => {

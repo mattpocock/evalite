@@ -181,9 +181,10 @@ export const cacheModel = (
   model: LanguageModelV2,
   options?: { enabled?: boolean }
 ): LanguageModelV2 => {
-  const enabled = options?.enabled ?? true;
+  const context = getCacheContext();
+  const enabled = options?.enabled ?? context?.cacheEnabled ?? true;
 
-  if (!enabled || !getCacheContext()?.serverPort) {
+  if (!enabled || !context?.serverPort) {
     return model;
   }
 
