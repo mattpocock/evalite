@@ -5,4 +5,4 @@ export { answerRelevancy } from "./answer-relevancy.js";
 export { contextRecall } from "./context-recall.js";
 export { toolCallAccuracy } from "./tool-call-accuracy.js";
 export { noiseSensitivity } from "./noise-sensitivity.js";
-export { exactMatch, contains } from "./string.js";
+export { exactMatch, contains, levenshtein } from "./string.js";

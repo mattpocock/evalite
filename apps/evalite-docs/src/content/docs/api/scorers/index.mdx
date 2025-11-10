@@ -16,6 +16,7 @@ Simple deterministic scorers for text matching. No AI SDK required.
 
 - [**exactMatch**](/api/scorers/exact-match) - Exact string comparison
 - [**contains**](/api/scorers/contains) - Substring matching
+- [**levenshtein**](/api/scorers/levenshtein) - Fuzzy string matching with edit distance
 
 ## RAG Scorers
 
@@ -40,6 +41,7 @@ Specialized scorers for specific use cases.
 | ----------------- | ---------------------- | ----------------------------- |
 | exactMatch        | No                     | Exact string matching         |
 | contains          | No                     | Substring matching            |
+| levenshtein       | No                     | Fuzzy string matching         |
 | faithfulness      | Yes (LLM)              | RAG hallucination detection   |
 | answerSimilarity  | Yes (Embeddings)       | Semantic similarity           |
 | answerCorrectness | Yes (LLM + Embeddings) | Comprehensive evaluation      |

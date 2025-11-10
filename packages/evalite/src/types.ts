@@ -893,6 +893,14 @@ export declare namespace Evalite {
     };
 
     /**
+     * Options for the Levenshtein distance scorer.
+     */
+    export type LevenshteinOpts = {
+      actual: string;
+      expected: string;
+    };
+
+    /**
      * Classification result for a single statement in context recall scoring.
      */
     export type ContextRecallClassification = {

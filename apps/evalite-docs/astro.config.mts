@@ -204,6 +204,10 @@ export default defineConfig({
               slug: "api/scorers/faithfulness",
             },
             {
+              label: "levenshtein",
+              slug: "api/scorers/levenshtein",
+            },
+            {
               label: "noiseSensitivity",
               slug: "api/scorers/noise-sensitivity",
             },
