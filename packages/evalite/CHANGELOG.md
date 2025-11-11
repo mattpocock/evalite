@@ -1,5 +1,11 @@
 # evalite
 
+## 1.0.0-beta.2
+
+### Patch Changes
+
+- f221e0b: Add .skip() to .each()
+
 ## 1.0.0-beta.1
 
 ### Major Changes
