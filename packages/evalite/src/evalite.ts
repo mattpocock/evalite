@@ -112,11 +112,11 @@ evalite.skip = <TInput, TOutput, TExpected = undefined>(
 evalite.each = <TVariant>(
   variants: Array<{ name: string; input: TVariant; only?: boolean }>
 ) => {
-  return <TInput, TOutput, TExpected = undefined>(
+  function createEvals<TInput, TOutput, TExpected = undefined>(
     evalName: string,
-    opts: Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant>
-  ) => {
-    // Filter variants if any has `only: true`
+    opts: Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant>,
+    modifier?: "skip"
+  ) {
     const hasOnlyFlag = variants.some((v) => v.only === true);
     const filteredVariants = hasOnlyFlag
       ? variants.filter((v) => v.only === true)
@@ -129,10 +129,26 @@ evalite.each = <TVariant>(
           ...opts,
           task: (input) => opts.task(input, variant.input),
         },
-        { variantName: variant.name, variantGroup: evalName }
+        { variantName: variant.name, variantGroup: evalName, modifier }
       );
     }
+  }
+
+  function eachFn<TInput, TOutput, TExpected = undefined>(
+    evalName: string,
+    opts: Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant>
+  ) {
+    return createEvals(evalName, opts);
+  }
+
+  eachFn.skip = <TInput, TOutput, TExpected = undefined>(
+    evalName: string,
+    opts: Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant>
+  ) => {
+    return createEvals(evalName, opts, "skip");
   };
+
+  return eachFn;
 };
 
 type Result<TSuccess, TFailure> =

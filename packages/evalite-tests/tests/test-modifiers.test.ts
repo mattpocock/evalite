@@ -37,3 +37,16 @@ it("should not call opts.data() for a skipped test", async () => {
   expect(output).toContain("opts.data() called in Regular Test");
   expect(output).not.toContain("opts.data() called in Skipped Test");
 });
+
+it("should not call opts.data() for a skipped test with .each().skip()", async () => {
+  await using fixture = await loadFixture("each-skip");
+
+  await fixture.run({
+    mode: "run-once-and-exit",
+  });
+
+  const output = fixture.getOutput();
+
+  expect(output).toContain("opts.data() called in Regular Each Test");
+  expect(output).not.toContain("opts.data() called in Skipped Each Test");
+});
