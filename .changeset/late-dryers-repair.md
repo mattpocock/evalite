@@ -1,5 +1,5 @@
 ---
-"@fake-scope/fake-pkg": patch
+"evalite": patch
 ---
 
 Add .skip() to .each()
