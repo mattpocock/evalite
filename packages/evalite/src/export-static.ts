@@ -25,9 +25,10 @@ const rewriteHtmlPaths = (html: string, pathPrefix: string): string => {
  * Rewrites asset paths in JS content with basePath prefix
  */
 const rewriteJsPaths = (js: string, pathPrefix: string): string => {
+  const prefix = pathPrefix.slice(1);
   return js
-    .replace(/"assets\//g, `"${pathPrefix}/assets/`)
-    .replace(/'assets\//g, `'${pathPrefix}/assets/`);
+    .replace(/"assets\//g, `"${prefix}/assets/`)
+    .replace(/'assets\//g, `'${prefix}/assets/`);
 };
 
 /**

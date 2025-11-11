@@ -251,7 +251,7 @@ it("Should rewrite /assets/ paths in JS files with custom basePath", async () =>
 
     // If the file contains asset references, they should be prefixed with basePath
     if (jsContent.includes("evals-123/assets/")) {
-      expect(jsContent).toContain('"/evals-123/assets/');
+      expect(jsContent).toContain('"evals-123/assets/');
       jsFilesWithAssetReferences++;
     }
   }
