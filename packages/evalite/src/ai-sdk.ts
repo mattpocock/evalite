@@ -79,95 +79,6 @@ const processPromptForTracing = (
   });
 };
 
-export const traceAISDKModel = (model: LanguageModelV2): LanguageModelV2 => {
-  if (!shouldReportTrace()) return model;
-  return wrapLanguageModel({
-    model,
-    middleware: {
-      wrapGenerate: async (opts) => {
-        const start = performance.now();
-        const generated = await opts.doGenerate();
-        const end = performance.now();
-
-        const textContent = generated.content
-          .filter((c) => c.type === "text")
-          .map((c) => c.text)
-          .join("");
-
-        const toolCalls = generated.content
-          .filter((c) => c.type === "tool-call")
-          .map((c) =>
-            c.type === "tool-call"
-              ? {
-                  toolName: c.toolName,
-                  input: c.input,
-                  toolCallId: c.toolCallId,
-                }
-              : null
-          )
-          .filter(Boolean);
-
-        reportTrace({
-          output: {
-            text: textContent,
-            toolCalls,
-          },
-          input: processPromptForTracing(opts.params.prompt),
-          usage: {
-            inputTokens: generated.usage.inputTokens ?? 0,
-            outputTokens: generated.usage.outputTokens ?? 0,
-            totalTokens: generated.usage.totalTokens ?? 0,
-          },
-          start,
-          end,
-        });
-
-        return generated;
-      },
-      wrapStream: async ({ doStream, params }) => {
-        const start = performance.now();
-        const { stream, ...rest } = await doStream();
-
-        const fullResponse: LanguageModelV2StreamPart[] = [];
-
-        const transformStream = new TransformStream<
-          LanguageModelV2StreamPart,
-          LanguageModelV2StreamPart
-        >({
-          transform(chunk, controller) {
-            fullResponse.push(chunk);
-            controller.enqueue(chunk);
-          },
-          flush() {
-            const usage = fullResponse.find(
-              (part) => part.type === "finish"
-            )?.usage;
-
-            reportTrace({
-              start,
-              end: performance.now(),
-              input: processPromptForTracing(params.prompt),
-              output: fullResponse,
-              usage: usage
-                ? {
-                    inputTokens: usage.inputTokens ?? 0,
-                    outputTokens: usage.outputTokens ?? 0,
-                    totalTokens: usage.totalTokens ?? 0,
-                  }
-                : undefined,
-            });
-          },
-        });
-
-        return {
-          stream: stream.pipeThrough(transformStream),
-          ...rest,
-        };
-      },
-    },
-  });
-};
-
 const fixCacheResponse = (
   obj: any
 ): Awaited<ReturnType<LanguageModelV2["doGenerate"]>> => {
@@ -177,14 +88,20 @@ const fixCacheResponse = (
   return obj as Awaited<ReturnType<LanguageModelV2["doGenerate"]>>;
 };
 
-export const cacheModel = (
+export const wrapAISDKModel = (
   model: LanguageModelV2,
-  options?: { enabled?: boolean }
+  options?: { tracing?: boolean; caching?: boolean }
 ): LanguageModelV2 => {
-  const context = getCacheContext();
-  const enabled = options?.enabled ?? context?.cacheEnabled ?? true;
+  const enableTracing = options?.tracing ?? true;
+  const enableCaching = options?.caching ?? true;
 
-  if (!enabled || !context?.serverPort) {
+  const context = getCacheContext();
+  const cachingAvailable =
+    enableCaching && (context?.cacheEnabled ?? true) && context?.serverPort;
+  const tracingAvailable = enableTracing && shouldReportTrace();
+
+  // If neither is enabled/available, return original model
+  if (!cachingAvailable && !tracingAvailable) {
     return model;
   }
 
@@ -192,172 +109,271 @@ export const cacheModel = (
     model,
     middleware: {
       wrapGenerate: async (opts) => {
-        const context = getCacheContext()!;
-
-        // Generate cache key
-        const keyHash = generateCacheKey({
-          model: model.modelId,
-          params: opts.params,
-          callType: "generate",
-          callParams: opts.params,
-        });
-
-        // Try to get from cache
-        try {
-          const cacheResponse = await fetch(
-            `http://localhost:${context.serverPort}/api/cache/${keyHash}`
-          );
-
-          if (cacheResponse.ok) {
-            const cached = (await cacheResponse.json()) as {
-              value?: unknown;
-              duration: number;
-            };
-            if (cached?.value) {
-              reportCacheHit({
-                keyHash,
-                hit: true,
-                savedDuration: cached.duration,
-              });
-
-              // Return cached result with 0 tokens to show it was cached
-              const result = fixCacheResponse(cached.value) as Awaited<
-                ReturnType<typeof opts.doGenerate>
-              >;
-              result.usage = {
-                inputTokens: 0,
-                outputTokens: 0,
-                totalTokens: 0,
-              };
-              return result;
-            }
-          }
-        } catch (error) {
-          // Cache fetch failed, continue with normal execution
-          console.warn("Cache fetch failed:", error);
-        }
-
-        // Cache miss - execute and cache
         const start = performance.now();
-        const result = await opts.doGenerate();
-        const duration = performance.now() - start;
+        let result: Awaited<ReturnType<typeof opts.doGenerate>> | undefined;
 
-        // Store in cache
-        try {
-          await fetch(
-            `http://localhost:${context.serverPort}/api/cache/${keyHash}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ value: result, duration }),
-            }
-          );
-        } catch (error) {
-          // Cache write failed, but we have the result
-          console.warn("Cache write failed:", error);
-        }
+        // Try cache if enabled
+        if (cachingAvailable) {
+          const context = getCacheContext()!;
+          const keyHash = generateCacheKey({
+            model: model.modelId,
+            params: opts.params,
+            callType: "generate",
+            callParams: opts.params,
+          });
 
-        reportCacheHit({ keyHash, hit: false, savedDuration: 0 });
+          try {
+            const cacheResponse = await fetch(
+              `http://localhost:${context.serverPort}/api/cache/${keyHash}`
+            );
 
-        return result;
-      },
-      wrapStream: async ({ doStream, params }) => {
-        const context = getCacheContext()!;
-
-        // Generate cache key
-        const keyHash = generateCacheKey({
-          model: model.modelId,
-          params: params,
-          callType: "stream",
-          callParams: params,
-        });
-
-        // Try to get from cache
-        try {
-          const cacheResponse = await fetch(
-            `http://localhost:${context.serverPort}/api/cache/${keyHash}`
-          );
-
-          if (cacheResponse.ok) {
-            const cached = (await cacheResponse.json()) as {
-              value?: unknown;
-              duration: number;
-            };
-            if (cached?.value) {
-              reportCacheHit({
-                keyHash,
-                hit: true,
-                savedDuration: cached.duration,
-              });
-
-              // Reconstruct stream from cached parts
-              const cachedParts = cached.value as LanguageModelV2StreamPart[];
-              const stream = new ReadableStream<LanguageModelV2StreamPart>({
-                async start(controller) {
-                  for (const part of cachedParts) {
-                    controller.enqueue(part);
-                    // Small delay to simulate streaming
-                    await new Promise((resolve) => setTimeout(resolve, 10));
-                  }
-                  controller.close();
-                },
-              });
-
-              return {
-                stream,
-                rawResponse: { headers: new Headers() },
-                warnings: [],
+            if (cacheResponse.ok) {
+              const cached = (await cacheResponse.json()) as {
+                value?: unknown;
+                duration: number;
               };
+              if (cached?.value) {
+                reportCacheHit({
+                  keyHash,
+                  hit: true,
+                  savedDuration: cached.duration,
+                });
+
+                result = fixCacheResponse(cached.value) as Awaited<
+                  ReturnType<typeof opts.doGenerate>
+                >;
+                result.usage = {
+                  inputTokens: 0,
+                  outputTokens: 0,
+                  totalTokens: 0,
+                };
+              }
             }
+          } catch (error) {
+            console.warn("Cache fetch failed:", error);
           }
-        } catch (error) {
-          // Cache fetch failed, continue with normal execution
-          console.warn("Cache fetch failed:", error);
         }
 
-        // Cache miss - execute, collect, and cache
-        const start = performance.now();
-        const { stream, ...rest } = await doStream();
+        // Execute if not cached
+        if (!result) {
+          result = await opts.doGenerate();
+          const duration = performance.now() - start;
 
-        const fullResponse: LanguageModelV2StreamPart[] = [];
+          // Store in cache if caching enabled
+          if (cachingAvailable) {
+            const context = getCacheContext()!;
+            const keyHash = generateCacheKey({
+              model: model.modelId,
+              params: opts.params,
+              callType: "generate",
+              callParams: opts.params,
+            });
 
-        const transformStream = new TransformStream<
-          LanguageModelV2StreamPart,
-          LanguageModelV2StreamPart
-        >({
-          transform(chunk, controller) {
-            fullResponse.push(chunk);
-            controller.enqueue(chunk);
-          },
-          async flush() {
-            const duration = performance.now() - start;
-
-            // Store in cache
             try {
               await fetch(
                 `http://localhost:${context.serverPort}/api/cache/${keyHash}`,
                 {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    value: fullResponse,
-                    duration,
-                  }),
+                  body: JSON.stringify({ value: result, duration }),
                 }
               );
             } catch (error) {
-              // Cache write failed
               console.warn("Cache write failed:", error);
             }
 
             reportCacheHit({ keyHash, hit: false, savedDuration: 0 });
-          },
-        });
+          }
+        }
 
-        return {
-          stream: stream.pipeThrough(transformStream),
-          ...rest,
-        };
+        // Report trace if enabled
+        if (tracingAvailable) {
+          const end = performance.now();
+          const textContent = result.content
+            .filter((c) => c.type === "text")
+            .map((c) => c.text)
+            .join("");
+
+          const toolCalls = result.content
+            .filter((c) => c.type === "tool-call")
+            .map((c) =>
+              c.type === "tool-call"
+                ? {
+                    toolName: c.toolName,
+                    input: c.input,
+                    toolCallId: c.toolCallId,
+                  }
+                : null
+            )
+            .filter(Boolean);
+
+          reportTrace({
+            output: {
+              text: textContent,
+              toolCalls,
+            },
+            input: processPromptForTracing(opts.params.prompt),
+            usage: {
+              inputTokens: result.usage.inputTokens ?? 0,
+              outputTokens: result.usage.outputTokens ?? 0,
+              totalTokens: result.usage.totalTokens ?? 0,
+            },
+            start,
+            end,
+          });
+        }
+
+        return result;
+      },
+      wrapStream: async ({ doStream, params }) => {
+        const start = performance.now();
+        let cachedParts: LanguageModelV2StreamPart[] | undefined;
+
+        // Try cache if enabled
+        if (cachingAvailable) {
+          const context = getCacheContext()!;
+          const keyHash = generateCacheKey({
+            model: model.modelId,
+            params: params,
+            callType: "stream",
+            callParams: params,
+          });
+
+          try {
+            const cacheResponse = await fetch(
+              `http://localhost:${context.serverPort}/api/cache/${keyHash}`
+            );
+
+            if (cacheResponse.ok) {
+              const cached = (await cacheResponse.json()) as {
+                value?: unknown;
+                duration: number;
+              };
+              if (cached?.value) {
+                reportCacheHit({
+                  keyHash,
+                  hit: true,
+                  savedDuration: cached.duration,
+                });
+
+                cachedParts = cached.value as LanguageModelV2StreamPart[];
+
+                // If tracing enabled, report trace for cached stream
+                if (tracingAvailable) {
+                  const usage = cachedParts.find(
+                    (part) => part.type === "finish"
+                  )?.usage;
+
+                  reportTrace({
+                    start,
+                    end: performance.now(),
+                    input: processPromptForTracing(params.prompt),
+                    output: cachedParts,
+                    usage: usage
+                      ? {
+                          inputTokens: usage.inputTokens ?? 0,
+                          outputTokens: usage.outputTokens ?? 0,
+                          totalTokens: usage.totalTokens ?? 0,
+                        }
+                      : undefined,
+                  });
+                }
+
+                // Reconstruct stream from cached parts
+                const stream = new ReadableStream<LanguageModelV2StreamPart>({
+                  async start(controller) {
+                    for (const part of cachedParts!) {
+                      controller.enqueue(part);
+                      await new Promise((resolve) => setTimeout(resolve, 10));
+                    }
+                    controller.close();
+                  },
+                });
+
+                return {
+                  stream,
+                  response: { headers: {} },
+                };
+              }
+            }
+          } catch (error) {
+            console.warn("Cache fetch failed:", error);
+          }
+        }
+
+        // Execute stream if not cached
+        {
+          const { stream, ...rest } = await doStream();
+          const fullResponse: LanguageModelV2StreamPart[] = [];
+
+          const transformStream = new TransformStream<
+            LanguageModelV2StreamPart,
+            LanguageModelV2StreamPart
+          >({
+            transform(chunk, controller) {
+              fullResponse.push(chunk);
+              controller.enqueue(chunk);
+            },
+            async flush() {
+              const duration = performance.now() - start;
+
+              // Store in cache if enabled
+              if (cachingAvailable) {
+                const context = getCacheContext()!;
+                const keyHash = generateCacheKey({
+                  model: model.modelId,
+                  params: params,
+                  callType: "stream",
+                  callParams: params,
+                });
+
+                try {
+                  await fetch(
+                    `http://localhost:${context.serverPort}/api/cache/${keyHash}`,
+                    {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        value: fullResponse,
+                        duration,
+                      }),
+                    }
+                  );
+                } catch (error) {
+                  console.warn("Cache write failed:", error);
+                }
+
+                reportCacheHit({ keyHash, hit: false, savedDuration: 0 });
+              }
+
+              // Report trace if enabled
+              if (tracingAvailable) {
+                const usage = fullResponse.find(
+                  (part) => part.type === "finish"
+                )?.usage;
+
+                reportTrace({
+                  start,
+                  end: performance.now(),
+                  input: processPromptForTracing(params.prompt),
+                  output: fullResponse,
+                  usage: usage
+                    ? {
+                        inputTokens: usage.inputTokens ?? 0,
+                        outputTokens: usage.outputTokens ?? 0,
+                        totalTokens: usage.totalTokens ?? 0,
+                      }
+                    : undefined,
+                });
+              }
+            },
+          });
+
+          return {
+            stream: stream.pipeThrough(transformStream),
+            ...rest,
+          };
+        }
       },
     },
   });

@@ -8,7 +8,7 @@ import {
 } from "ai";
 import type { Evalite } from "../types.js";
 import { promptBuilder } from "./prompt-builder.js";
-import { cacheModel } from "../ai-sdk.js";
+import { wrapAISDKModel } from "../ai-sdk.js";
 
 const AnswerRelevancyOutputSchema = jsonSchema<{
   question: string;
@@ -113,7 +113,7 @@ export async function answerRelevancy(
   const generatedQuestions: string[] = [];
   const noncommittalFlags: boolean[] = [];
 
-  const cachedModel = cacheModel(opts.model);
+  const cachedModel = wrapAISDKModel(opts.model);
 
   for (let i = 0; i < strictness; i++) {
     try {

@@ -10,7 +10,7 @@ import type { Evalite } from "../types.js";
 import { promptBuilder } from "./prompt-builder.js";
 import { decomposeIntoStatements } from "./utils/statement-evaluation.js";
 import { computeFBetaScore } from "./utils/scoring.js";
-import { cacheModel } from "../ai-sdk.js";
+import { wrapAISDKModel } from "../ai-sdk.js";
 
 /**
  * JSON schema for TP/FP/FN classification
@@ -223,7 +223,7 @@ export async function answerCorrectness(
     );
   }
 
-  const cachedModel = cacheModel(opts.model);
+  const cachedModel = wrapAISDKModel(opts.model);
 
   const [responseStatements, referenceStatements] = await Promise.all([
     decomposeIntoStatements(opts.question, opts.answer, cachedModel),

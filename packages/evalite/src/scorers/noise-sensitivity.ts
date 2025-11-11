@@ -1,4 +1,4 @@
-import { cacheModel } from "../ai-sdk.js";
+import { wrapAISDKModel } from "../ai-sdk.js";
 import type { Evalite } from "../types.js";
 import {
   decomposeIntoStatements,
@@ -57,7 +57,7 @@ export async function noiseSensitivity(
     );
   }
 
-  const cachedModel = cacheModel(opts.model);
+  const cachedModel = wrapAISDKModel(opts.model);
 
   const referenceStatements = await decomposeIntoStatements(
     opts.question,

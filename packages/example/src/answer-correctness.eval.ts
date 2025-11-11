@@ -1,6 +1,6 @@
 import { openai } from "@ai-sdk/openai";
 import { evalite } from "evalite";
-import { cacheModel } from "evalite/ai-sdk";
+import { wrapAISDKModel } from "evalite/ai-sdk";
 import { answerCorrectness } from "evalite/scorers";
 
 evalite("Answer Correctness", {
@@ -36,7 +36,7 @@ evalite("Answer Correctness", {
           question: input,
           answer: output,
           reference: expected.reference,
-          model: cacheModel(openai("gpt-4.1-mini")),
+          model: wrapAISDKModel(openai("gpt-4.1-mini")),
           embeddingModel: openai.embedding("text-embedding-3-small"),
         }),
     },

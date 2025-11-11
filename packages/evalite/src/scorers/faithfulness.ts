@@ -4,7 +4,7 @@ import {
   decomposeIntoStatements,
   evaluateStatementFaithfulness,
 } from "./utils/statement-evaluation.js";
-import { cacheModel } from "../ai-sdk.js";
+import { wrapAISDKModel } from "../ai-sdk.js";
 
 /**
  * Checks if your AI is making things up or
@@ -41,7 +41,7 @@ export async function faithfulness(opts: Evalite.Scorers.FaithfulnessOpts) {
     throw new Error("Faithfulness scorer does not support multi-turn output");
   }
 
-  const cachedModel = cacheModel(opts.model);
+  const cachedModel = wrapAISDKModel(opts.model);
 
   const statements = await decomposeIntoStatements(
     opts.question,
