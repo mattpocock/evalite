@@ -1,6 +1,9 @@
 name: CI Checks
 on:
   push:
+    branches:
+      - v1
+      - main
   pull_request:
 
 jobs:
