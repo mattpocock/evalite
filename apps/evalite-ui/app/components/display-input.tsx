@@ -225,7 +225,8 @@ const truncateFilename = (filename: string, maxLength: number = 20): string => {
   // Split filename into basename and extension
   const lastDotIndex = filename.lastIndexOf(".");
   const extension = lastDotIndex !== -1 ? filename.slice(lastDotIndex + 1) : "";
-  const basename = lastDotIndex !== -1 ? filename.slice(0, lastDotIndex) : filename;
+  const basename =
+    lastDotIndex !== -1 ? filename.slice(0, lastDotIndex) : filename;
 
   // If there's no extension or it's very short, truncate the whole filename
   if (!extension || extension.length > 10) {
