@@ -1,5 +1,11 @@
 # evalite
 
+## 1.0.0-beta.3
+
+### Patch Changes
+
+- ffbe739: Improved the error message that happens when Evalite encounters an unknown error.
+
 ## 1.0.0-beta.2
 
 ### Patch Changes
