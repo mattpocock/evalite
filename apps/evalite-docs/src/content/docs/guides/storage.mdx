@@ -46,6 +46,16 @@ export default defineConfig({
 
 The database file will be created automatically at the specified path. Parent directories will also be created if they don't exist.
 
+:::caution[pnpm Users]
+If you're using pnpm, you may need to approve native module builds:
+
+```bash
+pnpm approve-builds
+```
+
+This allows `better-sqlite3` to compile its native bindings. Without this, you may see errors about missing `.node` files when running Evalite.
+:::
+
 ## Custom Storage Adapters
 
 You can build your own storage adapter to integrate with remote databases, cloud storage, or custom data pipelines. This is useful for:
