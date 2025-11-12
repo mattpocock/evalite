@@ -7,7 +7,7 @@
     "./dist/*"
   ],
   "scripts": {
-    "dev": "evalite serve"
+    "dev": "evalite watch"
   },
   "dependencies": {
     "unstorage": "^1.17.1",
