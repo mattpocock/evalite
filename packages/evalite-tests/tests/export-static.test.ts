@@ -258,3 +258,43 @@ it("Should rewrite /assets/ paths in JS files with custom basePath", async () =>
 
   expect(jsFilesWithAssetReferences).toBeGreaterThan(0);
 });
+
+it("Should fail with empty storage (issue #324)", async () => {
+  // This test demonstrates the bug described in issue #324:
+  // Running `evalite export` with empty in-memory storage should:
+  // 1. Detect storage is empty
+  // 2. Automatically run evaluations first
+  // 3. Continue to export (not exit after running)
+  //
+  // Currently it fails because exportStaticUI throws "No runs found in database"
+  // when storage is empty, or if auto-run logic exists, it exits before exporting.
+
+  await using fixture = await loadFixture("export");
+
+  // Export directory without running evals first - storage is empty
+  const exportDir = path.join(fixture.dir, "evalite-export");
+
+  // This currently throws "No runs found in database. Please run evaluations first."
+  // The intended behavior is to auto-run the evaluations and then export.
+  await exportStaticUI({
+    storage: fixture.storage,
+    outputPath: exportDir,
+  });
+
+  // If the bug is fixed, these assertions should pass:
+  const dataDir = path.join(exportDir, "data");
+  const dataFiles = await readdir(dataDir);
+
+  expect(dataFiles).toContain("server-state.json");
+  expect(dataFiles).toContain("menu-items.json");
+  expect(dataFiles).toContain("eval-Export.json");
+  expect(dataFiles).toContain("result-Export-0.json");
+
+  const indexHtmlPath = path.join(exportDir, "index.html");
+  const indexHtml = await readFile(indexHtmlPath, "utf-8");
+  expect(indexHtml).toBeTruthy();
+
+  const assetsDir = path.join(exportDir, "assets");
+  const assetFiles = await readdir(assetsDir);
+  expect(assetFiles.length).toBeGreaterThan(0);
+});
