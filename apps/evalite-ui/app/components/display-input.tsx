@@ -183,8 +183,42 @@ const DisplayJSON = ({
   );
 };
 
+// Helper function to truncate filename with ellipsis in the middle
+const truncateFilename = (filename: string, maxLength: number = 20): string => {
+  // If filename is short enough, return it as is
+  if (filename.length <= maxLength) {
+    return filename;
+  }
+
+  // Split filename into basename and extension
+  const lastDotIndex = filename.lastIndexOf(".");
+  const extension = lastDotIndex !== -1 ? filename.slice(lastDotIndex + 1) : "";
+  const basename = lastDotIndex !== -1 ? filename.slice(0, lastDotIndex) : filename;
+
+  // If there's no extension or it's very short, truncate the whole filename
+  if (!extension || extension.length > 10) {
+    const keepLength = Math.floor((maxLength - 3) / 2);
+    return `${filename.slice(0, keepLength)}...${filename.slice(-keepLength)}`;
+  }
+
+  // Calculate how much space we have for the basename (accounting for extension and dot)
+  const availableLength = maxLength - extension.length - 4; // -4 for "..." and "."
+
+  // If basename is too short to truncate meaningfully, just truncate at the end
+  if (availableLength < 6) {
+    return `${basename.slice(0, maxLength - extension.length - 4)}...${extension}`;
+  }
+
+  // Split available space: 60% to start, 40% to end of basename
+  const keepStart = Math.floor(availableLength * 0.6);
+  const keepEnd = Math.floor(availableLength * 0.4);
+
+  return `${basename.slice(0, keepStart)}...${basename.slice(-keepEnd)}.${extension}`;
+};
+
 export const DisplayEvaliteFile = ({ file }: { file: Evalite.File }) => {
   const extension = file.path.split(".").pop()!;
+  const filename = file.path.split("/").pop()!;
 
   // Images
   if (["png", "jpg", "jpeg", "gif", "svg", "webp"].includes(extension)) {
@@ -212,10 +246,10 @@ export const DisplayEvaliteFile = ({ file }: { file: Evalite.File }) => {
   }
 
   return (
-    <Button asChild className="uppercase" variant={"secondary"} size={"sm"}>
-      <a href={downloadFile(file.path)}>
+    <Button asChild variant={"secondary"} size={"sm"}>
+      <a href={downloadFile(file.path)} title={filename}>
         <DownloadIcon className="size-4" />
-        <span>.{extension}</span>
+        <span>{truncateFilename(filename)}</span>
       </a>
     </Button>
   );
