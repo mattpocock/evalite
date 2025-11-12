@@ -23,12 +23,16 @@ const rewriteHtmlPaths = (html: string, pathPrefix: string): string => {
 };
 
 /**
- * Rewrites asset paths in JS content with basePath prefix
+ * Rewrites asset paths in JS and CSS content with basePath prefix
  */
-const rewriteJsPaths = (js: string, pathPrefix: string): string => {
-  return js
-    .replace(/"assets\//g, `"${pathPrefix}/assets/`)
-    .replace(/'assets\//g, `'${pathPrefix}/assets/`);
+const rewriteJsAndCSSPaths = (jsOrCSS: string, pathPrefix: string): string => {
+  const pathPrefixWithoutLeadingSlash = pathPrefix.startsWith("/")
+    ? pathPrefix.slice(1)
+    : pathPrefix;
+
+  return jsOrCSS
+    .replace(/"assets\//g, `"${pathPrefixWithoutLeadingSlash}/assets/`)
+    .replace(/'assets\//g, `'${pathPrefixWithoutLeadingSlash}/assets/`);
 };
 
 /**
@@ -540,13 +544,15 @@ export const exportStaticUI = async (
   if (basePath !== "/") {
     const assetsDir = path.join(outputPath, "assets");
     const assetFiles = await fs.readdir(assetsDir);
-    const jsFiles = assetFiles.filter((file) => file.endsWith(".js"));
+    const files = assetFiles.filter(
+      (file) => file.endsWith(".js") || file.endsWith(".css")
+    );
 
-    for (const jsFile of jsFiles) {
-      const jsPath = path.join(assetsDir, jsFile);
-      const jsContent = await fs.readFile(jsPath, "utf-8");
-      const rewrittenJs = rewriteJsPaths(jsContent, pathPrefix);
-      await fs.writeFile(jsPath, rewrittenJs);
+    for (const file of files) {
+      const filePath = path.join(assetsDir, file);
+      const fileContent = await fs.readFile(filePath, "utf-8");
+      const rewrittenFile = rewriteJsAndCSSPaths(fileContent, pathPrefix);
+      await fs.writeFile(filePath, rewrittenFile);
     }
   }
 
