@@ -1,9 +1,10 @@
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
+import { runEvalite } from "./run-evalite.js";
+import { computeAverageScores } from "./storage/utils.js";
 import type { Evalite } from "./types.js";
 import { average, EvaliteFile } from "./utils.js";
-import { computeAverageScores } from "./storage/utils.js";
 
 /**
  * Sanitizes an eval name for use in filenames
@@ -153,6 +154,43 @@ export interface ExportStaticOptions {
   /** Optional base path for hosting at non-root URLs (defaults to "/") */
   basePath?: string;
 }
+
+export const exportCommand = async (opts: {
+  outputPath?: string;
+  runId?: number;
+  basePath?: string;
+  cwd: string;
+  storage: Evalite.Storage;
+}) => {
+  // Check if storage has any runs
+  const existingRuns = await opts.storage.runs.getMany({ limit: 1 });
+  const isEmpty = existingRuns.length === 0;
+
+  // Error if runId specified but storage is empty
+  if (opts.runId && isEmpty) {
+    throw new Error(
+      "Cannot export with runId when storage is empty. Run evaluations first or omit runId to auto-run."
+    );
+  }
+
+  // Auto-run if storage is empty
+  if (isEmpty) {
+    console.log("Storage is empty. Running evaluations first...");
+    await runEvalite({
+      path: undefined,
+      cwd: opts.cwd,
+      mode: "run-once",
+      storage: opts.storage,
+    });
+  }
+
+  await exportStaticUI({
+    storage: opts.storage,
+    outputPath: opts.outputPath ?? "./evalite-export",
+    runId: opts.runId,
+    basePath: opts.basePath,
+  });
+};
 
 /**
  * Exports the Evalite UI as a static bundle with pre-computed JSON files

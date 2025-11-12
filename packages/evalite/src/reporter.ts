@@ -39,7 +39,7 @@ export interface EvaliteReporterOptions {
   storage: Evalite.Storage;
   scoreThreshold: number | undefined;
   modifyExitCode: (exitCode: number) => void;
-  mode: "watch-for-file-changes" | "run-once-and-exit" | "run-once-and-serve";
+  mode: Evalite.RunMode;
   hideTable?: boolean;
 }
 

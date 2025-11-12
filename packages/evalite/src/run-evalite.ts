@@ -156,7 +156,7 @@ const exportResultsToJSON = async (opts: {
  * @param opts.path - Optional path filter to run specific eval files (defaults to undefined, which runs all evals)
  * @param opts.cwd - Working directory (defaults to process.cwd())
  * @param opts.testOutputWritable - Optional writable stream for test output
- * @param opts.mode - Execution mode: "watch-for-file-changes", "run-once-and-exit", or "run-once-and-serve"
+ * @param opts.mode - Execution mode: "watch-for-file-changes", "run-once-and-exit", "run-once-and-serve", or "run-once"
  * @param opts.scoreThreshold - Optional score threshold (0-100) to fail the process if scores are below
  * @param opts.outputPath - Optional path to write test results in JSON format after completion
  *
@@ -188,7 +188,7 @@ export const runEvalite = async (opts: {
   path?: string | undefined;
   cwd?: string | undefined;
   testOutputWritable?: Writable;
-  mode: "watch-for-file-changes" | "run-once-and-exit" | "run-once-and-serve";
+  mode: Evalite.RunMode;
   scoreThreshold?: number;
   outputPath?: string;
   hideTable?: boolean;
@@ -358,7 +358,7 @@ export const runEvalite = async (opts: {
       });
     }
 
-    if (typeof exitCode === "number") {
+    if (typeof exitCode === "number" && opts.mode === "run-once-and-exit") {
       process.exit(exitCode);
     }
   }

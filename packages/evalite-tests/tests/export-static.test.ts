@@ -1,5 +1,5 @@
 import type { Evalite } from "evalite";
-import { exportStaticUI } from "evalite/export-static";
+import { exportCommand, exportStaticUI } from "evalite/export-static";
 import { createInMemoryStorage } from "evalite/in-memory-storage";
 import { runEvalite } from "evalite/runner";
 import { createSqliteStorage } from "evalite/sqlite-storage";
@@ -17,9 +17,9 @@ it("Should export all required files and directory structure", async () => {
 
   // Export to a temp directory
   const exportDir = path.join(fixture.dir, "evalite-export");
-  const suites = await getSuitesAsRecordViaStorage(fixture.storage);
 
-  await exportStaticUI({
+  await exportCommand({
+    cwd: fixture.dir,
     storage: fixture.storage,
     outputPath: exportDir,
   });
@@ -58,7 +58,8 @@ it("Should remap file paths to unique filenames", async () => {
   // Export to a temp directory
   const exportDir = path.join(fixture.dir, "evalite-export");
 
-  await exportStaticUI({
+  await exportCommand({
+    cwd: fixture.dir,
     storage: fixture.storage,
     outputPath: exportDir,
   });
@@ -110,7 +111,8 @@ it("Should use default basePath of / when not specified", async () => {
 
   const exportDir = path.join(fixture.dir, "evalite-export");
 
-  await exportStaticUI({
+  await exportCommand({
+    cwd: fixture.dir,
     storage: fixture.storage,
     outputPath: exportDir,
   });
@@ -137,7 +139,8 @@ it("Should prefix all paths with custom basePath", async () => {
 
   const exportDir = path.join(fixture.dir, "evalite-export");
 
-  await exportStaticUI({
+  await exportCommand({
+    cwd: fixture.dir,
     storage: fixture.storage,
     outputPath: exportDir,
     basePath: "/evals-123",
@@ -166,7 +169,8 @@ it("Should throw error if basePath missing leading slash", async () => {
 
   // Should throw error
   await expect(
-    exportStaticUI({
+    exportCommand({
+      cwd: fixture.dir,
       storage: fixture.storage,
       outputPath: exportDir,
       basePath: "evals-123", // No leading slash
@@ -183,7 +187,8 @@ it("Should normalize basePath with trailing slash", async () => {
 
   const exportDir = path.join(fixture.dir, "evalite-export");
 
-  await exportStaticUI({
+  await exportCommand({
+    cwd: fixture.dir,
     storage: fixture.storage,
     outputPath: exportDir,
     basePath: "/evals-123/", // Trailing slash
@@ -206,7 +211,8 @@ it("Should handle multi-level basePath", async () => {
 
   const exportDir = path.join(fixture.dir, "evalite-export");
 
-  await exportStaticUI({
+  await exportCommand({
+    cwd: fixture.dir,
     storage: fixture.storage,
     outputPath: exportDir,
     basePath: "/reports/evals/run-123",
@@ -234,7 +240,8 @@ it("Should rewrite /assets/ paths in JS files with custom basePath", async () =>
 
   const exportDir = path.join(fixture.dir, "evalite-export");
 
-  await exportStaticUI({
+  await exportCommand({
+    cwd: fixture.dir,
     storage: fixture.storage,
     outputPath: exportDir,
     basePath: "/evals-123",
@@ -267,6 +274,48 @@ it("Should rewrite /assets/ paths in JS files with custom basePath", async () =>
   }
 
   expect(jsFilesWithAssetReferences).toBeGreaterThan(0);
+});
+
+it("Should run evaluations if storage is empty", async () => {
+  await using fixture = await loadFixture("export");
+
+  await exportCommand({
+    cwd: fixture.dir,
+    storage: fixture.storage,
+    outputPath: path.join(fixture.dir, "evalite-export"),
+  });
+
+  const exportDir = path.join(fixture.dir, "evalite-export");
+
+  // Verify data directory and files
+  const dataDir = path.join(exportDir, "data");
+  const dataFiles = await readdir(dataDir);
+
+  expect(dataFiles).toContain("server-state.json");
+  expect(dataFiles).toContain("menu-items.json");
+  expect(dataFiles).toContain("suite-Export.json");
+  expect(dataFiles).toContain("eval-Export-0.json");
+});
+
+it("Should export evaluations even if the run fails", async () => {
+  await using fixture = await loadFixture("failing-test");
+
+  await exportCommand({
+    cwd: fixture.dir,
+    storage: fixture.storage,
+    outputPath: path.join(fixture.dir, "evalite-export"),
+  });
+
+  const exportDir = path.join(fixture.dir, "evalite-export");
+
+  // Verify data directory and files
+  const dataDir = path.join(exportDir, "data");
+  const dataFiles = await readdir(dataDir);
+
+  expect(dataFiles).toContain("server-state.json");
+  expect(dataFiles).toContain("menu-items.json");
+  expect(dataFiles).toContain("suite-Failing.json");
+  expect(dataFiles).toContain("eval-Failing-0.json");
 });
 
 it("Should error when runId specified but run not found", async () => {
@@ -313,8 +362,8 @@ it("Should export existing data from SQLite storage", async () => {
 
   await runEvalite({
     cwd: fixture.dir,
-    mode: "run-once-and-exit",
     storage: sqliteStorage,
+    mode: "run-once-and-exit",
   });
 
   const exportDir = path.join(fixture.dir, "sqlite-export");

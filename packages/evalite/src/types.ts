@@ -3,6 +3,12 @@ import type { TestUserConfig } from "vitest/config";
 export declare namespace Evalite {
   export type StrictOmit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 
+  export type RunMode =
+    | "watch-for-file-changes"
+    | "run-once-and-exit"
+    | "run-once-and-serve"
+    | "run-once";
+
   /**
    * Configuration options for Evalite
    */

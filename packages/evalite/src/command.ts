@@ -4,9 +4,9 @@ import {
 } from "@stricli/auto-complete";
 import { buildApplication, buildCommand, buildRouteMap } from "@stricli/core";
 import { createRequire } from "node:module";
-import { loadEvaliteConfig } from "./config.js";
-import { exportStaticUI } from "./export-static.js";
 import { runEvalite } from "./run-evalite.js";
+import { exportCommand } from "./export-static.js";
+import { loadEvaliteConfig } from "./config.js";
 import { createInMemoryStorage } from "./storage/in-memory.js";
 
 const packageJson = createRequire(import.meta.url)(
@@ -222,29 +222,8 @@ export const program = createProgram({
       ? await config.storage()
       : createInMemoryStorage();
 
-    // Check if storage has any runs
-    const existingRuns = await storage.runs.getMany({ limit: 1 });
-    const isEmpty = existingRuns.length === 0;
-
-    // Error if runId specified but storage is empty
-    if (opts.runId && isEmpty) {
-      throw new Error(
-        "Cannot export with runId when storage is empty. Run evaluations first or omit runId to auto-run."
-      );
-    }
-
-    // Auto-run if storage is empty
-    if (isEmpty) {
-      console.log("Storage is empty. Running evaluations first...");
-      await runEvalite({
-        path: undefined,
-        cwd,
-        mode: "run-once-and-exit",
-        storage,
-      });
-    }
-
-    await exportStaticUI({
+    await exportCommand({
+      cwd,
       storage,
       outputPath: opts.output ?? "./evalite-export",
       runId: opts.runId,
