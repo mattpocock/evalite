@@ -77,6 +77,26 @@ export class EvaliteRunner {
     this.opts.logNewState(state);
   }
 
+  reportInvalidStateOccurred(event: ReporterEvent) {
+    throw new Error(
+      [
+        `Something went wrong in Evalite's internals.`,
+        "",
+        `Here are the possible causes:`,
+        "",
+        "1. An incorrect Vitest version.",
+        `  - Try upgrading to at least Vitest 4.0.0.`,
+        "",
+        "2. A bug inside Evalite. It happens.",
+        `  - Please report this issue at https://github.com/mattpocock/evalite/issues/new`,
+        "",
+        `Here's the summary:`,
+        ``,
+        `Received event: ${event.type} in state: ${this.state.type}`,
+      ].join("\n")
+    );
+  }
+
   /**
    * Wait for all queued events to complete processing
    */
@@ -288,7 +308,7 @@ export class EvaliteRunner {
             break;
 
           default:
-            throw new Error(`${event.type} not allowed in ${this.state.type}`);
+            this.reportInvalidStateOccurred(event);
         }
       case "idle": {
         switch (event.type) {
