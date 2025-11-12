@@ -1,5 +1,12 @@
 # evalite
 
+## 1.0.0-beta.4
+
+### Patch Changes
+
+- a963b00: Fixed a bug where when basePath was provided during exports, JavaScript and CSS assets had an extraneous leading slash.
+- 659f3ba: Fixed a bug where export would not export anything if a run failed.
+
 ## 1.0.0-beta.3
 
 ### Patch Changes
