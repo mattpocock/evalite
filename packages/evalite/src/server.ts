@@ -14,6 +14,7 @@ const THROTTLE_TIME = 100;
 const INITIAL_STATE: Evalite.IdleServerState = {
   type: "idle",
   cacheHitsByEval: {},
+  cacheHitsByScorer: {},
 };
 
 export const handleWebsockets = (server: fastify.FastifyInstance) => {

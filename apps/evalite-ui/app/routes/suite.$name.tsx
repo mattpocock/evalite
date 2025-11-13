@@ -71,6 +71,7 @@ type EvalTableRowProps = {
   hasScores: boolean;
   prevSuite: Evalite.SDK.GetSuiteByNameResult["prevSuite"];
   cacheHitCount: number;
+  cacheHitsByScorer: Record<string, number>;
   trialConfig?: {
     isFirstTrial: boolean;
     rowSpan: number;
@@ -111,6 +112,7 @@ function EvalTableRow({
   hasScores,
   prevSuite: prevEvaluation,
   cacheHitCount,
+  cacheHitsByScorer,
   trialConfig,
 }: EvalTableRowProps) {
   const Wrapper = useMemo(
@@ -202,10 +204,24 @@ function EvalTableRow({
         const scoreInPreviousEvaluation = prevEvaluation?.evals
           .find((r) => r.input === _eval.input)
           ?.scores.find((s) => s.name === scorer.name);
+        const scorerCacheHitCount = cacheHitsByScorer[scorer.name] ?? 0;
         return (
           <TableCell key={scorer.id} className={cn(index === 0 && "border-l")}>
             <Wrapper>
               <div className="flex items-center gap-2">
+                {scorerCacheHitCount > 0 && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Zap className="size-3 text-accent-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {scorerCacheHitCount} LLM{" "}
+                      {scorerCacheHitCount === 1
+                        ? "call was cached"
+                        : "calls were cached"}
+                    </TooltipContent>
+                  </Tooltip>
+                )}
                 <Score
                   hasScores={hasScores}
                   score={scorer.score}
@@ -541,6 +557,8 @@ function SuiteComponent() {
                           evaluationWithoutLayoutShift!.evals.indexOf(_eval);
                         const cacheHitCount =
                           serverState.cacheHitsByEval[_eval.id] ?? 0;
+                        const cacheHitsByScorer =
+                          serverState.cacheHitsByScorer[_eval.id] ?? {};
                         return (
                           <EvalTableRow
                             key={`${JSON.stringify(_eval.input)}-${_eval.trial_index}`}
@@ -553,6 +571,7 @@ function SuiteComponent() {
                             hasScores={hasScores}
                             prevSuite={prevSuite}
                             cacheHitCount={cacheHitCount}
+                            cacheHitsByScorer={cacheHitsByScorer}
                             trialConfig={{
                               isFirstTrial: trialIndex === 0,
                               rowSpan: group.evals.length,
@@ -566,6 +585,8 @@ function SuiteComponent() {
                     evaluationWithoutLayoutShift.evals.map((_eval, index) => {
                       const cacheHitCount =
                         serverState.cacheHitsByEval[_eval.id] ?? 0;
+                      const cacheHitsByScorer =
+                        serverState.cacheHitsByScorer[_eval.id] ?? {};
                       return (
                         <EvalTableRow
                           key={JSON.stringify(_eval.input)}
@@ -578,6 +599,7 @@ function SuiteComponent() {
                           hasScores={hasScores}
                           prevSuite={prevSuite}
                           cacheHitCount={cacheHitCount}
+                          cacheHitsByScorer={cacheHitsByScorer}
                         />
                       );
                     })}

@@ -5,7 +5,7 @@ import type {
 } from "@ai-sdk/provider";
 import { wrapLanguageModel } from "ai";
 import { reportTrace, shouldReportTrace } from "./traces.js";
-import { getCacheContext, generateCacheKey, reportCacheHit } from "./cache.js";
+import { getCacheContext, generateCacheKey } from "./cache.js";
 
 const handlePromptContent = (
   content: LanguageModelV2CallOptions["prompt"][number]["content"][number]
@@ -98,6 +98,7 @@ export const wrapAISDKModel = (
   const context = getCacheContext();
   const cachingAvailable =
     enableCaching && (context?.cacheEnabled ?? true) && context?.serverPort;
+
   const tracingAvailable = enableTracing && shouldReportTrace();
 
   // If neither is enabled/available, return original model
@@ -133,7 +134,7 @@ export const wrapAISDKModel = (
                 duration: number;
               };
               if (cached?.value) {
-                reportCacheHit({
+                context.reportCacheHit({
                   keyHash,
                   hit: true,
                   savedDuration: cached.duration,
@@ -182,7 +183,7 @@ export const wrapAISDKModel = (
               console.warn("Cache write failed:", error);
             }
 
-            reportCacheHit({ keyHash, hit: false, savedDuration: 0 });
+            context.reportCacheHit({ keyHash, hit: false, savedDuration: 0 });
           }
         }
 
@@ -250,7 +251,7 @@ export const wrapAISDKModel = (
                 duration: number;
               };
               if (cached?.value) {
-                reportCacheHit({
+                context.reportCacheHit({
                   keyHash,
                   hit: true,
                   savedDuration: cached.duration,
@@ -343,7 +344,11 @@ export const wrapAISDKModel = (
                   console.warn("Cache write failed:", error);
                 }
 
-                reportCacheHit({ keyHash, hit: false, savedDuration: 0 });
+                context.reportCacheHit({
+                  keyHash,
+                  hit: false,
+                  savedDuration: 0,
+                });
               }
 
               // Report trace if enabled

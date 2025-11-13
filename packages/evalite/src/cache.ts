@@ -1,12 +1,22 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash } from "node:crypto";
 
-export const cacheContextLocalStorage = new AsyncLocalStorage<{
+export type CacheContextConfig = {
   trialCount: number | undefined;
   evalName: string;
   serverPort: number;
   cacheEnabled: boolean;
-}>();
+};
+
+export interface CacheContext extends CacheContextConfig {
+  reportCacheHit: (hit: {
+    keyHash: string;
+    hit: boolean;
+    savedDuration: number;
+  }) => void;
+}
+
+export const cacheContextLocalStorage = new AsyncLocalStorage<CacheContext>();
 
 export const getCacheContext = () => {
   return cacheContextLocalStorage.getStore();
@@ -29,20 +39,4 @@ export const generateCacheKey = (params: {
   };
 
   return createHash("sha256").update(JSON.stringify(cacheObject)).digest("hex");
-};
-
-export const reportCacheHitLocalStorage = new AsyncLocalStorage<
-  (hit: { keyHash: string; hit: boolean; savedDuration: number }) => void
->();
-
-export const reportCacheHit = (hit: {
-  keyHash: string;
-  hit: boolean;
-  savedDuration: number;
-}): void => {
-  const _reportCacheHit = reportCacheHitLocalStorage.getStore();
-
-  if (_reportCacheHit) {
-    _reportCacheHit(hit);
-  }
 };

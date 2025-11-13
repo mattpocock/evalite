@@ -368,7 +368,7 @@ export default class EvaliteReporter implements Reporter {
           output: null,
           scores: [],
           traces: [],
-          cacheHits: [],
+          taskCacheHits: [],
           status: "fail",
           renderedColumns: [],
           variantName: data.initialEval.variantName,

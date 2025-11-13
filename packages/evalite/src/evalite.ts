@@ -8,10 +8,7 @@ import type { Evalite } from "./types.js";
 import { FILES_LOCATION } from "./backend-only-constants.js";
 import { createScorer } from "./index.js";
 import { serializeAnnotation } from "./reporter/events.js";
-import {
-  cacheContextLocalStorage,
-  reportCacheHitLocalStorage,
-} from "./cache.js";
+import { cacheContextLocalStorage, type CacheContextConfig } from "./cache.js";
 
 const makeSerializable = (obj: unknown): unknown => {
   try {
@@ -62,6 +59,7 @@ const runTask = async <TInput, TOutput, TExpected, TVariant = undefined>(
     expected: TExpected | undefined;
     variant: TVariant;
     traces: Evalite.Trace[];
+    cacheContext: CacheContextConfig;
   } & Omit<Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant>, "data">
 ) => {
   const start = performance.now();
@@ -69,20 +67,45 @@ const runTask = async <TInput, TOutput, TExpected, TVariant = undefined>(
   const duration = Math.round(performance.now() - start);
 
   const scores = await Promise.all(
-    (opts.scorers || []).map(async (scorerOrOpts) => {
-      if (typeof scorerOrOpts === "function") {
-        return scorerOrOpts({
-          input: opts.input,
-          output,
-          expected: opts.expected as TExpected,
-        });
-      } else {
-        return createScorer(scorerOrOpts)({
-          input: opts.input,
-          output,
-          expected: opts.expected as TExpected,
-        });
-      }
+    (opts.scorers || []).map(async (scorerOrOpts, index) => {
+      // Isolate scorer traces - LLM calls in scorers still get traced
+      // but traces are discarded (not collected in parent eval)
+      return reportTraceLocalStorage.run(
+        () => {
+          // no-op: discard traces
+        },
+        () => {
+          const scorerCacheHits: Array<Evalite.CacheHit> = [];
+          return cacheContextLocalStorage.run(
+            {
+              ...opts.cacheContext,
+              reportCacheHit: (hit) => {
+                scorerCacheHits.push(hit);
+              },
+            },
+            async (): Promise<Evalite.ScoreWithCacheHits> => {
+              const score =
+                typeof scorerOrOpts === "function"
+                  ? await scorerOrOpts({
+                      input: opts.input,
+                      output,
+                      expected: opts.expected as TExpected,
+                    })
+                  : await createScorer(scorerOrOpts)({
+                      input: opts.input,
+                      output,
+                      expected: opts.expected as TExpected,
+                    });
+
+              // Attach cache hits to score if there were any
+              return {
+                ...score,
+                cacheHits: scorerCacheHits,
+              };
+            }
+          );
+        }
+      );
     })
   );
 
@@ -224,7 +247,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
               output: datasetResult.error,
               scores: [],
               traces: [],
-              cacheHits: [],
+              taskCacheHits: [],
               renderedColumns: [],
             },
           })
@@ -318,18 +341,18 @@ function registerEvalite<TInput, TOutput, TExpected>(
         const traces: Evalite.Trace[] = [];
         reportTraceLocalStorage.enterWith((trace) => traces.push(trace));
 
-        const cacheHits: Array<{
-          keyHash: string;
-          hit: boolean;
-          savedDuration: number;
-        }> = [];
-        reportCacheHitLocalStorage.enterWith((hit) => cacheHits.push(hit));
+        const taskCacheHits: Array<Evalite.CacheHit> = [];
 
-        cacheContextLocalStorage.enterWith({
+        const cacheContext: CacheContextConfig = {
           trialCount: inject("trialCount"),
           evalName: evalName,
           serverPort: inject("serverPort"),
           cacheEnabled: inject("cacheEnabled"),
+        };
+
+        cacheContextLocalStorage.enterWith({
+          ...cacheContext,
+          reportCacheHit: (hit) => taskCacheHits.push(hit),
         });
 
         const [inputForMeta, expectedForMeta] = await Promise.all([
@@ -351,6 +374,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
             task: opts.task,
             columns: opts.columns,
             traces,
+            cacheContext,
           });
 
           const [outputWithFiles, tracesWithFiles, renderedColumns] =
@@ -379,7 +403,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
                 output: serializableOutput,
                 scores,
                 traces: tracesWithFiles,
-                cacheHits,
+                taskCacheHits: taskCacheHits,
                 status: "success",
                 renderedColumns,
                 variantName: vitestOpts.variantName,
@@ -415,7 +439,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
                 output: serializedError,
                 scores: [],
                 traces: await handleFilesInTraces(rootDir, traces),
-                cacheHits,
+                taskCacheHits: taskCacheHits,
                 status: "fail",
                 renderedColumns: [],
                 variantName: vitestOpts.variantName,

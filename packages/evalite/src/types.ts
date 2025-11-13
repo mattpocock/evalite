@@ -173,6 +173,7 @@ export declare namespace Evalite {
 
   export interface SharedServerState {
     cacheHitsByEval: Record<number, number>;
+    cacheHitsByScorer: Record<number, Record<string, number>>; // evalId -> scorerName -> count
   }
 
   export interface RunningServerState extends SharedServerState {
@@ -209,6 +210,12 @@ export declare namespace Evalite {
     value: unknown;
   };
 
+  export type CacheHit = {
+    keyHash: string;
+    hit: boolean;
+    savedDuration: number;
+  };
+
   export interface Eval {
     suiteName: string;
     filepath: string;
@@ -227,10 +234,10 @@ export declare namespace Evalite {
     input: unknown;
     expected?: unknown;
     output: unknown;
-    scores: Score[];
+    scores: ScoreWithCacheHits[];
     duration: number;
     traces: Trace[];
-    cacheHits: Array<{ keyHash: string; hit: boolean; savedDuration: number }>;
+    taskCacheHits: Array<Evalite.CacheHit>;
     renderedColumns: RenderedColumn[];
   }
 
@@ -245,6 +252,10 @@ export declare namespace Evalite {
     description?: string;
     metadata?: unknown;
   };
+
+  export interface ScoreWithCacheHits extends Score {
+    cacheHits: Array<Evalite.CacheHit>;
+  }
 
   export type UserProvidedScoreWithMetadata = {
     score: number;
