@@ -1,3 +1,4 @@
+import { ThemeToggle } from "./theme-toggle";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -19,7 +20,7 @@ export const InnerPageLayout = ({
 }) => {
   return (
     <div className="flex flex-col bg-background relative flex-1 min-h-svh min-w-0">
-      <header className="sticky top-0 flex h-14 shrink-0 items-center gap-2 bg-background z-10">
+      <header className="sticky top-0 flex h-14 shrink-0 items-center gap-2 bg-background z-10 justify-between">
         <div className="flex flex-1 items-center gap-2 px-3">
           <SidebarTrigger />
           <Separator orientation="vertical" className="mr-2 h-4" />
@@ -32,6 +33,9 @@ export const InnerPageLayout = ({
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
+        </div>
+        <div className="flex items-center gap-2 px-3">
+          <ThemeToggle />
         </div>
       </header>
       <div className="flex-1 p-4">{children}</div>
