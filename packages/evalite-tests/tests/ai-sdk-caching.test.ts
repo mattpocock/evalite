@@ -8,12 +8,14 @@ it("Should cache AI SDK in the task and scorers", async () => {
   await fixture.run({
     mode: "run-once-and-exit",
     cacheDebug: true,
+    enableServer: true,
   });
 
   // Second run - should log cache hits
   await fixture.run({
     mode: "run-once-and-exit",
     cacheDebug: true,
+    enableServer: true,
   });
 
   const allLogs = fixture.getOutput().split("\n");
@@ -31,12 +33,14 @@ it("Should disable cache when cacheEnabled is false", async () => {
   await fixture.run({
     mode: "run-once-and-exit",
     cacheDebug: true,
+    enableServer: true,
     cacheEnabled: false,
   });
 
   await fixture.run({
     mode: "run-once-and-exit",
     cacheDebug: true,
+    enableServer: true,
     cacheEnabled: false,
   });
 
@@ -52,12 +56,14 @@ it("Should respect cacheEnabled: false in config", async () => {
   await fixture.run({
     mode: "run-once-and-exit",
     cacheDebug: true,
+    enableServer: true,
   });
 
   // Second run - should still not cache because config disables it
   await fixture.run({
     mode: "run-once-and-exit",
     cacheDebug: true,
+    enableServer: true,
   });
 
   const allLogs = fixture.getOutput().split("\n");
@@ -72,12 +78,14 @@ it("Should let runEvalite cacheEnabled override config cacheEnabled", async () =
   await fixture.run({
     mode: "run-once-and-exit",
     cacheDebug: true,
+    enableServer: true,
     cacheEnabled: false,
   });
 
   await fixture.run({
     mode: "run-once-and-exit",
     cacheDebug: true,
+    enableServer: true,
     cacheEnabled: false,
   });
 
