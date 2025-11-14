@@ -67,10 +67,14 @@
     "tinyrainbow": "^3.0.3"
   },
   "peerDependencies": {
-    "better-sqlite3": "^11.6.0"
+    "better-sqlite3": "^11.6.0",
+    "ai": "^5"
   },
   "peerDependenciesMeta": {
     "better-sqlite3": {
+      "optional": true
+    },
+    "ai": {
       "optional": true
     }
   },

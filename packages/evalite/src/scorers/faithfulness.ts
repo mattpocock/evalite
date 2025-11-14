@@ -1,5 +1,4 @@
 import type { Evalite } from "../types.js";
-import type { LanguageModel } from "ai";
 import {
   decomposeIntoStatements,
   evaluateStatementFaithfulness,
