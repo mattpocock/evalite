@@ -48,6 +48,7 @@
     "./in-memory-storage": "./dist/storage/in-memory.js",
     "./env-setup-file": "./dist/env-setup-file.js",
     "./scorers": "./dist/scorers/index.js",
+    "./scorers/deterministic": "./dist/scorers/deterministic.js",
     "./_internal": "./dist/internal.js"
   },
   "dependencies": {

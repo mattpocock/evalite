@@ -13,13 +13,17 @@ Checks if your AI is calling the right functions with the right parameters.
 
 **When NOT to use**: For simple text generation tasks without function calling. Use `exactMatch` or `answerSimilarity` instead.
 
+:::note
+Most scorers in Evalite depend on models or embedding models from the AI SDK. This scorer doesn't require the AI SDK, so if you're not using it, you can import from `evalite/scorers/deterministic` instead.
+:::
+
 ## Example
 
 ```ts
 import { openai } from "@ai-sdk/openai";
 import { generateText, tool } from "ai";
 import { evalite } from "evalite";
-import { toolCallAccuracy } from "evalite/scorers";
+import { toolCallAccuracy } from "evalite/scorers/deterministic";
 import { z } from "zod";
 
 evalite("Tool Calls", {

@@ -8,11 +8,15 @@ Checks if your AI's output exactly matches the expected text character-for-chara
 
 **When NOT to use**: When slight variations in wording are acceptable (use answerSimilarity instead).
 
+:::note
+Most scorers in Evalite depend on models or embedding models from the AI SDK. This scorer doesn't require the AI SDK, so if you're not using it, you can import from `evalite/scorers/deterministic` instead.
+:::
+
 ## Example
 
 ```ts
 import { evalite } from "evalite";
-import { exactMatch } from "evalite/scorers";
+import { exactMatch } from "evalite/scorers/deterministic";
 
 evalite("Exact Match", {
   data: [

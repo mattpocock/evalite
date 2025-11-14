@@ -8,11 +8,15 @@ Checks if your AI's output contains the expected substring anywhere in the text.
 
 **When NOT to use**: When you need exact matches (use exactMatch) or semantic similarity (use answerSimilarity).
 
+:::note
+Most scorers in Evalite depend on models or embedding models from the AI SDK. This scorer doesn't require the AI SDK, so if you're not using it, you can import from `evalite/scorers/deterministic` instead.
+:::
+
 ## Example
 
 ```ts
 import { evalite } from "evalite";
-import { contains } from "evalite/scorers";
+import { contains } from "evalite/scorers/deterministic";
 
 evalite("Contains", {
   data: [
