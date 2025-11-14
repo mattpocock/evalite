@@ -16,6 +16,8 @@ evalite watch
 
 This command watches all `.eval.ts` files in your project and re-runs them whenever they change.
 
+Watch mode works best when you cache your model responses. If you're using the AI SDK, consider wrapping your models with Evalite's [`wrapAISDKModel`](/api/ai-sdk) to enable caching. This lets you iterate quickly while keeping your LLM costs minimal—crucial when re-running evals frequently.
+
 ## Serve Mode
 
 If you have slow-running evals, you might not want them to re-run every time you make a change. Serve mode runs your evals once and then keeps the UI available for inspection.
