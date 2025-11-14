@@ -28,9 +28,9 @@ declare module "vitest" {
      */
     serverPort: number;
     /**
-     * Whether caching is enabled for AI SDK model outputs.
+     * Whether to log cache operations to the console.
      */
-    cacheEnabled: boolean;
+    cacheDebug: boolean;
   }
 }
 
@@ -206,6 +206,7 @@ export const runEvalite = async (opts: {
   configDebugMode?: boolean;
   disableServer?: boolean;
   cacheEnabled?: boolean;
+  cacheDebug?: boolean;
 }) => {
   const cwd = opts.cwd ?? process.cwd();
   const filesLocation = path.join(cwd, FILES_LOCATION);
@@ -353,7 +354,7 @@ export const runEvalite = async (opts: {
   vitest.provide("cwd", cwd);
   vitest.provide("trialCount", config?.trialCount);
   vitest.provide("serverPort", actualServerPort);
-  vitest.provide("cacheEnabled", cacheEnabled);
+  vitest.provide("cacheDebug", opts.cacheDebug ?? false);
 
   await vitest.start(filters);
 

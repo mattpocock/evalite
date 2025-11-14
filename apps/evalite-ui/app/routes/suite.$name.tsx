@@ -129,7 +129,8 @@ function EvalTableRow({
               <Zap className="size-4 text-accent-foreground" />
             </TooltipTrigger>
             <TooltipContent>
-              {cacheHitCount} cache {cacheHitCount === 1 ? "hit" : "hits"}
+              {cacheHitCount} LLM{" "}
+              {cacheHitCount === 1 ? "call was cached" : "calls were cached"}
             </TooltipContent>
           </Tooltip>
         </TableCell>

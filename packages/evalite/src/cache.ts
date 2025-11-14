@@ -5,7 +5,6 @@ export type CacheContextConfig = {
   trialCount: number | undefined;
   evalName: string;
   serverPort: number;
-  cacheEnabled: boolean;
 };
 
 export interface CacheContext extends CacheContextConfig {

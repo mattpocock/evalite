@@ -4,7 +4,7 @@ import type {
   LanguageModelV2StreamPart,
 } from "@ai-sdk/provider";
 import { wrapLanguageModel } from "ai";
-import { reportTrace, shouldReportTrace } from "./traces.js";
+import { reportTraceLocalStorage } from "./traces.js";
 import { getCacheContext, generateCacheKey } from "./cache.js";
 
 const handlePromptContent = (
@@ -95,14 +95,8 @@ export const wrapAISDKModel = (
   const enableTracing = options?.tracing ?? true;
   const enableCaching = options?.caching ?? true;
 
-  const context = getCacheContext();
-  const cachingAvailable =
-    enableCaching && (context?.cacheEnabled ?? true) && context?.serverPort;
-
-  const tracingAvailable = enableTracing && shouldReportTrace();
-
   // If neither is enabled/available, return original model
-  if (!cachingAvailable && !tracingAvailable) {
+  if (!enableCaching && !enableTracing) {
     return model;
   }
 
@@ -112,10 +106,10 @@ export const wrapAISDKModel = (
       wrapGenerate: async (opts) => {
         const start = performance.now();
         let result: Awaited<ReturnType<typeof opts.doGenerate>> | undefined;
+        const cacheContext = getCacheContext();
 
         // Try cache if enabled
-        if (cachingAvailable) {
-          const context = getCacheContext()!;
+        if (cacheContext) {
           const keyHash = generateCacheKey({
             model: model.modelId,
             params: opts.params,
@@ -125,7 +119,7 @@ export const wrapAISDKModel = (
 
           try {
             const cacheResponse = await fetch(
-              `http://localhost:${context.serverPort}/api/cache/${keyHash}`
+              `http://localhost:${cacheContext.serverPort}/api/cache/${keyHash}`
             );
 
             if (cacheResponse.ok) {
@@ -134,7 +128,7 @@ export const wrapAISDKModel = (
                 duration: number;
               };
               if (cached?.value) {
-                context.reportCacheHit({
+                cacheContext.reportCacheHit({
                   keyHash,
                   hit: true,
                   savedDuration: cached.duration,
@@ -161,8 +155,7 @@ export const wrapAISDKModel = (
           const duration = performance.now() - start;
 
           // Store in cache if caching enabled
-          if (cachingAvailable) {
-            const context = getCacheContext()!;
+          if (cacheContext) {
             const keyHash = generateCacheKey({
               model: model.modelId,
               params: opts.params,
@@ -172,7 +165,7 @@ export const wrapAISDKModel = (
 
             try {
               await fetch(
-                `http://localhost:${context.serverPort}/api/cache/${keyHash}`,
+                `http://localhost:${cacheContext.serverPort}/api/cache/${keyHash}`,
                 {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
@@ -183,12 +176,18 @@ export const wrapAISDKModel = (
               console.warn("Cache write failed:", error);
             }
 
-            context.reportCacheHit({ keyHash, hit: false, savedDuration: 0 });
+            cacheContext.reportCacheHit({
+              keyHash,
+              hit: false,
+              savedDuration: 0,
+            });
           }
         }
 
+        const reportTraceFromContext = reportTraceLocalStorage.getStore();
+
         // Report trace if enabled
-        if (tracingAvailable) {
+        if (reportTraceFromContext) {
           const end = performance.now();
           const textContent = result.content
             .filter((c) => c.type === "text")
@@ -208,7 +207,7 @@ export const wrapAISDKModel = (
             )
             .filter(Boolean);
 
-          reportTrace({
+          reportTraceFromContext({
             output: {
               text: textContent,
               toolCalls,
@@ -230,9 +229,11 @@ export const wrapAISDKModel = (
         const start = performance.now();
         let cachedParts: LanguageModelV2StreamPart[] | undefined;
 
+        const cacheContext = getCacheContext();
+        const reportTraceFromContext = reportTraceLocalStorage.getStore();
+
         // Try cache if enabled
-        if (cachingAvailable) {
-          const context = getCacheContext()!;
+        if (cacheContext) {
           const keyHash = generateCacheKey({
             model: model.modelId,
             params: params,
@@ -242,7 +243,7 @@ export const wrapAISDKModel = (
 
           try {
             const cacheResponse = await fetch(
-              `http://localhost:${context.serverPort}/api/cache/${keyHash}`
+              `http://localhost:${cacheContext.serverPort}/api/cache/${keyHash}`
             );
 
             if (cacheResponse.ok) {
@@ -251,7 +252,7 @@ export const wrapAISDKModel = (
                 duration: number;
               };
               if (cached?.value) {
-                context.reportCacheHit({
+                cacheContext.reportCacheHit({
                   keyHash,
                   hit: true,
                   savedDuration: cached.duration,
@@ -260,12 +261,12 @@ export const wrapAISDKModel = (
                 cachedParts = cached.value as LanguageModelV2StreamPart[];
 
                 // If tracing enabled, report trace for cached stream
-                if (tracingAvailable) {
+                if (reportTraceFromContext) {
                   const usage = cachedParts.find(
                     (part) => part.type === "finish"
                   )?.usage;
 
-                  reportTrace({
+                  reportTraceFromContext({
                     start,
                     end: performance.now(),
                     input: processPromptForTracing(params.prompt),
@@ -319,8 +320,7 @@ export const wrapAISDKModel = (
               const duration = performance.now() - start;
 
               // Store in cache if enabled
-              if (cachingAvailable) {
-                const context = getCacheContext()!;
+              if (cacheContext) {
                 const keyHash = generateCacheKey({
                   model: model.modelId,
                   params: params,
@@ -330,7 +330,7 @@ export const wrapAISDKModel = (
 
                 try {
                   await fetch(
-                    `http://localhost:${context.serverPort}/api/cache/${keyHash}`,
+                    `http://localhost:${cacheContext.serverPort}/api/cache/${keyHash}`,
                     {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
@@ -344,7 +344,7 @@ export const wrapAISDKModel = (
                   console.warn("Cache write failed:", error);
                 }
 
-                context.reportCacheHit({
+                cacheContext.reportCacheHit({
                   keyHash,
                   hit: false,
                   savedDuration: 0,
@@ -352,12 +352,12 @@ export const wrapAISDKModel = (
               }
 
               // Report trace if enabled
-              if (tracingAvailable) {
+              if (reportTraceFromContext) {
                 const usage = fullResponse.find(
                   (part) => part.type === "finish"
                 )?.usage;
 
-                reportTrace({
+                reportTraceFromContext({
                   start,
                   end: performance.now(),
                   input: processPromptForTracing(params.prompt),

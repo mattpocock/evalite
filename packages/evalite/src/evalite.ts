@@ -60,6 +60,7 @@ const runTask = async <TInput, TOutput, TExpected, TVariant = undefined>(
     variant: TVariant;
     traces: Evalite.Trace[];
     cacheContext: CacheContextConfig;
+    cacheDebug: boolean;
   } & Omit<Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant>, "data">
 ) => {
   const start = performance.now();
@@ -81,6 +82,11 @@ const runTask = async <TInput, TOutput, TExpected, TVariant = undefined>(
               ...opts.cacheContext,
               reportCacheHit: (hit) => {
                 scorerCacheHits.push(hit);
+                if (opts.cacheDebug) {
+                  console.log(
+                    `[CACHE] Scorer cache ${hit.hit ? "HIT" : "MISS"}${hit.hit ? ` (saved ${hit.savedDuration.toFixed(0)}ms)` : ""}`
+                  );
+                }
               },
             },
             async (): Promise<Evalite.ScoreWithCacheHits> => {
@@ -347,12 +353,20 @@ function registerEvalite<TInput, TOutput, TExpected>(
           trialCount: inject("trialCount"),
           evalName: evalName,
           serverPort: inject("serverPort"),
-          cacheEnabled: inject("cacheEnabled"),
         };
+
+        const cacheDebug = inject("cacheDebug");
 
         cacheContextLocalStorage.enterWith({
           ...cacheContext,
-          reportCacheHit: (hit) => taskCacheHits.push(hit),
+          reportCacheHit: (hit) => {
+            taskCacheHits.push(hit);
+            if (cacheDebug) {
+              console.log(
+                `[CACHE] Task cache HIT (saved ${hit.savedDuration.toFixed(0)}ms)`
+              );
+            }
+          },
         });
 
         const [inputForMeta, expectedForMeta] = await Promise.all([
@@ -375,6 +389,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
             columns: opts.columns,
             traces,
             cacheContext,
+            cacheDebug,
           });
 
           const [outputWithFiles, tracesWithFiles, renderedColumns] =
