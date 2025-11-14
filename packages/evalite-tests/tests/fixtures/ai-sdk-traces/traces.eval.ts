@@ -1,6 +1,6 @@
 import { generateText } from "ai";
 import { MockLanguageModelV2 } from "ai/test";
-import { traceAISDKModel } from "evalite/ai-sdk";
+import { wrapAISDKModel } from "evalite/ai-sdk";
 import { evalite } from "evalite";
 
 const model = new MockLanguageModelV2({
@@ -24,7 +24,7 @@ const model = new MockLanguageModelV2({
   }),
 });
 
-const tracedModel = traceAISDKModel(model);
+const tracedModel = wrapAISDKModel(model);
 
 evalite("AI SDK Traces", {
   data: () => {

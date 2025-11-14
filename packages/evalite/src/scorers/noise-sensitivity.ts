@@ -1,5 +1,5 @@
+import { wrapAISDKModel } from "../ai-sdk.js";
 import type { Evalite } from "../types.js";
-import type { LanguageModel } from "ai";
 import {
   decomposeIntoStatements,
   evaluateStatementsSimple,
@@ -57,16 +57,18 @@ export async function noiseSensitivity(
     );
   }
 
+  const cachedModel = wrapAISDKModel(opts.model);
+
   const referenceStatements = await decomposeIntoStatements(
     opts.question,
     opts.reference,
-    opts.model
+    cachedModel
   );
 
   const answerStatements = await decomposeIntoStatements(
     opts.question,
     opts.answer,
-    opts.model
+    cachedModel
   );
 
   if (referenceStatements.length === 0) {
@@ -84,14 +86,14 @@ export async function noiseSensitivity(
     const groundTruthVerdicts = await evaluateStatementsSimple(
       context,
       referenceStatements,
-      opts.model
+      cachedModel
     );
     retrievedToGroundTruth.push(groundTruthVerdicts.map((v) => v === 1));
 
     const answerVerdicts = await evaluateStatementsSimple(
       context,
       answerStatements,
-      opts.model
+      cachedModel
     );
     retrievedToAnswer.push(answerVerdicts.map((v) => v === 1));
   }
@@ -99,7 +101,7 @@ export async function noiseSensitivity(
   const groundTruthToAnswerVerdicts = await evaluateStatementsSimple(
     opts.reference,
     answerStatements,
-    opts.model
+    cachedModel
   );
   const groundTruthToAnswer = groundTruthToAnswerVerdicts.map((v) => v === 1);
 

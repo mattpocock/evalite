@@ -1,10 +1,11 @@
 import { openai } from "@ai-sdk/openai";
 import { generateText, tool } from "ai";
 import { evalite } from "evalite";
+import { wrapAISDKModel } from "evalite/ai-sdk";
 import { toolCallAccuracy } from "evalite/scorers";
 import { z } from "zod";
 
-const model = openai("gpt-4.1-mini");
+const model = wrapAISDKModel(openai("gpt-4.1-mini"));
 
 evalite("Tool Calls", {
   data: [

@@ -10,6 +10,7 @@ import type { Evalite } from "../types.js";
 import { promptBuilder } from "./prompt-builder.js";
 import { decomposeIntoStatements } from "./utils/statement-evaluation.js";
 import { computeFBetaScore } from "./utils/scoring.js";
+import { wrapAISDKModel } from "../ai-sdk.js";
 
 /**
  * JSON schema for TP/FP/FN classification
@@ -222,9 +223,11 @@ export async function answerCorrectness(
     );
   }
 
+  const cachedModel = wrapAISDKModel(opts.model);
+
   const [responseStatements, referenceStatements] = await Promise.all([
-    decomposeIntoStatements(opts.question, opts.answer, opts.model),
-    decomposeIntoStatements(opts.question, opts.reference, opts.model),
+    decomposeIntoStatements(opts.question, opts.answer, cachedModel),
+    decomposeIntoStatements(opts.question, opts.reference, cachedModel),
   ]);
 
   let factualityScore = 1.0;
@@ -236,7 +239,7 @@ export async function answerCorrectness(
 
   if (responseStatements.length > 0 && referenceStatements.length > 0) {
     const result = await generateObject({
-      model: opts.model,
+      model: cachedModel,
       schema: AnswerCorrectnessClassificationSchema,
       prompt: correctnessClassifierPrompt({
         question: opts.question,

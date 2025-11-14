@@ -8,7 +8,9 @@ Ready-to-use scorer functions for common evaluation patterns. Import from `evali
 import { exactMatch, faithfulness, toolCallAccuracy } from "evalite/scorers";
 ```
 
-Evalite's built-in scorers are deeply integrated with the [Vercel AI SDK](https://sdk.vercel.ai/), making it easy to evaluate LLM outputs using standardized models and embeddings. Many scorers require AI SDK models for LLM-based evaluation.
+Evalite's built-in scorers are deeply integrated with the [Vercel AI SDK](https://sdk.vercel.ai/), making it easy to evaluate LLM outputs using standardized models and embeddings.
+
+Many scorers require AI SDK models for LLM-based evaluation. Evalite makes these cheap to use by caching their results with [wrapAISDKModel](/api/ai-sdk).
 
 ## String Scorers
 

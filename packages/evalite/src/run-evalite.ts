@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { Writable } from "stream";
 import { createVitest, registerConsoleShortcuts } from "vitest/node";
+import getPort from "get-port";
 import { FILES_LOCATION } from "./backend-only-constants.js";
 import { loadEvaliteConfig } from "./config.js";
 import { DEFAULT_SERVER_PORT } from "./constants.js";
@@ -21,6 +22,19 @@ declare module "vitest" {
      * non-serializable functions (like storage factory).
      */
     trialCount: number | undefined;
+    /**
+     * Port number where the evalite server is running.
+     * Used by cache and other features that need to communicate with the server.
+     */
+    serverPort: number;
+    /**
+     * Whether to log cache operations to the console.
+     */
+    cacheDebug: boolean;
+    /**
+     * Whether to enable cache for AI SDK model outputs.
+     */
+    cacheEnabled: boolean;
   }
 }
 
@@ -195,6 +209,8 @@ export const runEvalite = async (opts: {
   storage?: Evalite.Storage;
   configDebugMode?: boolean;
   disableServer?: boolean;
+  cacheEnabled?: boolean;
+  cacheDebug?: boolean;
 }) => {
   const cwd = opts.cwd ?? process.cwd();
   const filesLocation = path.join(cwd, FILES_LOCATION);
@@ -233,6 +249,9 @@ export const runEvalite = async (opts: {
   const testTimeout = config?.testTimeout;
   const maxConcurrency = config?.maxConcurrency;
 
+  // Determine cache enabled: opts > config > default (true)
+  const cacheEnabled = opts.cacheEnabled ?? config?.cache ?? true;
+
   // Merge setupFiles:
   // 1. Always include env-setup-file first to load .env files
   // 2. Add setupFiles from evalite.config.ts
@@ -242,16 +261,25 @@ export const runEvalite = async (opts: {
   process.env.EVALITE_REPORT_TRACES = "true";
 
   let server: ReturnType<typeof createServer> | undefined = undefined;
+  let actualServerPort = serverPort;
 
-  if (
-    !opts.disableServer &&
-    (opts.mode === "watch-for-file-changes" ||
-      opts.mode === "run-once-and-serve")
-  ) {
+  if (!opts.disableServer) {
+    // Try to get the configured port, or find an available one
+    actualServerPort = await getPort({
+      port: [serverPort, serverPort + 1, serverPort + 2, serverPort + 3],
+    });
+
     server = createServer({
       storage: storage,
     });
-    server.start(serverPort);
+
+    server.start(actualServerPort);
+
+    if (actualServerPort !== serverPort) {
+      console.log(
+        `Port ${serverPort} unavailable, using port ${actualServerPort}`
+      );
+    }
   }
 
   let exitCode: number | undefined = undefined;
@@ -321,6 +349,9 @@ export const runEvalite = async (opts: {
 
   vitest.provide("cwd", cwd);
   vitest.provide("trialCount", config?.trialCount);
+  vitest.provide("serverPort", actualServerPort);
+  vitest.provide("cacheDebug", opts.cacheDebug ?? false);
+  vitest.provide("cacheEnabled", cacheEnabled);
 
   await vitest.start(filters);
 

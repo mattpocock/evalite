@@ -1,4 +1,5 @@
 import type { TestUserConfig } from "vitest/config";
+import type { LanguageModelV2, EmbeddingModelV2 } from "@ai-sdk/provider";
 
 export declare namespace Evalite {
   export type StrictOmit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
@@ -107,6 +108,18 @@ export declare namespace Evalite {
     setupFiles?: string[];
 
     /**
+     * Cache configuration for AI SDK model outputs
+     * @default true
+     * @example
+     * ```ts
+     * export default defineConfig({
+     *   cache: false // Disable cache entirely
+     * })
+     * ```
+     */
+    cache?: boolean;
+
+    /**
      * Pass-through Vite/Vitest configuration options.
      * This allows you to import and use your existing vite.config.ts explicitly.
      *
@@ -144,20 +157,25 @@ export declare namespace Evalite {
 
   export type RunType = "full" | "partial";
 
-  export type RunningServerState = {
+  export interface SharedServerState {
+    cacheHitsByEval: Record<number, number>;
+    cacheHitsByScorer: Record<number, Record<string, number>>; // evalId -> scorerName -> count
+  }
+
+  export interface RunningServerState extends SharedServerState {
     type: "running";
     runType: RunType;
     filepaths: string[];
     runId: number | bigint | undefined;
     suiteNamesRunning: string[];
     evalIdsRunning: (number | bigint)[];
-  };
+  }
 
-  export type ServerState =
-    | RunningServerState
-    | {
-        type: "idle";
-      };
+  export interface IdleServerState extends SharedServerState {
+    type: "idle";
+  }
+
+  export type ServerState = RunningServerState | IdleServerState;
 
   export type MaybePromise<T> = T | Promise<T>;
 
@@ -178,6 +196,12 @@ export declare namespace Evalite {
     value: unknown;
   };
 
+  export type CacheHit = {
+    keyHash: string;
+    hit: boolean;
+    savedDuration: number;
+  };
+
   export interface Eval {
     suiteName: string;
     filepath: string;
@@ -196,9 +220,10 @@ export declare namespace Evalite {
     input: unknown;
     expected?: unknown;
     output: unknown;
-    scores: Score[];
+    scores: ScoreWithCacheHits[];
     duration: number;
     traces: Trace[];
+    taskCacheHits: Array<Evalite.CacheHit>;
     renderedColumns: RenderedColumn[];
   }
 
@@ -213,6 +238,10 @@ export declare namespace Evalite {
     description?: string;
     metadata?: unknown;
   };
+
+  export interface ScoreWithCacheHits extends Score {
+    cacheHits: Array<Evalite.CacheHit>;
+  }
 
   export type UserProvidedScoreWithMetadata = {
     score: number;
@@ -486,6 +515,36 @@ export declare namespace Evalite {
       getMany(
         opts?: Evalite.Storage.Traces.GetManyOpts
       ): Promise<Evalite.Storage.Entities.Trace[]>;
+    };
+
+    /**
+     * Operations for managing cache.
+     */
+    cache: {
+      /**
+       * Get a cached value by its key hash.
+       */
+      get(
+        keyHash: string
+      ): Promise<{ value: unknown; duration: number } | null>;
+
+      /**
+       * Set a cached value with its key hash.
+       */
+      set(
+        keyHash: string,
+        data: { value: unknown; duration: number }
+      ): Promise<void>;
+
+      /**
+       * Delete a cached value by its key hash.
+       */
+      delete(keyHash: string): Promise<void>;
+
+      /**
+       * Clear all cached values.
+       */
+      clear(): Promise<void>;
     };
 
     /**
@@ -815,7 +874,7 @@ export declare namespace Evalite {
       question: string;
       answer: string;
       groundTruth: string[];
-      model: import("ai").LanguageModel;
+      model: LanguageModelV2;
     };
 
     /**
@@ -825,8 +884,8 @@ export declare namespace Evalite {
       question: string;
       answer: string;
       reference: string;
-      model: import("ai").LanguageModel;
-      embeddingModel: import("ai").EmbeddingModel<string>;
+      model: LanguageModelV2;
+      embeddingModel: EmbeddingModelV2<string>;
       weights?: [number, number];
       beta?: number;
     };
@@ -837,8 +896,8 @@ export declare namespace Evalite {
     export type AnswerRelevancyOpts = {
       question: string;
       answer: string;
-      model: import("ai").LanguageModel;
-      embeddingModel: import("ai").EmbeddingModel<string>;
+      model: LanguageModelV2;
+      embeddingModel: EmbeddingModelV2<string>;
     };
 
     /**
@@ -847,7 +906,7 @@ export declare namespace Evalite {
     export type AnswerSimilarityOpts = {
       answer: string;
       reference: string;
-      embeddingModel: import("ai").EmbeddingModel<string>;
+      embeddingModel: EmbeddingModelV2<string>;
     };
 
     /**
@@ -857,7 +916,7 @@ export declare namespace Evalite {
       question: string;
       answer: string;
       groundTruth: string[];
-      model: import("ai").LanguageModel;
+      model: LanguageModelV2;
     };
 
     /**
@@ -868,7 +927,7 @@ export declare namespace Evalite {
       answer: string;
       reference: string;
       groundTruth: string[];
-      model: import("ai").LanguageModel;
+      model: LanguageModelV2;
       mode?: "relevant" | "irrelevant";
     };
 

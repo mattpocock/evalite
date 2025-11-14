@@ -274,6 +274,8 @@ export const exportStaticUI = async (
   // Generate server-state.json
   const serverState: Evalite.ServerState = {
     type: "idle",
+    cacheHitsByEval: {},
+    cacheHitsByScorer: {},
   };
   await fs.writeFile(
     path.join(dataDir, "server-state.json"),

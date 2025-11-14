@@ -32,6 +32,7 @@ evalite run path/to/eval.eval.ts
 - `--threshold <number>` - Fails the process if the score is below threshold. Specified as 0-100. Default is 100.
 - `--outputPath <path>` - Path to write test results in JSON format after evaluation completes.
 - `--hideTable` - Hides the detailed table output in the CLI.
+- `--no-cache` - Disables caching of AI SDK model outputs. See [Vercel AI SDK caching](/tips/vercel-ai-sdk#caching).
 
 **Examples:**
 
@@ -69,6 +70,7 @@ evalite watch path/to/eval.eval.ts
 
 - `--threshold <number>` - Fails the process if the score is below threshold. Specified as 0-100. Default is 100.
 - `--hideTable` - Hides the detailed table output in the CLI.
+- `--no-cache` - Disables caching of AI SDK model outputs. See [Vercel AI SDK caching](/tips/vercel-ai-sdk#caching).
 
 **Note:** `--outputPath` is not supported in watch mode.
 
@@ -103,6 +105,7 @@ evalite serve path/to/eval.eval.ts
 - `--threshold <number>` - Fails the process if the score is below threshold. Specified as 0-100. Default is 100.
 - `--outputPath <path>` - Path to write test results in JSON format after evaluation completes.
 - `--hideTable` - Hides the detailed table output in the CLI.
+- `--no-cache` - Disables caching of AI SDK model outputs. See [Vercel AI SDK caching](/tips/vercel-ai-sdk#caching).
 
 **Examples:**
 

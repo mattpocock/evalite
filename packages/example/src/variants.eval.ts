@@ -2,16 +2,7 @@ import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import { evalite } from "evalite";
 import { exactMatch } from "evalite/scorers";
-import { createStorage } from "unstorage";
-import fsDriver from "unstorage/drivers/fs";
-import { cacheModel } from "./cache-model.js";
-import { traceAISDKModel } from "evalite/ai-sdk";
-
-const storage = createStorage({
-  driver: (fsDriver as any)({
-    base: "./llm-cache.local",
-  }),
-});
+import { wrapAISDKModel } from "evalite/ai-sdk";
 
 evalite.each([
   { name: "GPT-4o mini", input: { model: openai("gpt-4o-mini"), temp: 0.7 } },
@@ -45,7 +36,7 @@ evalite.each([
   ],
   task: async (input, variant) => {
     const result = await generateText({
-      model: traceAISDKModel(cacheModel(variant.model, storage)),
+      model: wrapAISDKModel(variant.model),
       temperature: variant.temp,
       system: `
         Answer the question concisely. Answer in as few words as possible.

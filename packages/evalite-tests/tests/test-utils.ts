@@ -55,14 +55,29 @@ export const loadFixture = async (
       outputPath?: string;
       hideTable?: boolean;
       configDebugMode?: boolean;
-      disableServer?: boolean;
+      /**
+       * Enable the evalite server for this test.
+       * By default, the server is disabled in tests to avoid port conflicts.
+       * Set this to true if your test needs the server running (e.g., for cache functionality).
+       */
+      enableServer?: boolean;
+      /**
+       * Enable cache debug mode to log cache hits/misses.
+       */
+      cacheDebug?: boolean;
+      /**
+       * Enable cache for AI SDK model outputs.
+       */
+      cacheEnabled?: boolean;
     }) => {
       const result = await runEvalite({
         ...opts,
         cwd: dirPath,
         storage,
         testOutputWritable: captured.writable,
-        disableServer: true,
+        disableServer: !opts.enableServer,
+        cacheDebug: opts.cacheDebug ?? false,
+        cacheEnabled: opts.cacheEnabled,
       });
       vitestInstance = result.vitest;
       return vitestInstance;

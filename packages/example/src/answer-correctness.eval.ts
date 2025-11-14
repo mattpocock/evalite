@@ -1,5 +1,6 @@
 import { openai } from "@ai-sdk/openai";
 import { evalite } from "evalite";
+import { wrapAISDKModel } from "evalite/ai-sdk";
 import { answerCorrectness } from "evalite/scorers";
 
 evalite("Answer Correctness", {
@@ -20,7 +21,7 @@ evalite("Answer Correctness", {
   ],
   task(input) {
     if (input.includes("capital of France")) {
-      return "Paris is the capital of France and has many museums.";
+      return "Paris is the largest city in France.";
     } else if (input.includes("telephone")) {
       return "Alexander Graham Bell invented the telephone.";
     }
@@ -35,7 +36,7 @@ evalite("Answer Correctness", {
           question: input,
           answer: output,
           reference: expected.reference,
-          model: openai("gpt-4.1-mini"),
+          model: wrapAISDKModel(openai("gpt-4.1-mini")),
           embeddingModel: openai.embedding("text-embedding-3-small"),
         }),
     },

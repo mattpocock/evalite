@@ -11,6 +11,7 @@ const tableNames = {
   evals: "evals",
   scores: "scores",
   traces: "traces",
+  cache: "cache",
 };
 
 const createDatabase = (url: string): BetterSqlite3.Database => {
@@ -68,6 +69,13 @@ const createDatabase = (url: string): BetterSqlite3.Database => {
       col_order INTEGER NOT NULL,
       FOREIGN KEY (eval_id) REFERENCES evals(id)
     );
+
+    CREATE TABLE IF NOT EXISTS ${tableNames.cache} (
+      key_hash TEXT PRIMARY KEY,
+      value TEXT NOT NULL, -- JSON
+      duration REAL NOT NULL,
+      created_at INTEGER NOT NULL
+    );
   `);
 
   // Add status key to evals table
@@ -111,6 +119,12 @@ const createDatabase = (url: string): BetterSqlite3.Database => {
   try {
     db.exec(`ALTER TABLE ${tableNames.evals} ADD COLUMN trial_index INTEGER`);
   } catch (e) {}
+
+  // Clean up expired cache entries (older than 1 day)
+  const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+  db.prepare(`DELETE FROM ${tableNames.cache} WHERE created_at < ?`).run(
+    oneDayAgo
+  );
 
   return db;
 };
@@ -667,6 +681,55 @@ export class SqliteStorage implements Evalite.Storage {
         .all({});
 
       return jsonParseFieldsArray(traces, ["input", "output"]);
+    },
+  };
+
+  cache = {
+    get: async (
+      keyHash: string
+    ): Promise<{ value: unknown; duration: number } | null> => {
+      const result = this.db
+        .prepare<
+          { keyHash: string },
+          { value: string; duration: number }
+        >(`SELECT value, duration FROM ${tableNames.cache} WHERE key_hash = @keyHash`)
+        .get({ keyHash });
+
+      if (!result) {
+        return null;
+      }
+
+      return {
+        value: JSON.parse(result.value),
+        duration: result.duration,
+      };
+    },
+
+    set: async (
+      keyHash: string,
+      data: { value: unknown; duration: number }
+    ): Promise<void> => {
+      this.db
+        .prepare(
+          `INSERT OR REPLACE INTO ${tableNames.cache} (key_hash, value, duration, created_at)
+           VALUES (@keyHash, @value, @duration, @createdAt)`
+        )
+        .run({
+          keyHash,
+          value: JSON.stringify(data.value),
+          duration: data.duration,
+          createdAt: Date.now(),
+        });
+    },
+
+    delete: async (keyHash: string): Promise<void> => {
+      this.db
+        .prepare(`DELETE FROM ${tableNames.cache} WHERE key_hash = @keyHash`)
+        .run({ keyHash });
+    },
+
+    clear: async (): Promise<void> => {
+      this.db.prepare(`DELETE FROM ${tableNames.cache}`).run();
     },
   };
 

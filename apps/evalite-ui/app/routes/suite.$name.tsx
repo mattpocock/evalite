@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { Link, Outlet, useMatches } from "@tanstack/react-router";
-import { XCircleIcon } from "lucide-react";
+import { XCircleIcon, Zap } from "lucide-react";
 import type * as React from "react";
 
 import { DisplayInput } from "~/components/display-input";
@@ -19,6 +19,11 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "~/components/ui/tooltip";
 import { cn } from "~/lib/utils";
 import { formatTime, isArrayOfRenderedColumns } from "~/utils";
 import { useServerStateUtils } from "~/hooks/use-server-state-utils";
@@ -65,6 +70,8 @@ type EvalTableRowProps = {
   isRunningEval: boolean;
   hasScores: boolean;
   prevSuite: Evalite.SDK.GetSuiteByNameResult["prevSuite"];
+  cacheHitCount: number;
+  cacheHitsByScorer: Record<string, number>;
   trialConfig?: {
     isFirstTrial: boolean;
     rowSpan: number;
@@ -104,17 +111,33 @@ function EvalTableRow({
   isRunningEval,
   hasScores,
   prevSuite: prevEvaluation,
+  cacheHitCount,
+  cacheHitsByScorer,
   trialConfig,
 }: EvalTableRowProps) {
   const Wrapper = useMemo(
     () => makeWrapper({ evalIndex, timestamp, name }),
     [evalIndex, timestamp, name]
   );
+
   return (
     <TableRow className={cn("has-[.active]:bg-foreground/20!")}>
+      {cacheHitCount > 0 && (
+        <TableCell className="pt-4 pl-4">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Zap className="size-4 text-accent-foreground" />
+            </TooltipTrigger>
+            <TooltipContent>
+              {cacheHitCount} LLM{" "}
+              {cacheHitCount === 1 ? "call was cached" : "calls were cached"}
+            </TooltipContent>
+          </Tooltip>
+        </TableCell>
+      )}
       {isArrayOfRenderedColumns(_eval.rendered_columns) ? (
         <>
-          {_eval.rendered_columns.map((column) => (
+          {_eval.rendered_columns.map((column, index) => (
             <TableCell>
               <DisplayInput
                 className={cn(
@@ -182,18 +205,34 @@ function EvalTableRow({
         const scoreInPreviousEvaluation = prevEvaluation?.evals
           .find((r) => r.input === _eval.input)
           ?.scores.find((s) => s.name === scorer.name);
+        const scorerCacheHitCount = cacheHitsByScorer[scorer.name] ?? 0;
         return (
           <TableCell key={scorer.id} className={cn(index === 0 && "border-l")}>
             <Wrapper>
-              <Score
-                hasScores={hasScores}
-                score={scorer.score}
-                state={getScoreState({
-                  score: scorer.score,
-                  prevScore: scoreInPreviousEvaluation?.score,
-                  status: _eval.status,
-                })}
-              />
+              <div className="flex items-center gap-2">
+                {scorerCacheHitCount > 0 && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Zap className="size-3 text-accent-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {scorerCacheHitCount} LLM{" "}
+                      {scorerCacheHitCount === 1
+                        ? "call was cached"
+                        : "calls were cached"}
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+                <Score
+                  hasScores={hasScores}
+                  score={scorer.score}
+                  state={getScoreState({
+                    score: scorer.score,
+                    prevScore: scoreInPreviousEvaluation?.score,
+                    status: _eval.status,
+                  })}
+                />
+              </div>
             </Wrapper>
           </TableCell>
         );
@@ -325,6 +364,12 @@ function SuiteComponent() {
 
   const hasScores =
     possiblyRunningSuite.evals.some((r) => r.scores.length > 0) ?? true;
+
+  const allEvalIds = possiblyRunningSuite.evals.map((r) => r.id);
+
+  const doAnyEvalsHaveCacheHits = Object.entries(serverState.cacheHitsByEval)
+    .filter(([evalId]) => allEvalIds.includes(Number(evalId)))
+    .some(([_, hits]) => hits > 0);
 
   return (
     <>
@@ -474,6 +519,7 @@ function SuiteComponent() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  {doAnyEvalsHaveCacheHits && <TableHead></TableHead>}
                   {isArrayOfRenderedColumns(
                     evaluationWithoutLayoutShift.evals[0]?.rendered_columns
                   ) ? (
@@ -512,6 +558,10 @@ function SuiteComponent() {
                       group.evals.map((_eval, trialIndex) => {
                         const evalIndex =
                           evaluationWithoutLayoutShift!.evals.indexOf(_eval);
+                        const cacheHitCount =
+                          serverState.cacheHitsByEval[_eval.id] ?? 0;
+                        const cacheHitsByScorer =
+                          serverState.cacheHitsByScorer[_eval.id] ?? {};
                         return (
                           <EvalTableRow
                             key={`${JSON.stringify(_eval.input)}-${_eval.trial_index}`}
@@ -523,6 +573,8 @@ function SuiteComponent() {
                             isRunningEval={isRunningEval}
                             hasScores={hasScores}
                             prevSuite={prevSuite}
+                            cacheHitCount={cacheHitCount}
+                            cacheHitsByScorer={cacheHitsByScorer}
                             trialConfig={{
                               isFirstTrial: trialIndex === 0,
                               rowSpan: group.evals.length,
@@ -533,19 +585,27 @@ function SuiteComponent() {
                       })
                     )
                   : // Original rendering for non-trial results
-                    evaluationWithoutLayoutShift.evals.map((_eval, index) => (
-                      <EvalTableRow
-                        key={JSON.stringify(_eval.input)}
-                        eval={_eval}
-                        evalIndex={index}
-                        name={name}
-                        timestamp={timestamp}
-                        showExpectedColumn={showExpectedColumn}
-                        isRunningEval={isRunningEval}
-                        hasScores={hasScores}
-                        prevSuite={prevSuite}
-                      />
-                    ))}
+                    evaluationWithoutLayoutShift.evals.map((_eval, index) => {
+                      const cacheHitCount =
+                        serverState.cacheHitsByEval[_eval.id] ?? 0;
+                      const cacheHitsByScorer =
+                        serverState.cacheHitsByScorer[_eval.id] ?? {};
+                      return (
+                        <EvalTableRow
+                          key={JSON.stringify(_eval.input)}
+                          eval={_eval}
+                          evalIndex={index}
+                          name={name}
+                          timestamp={timestamp}
+                          showExpectedColumn={showExpectedColumn}
+                          isRunningEval={isRunningEval}
+                          hasScores={hasScores}
+                          prevSuite={prevSuite}
+                          cacheHitCount={cacheHitCount}
+                          cacheHitsByScorer={cacheHitsByScorer}
+                        />
+                      );
+                    })}
               </TableBody>
             </Table>
           </>

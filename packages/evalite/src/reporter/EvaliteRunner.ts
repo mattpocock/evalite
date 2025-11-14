@@ -10,7 +10,11 @@ export interface EvaliteRunnerOptions {
 
 export class EvaliteRunner {
   private opts: EvaliteRunnerOptions;
-  private state: Evalite.ServerState = { type: "idle" };
+  private state: Evalite.ServerState = {
+    type: "idle",
+    cacheHitsByEval: {},
+    cacheHitsByScorer: {},
+  };
   private didLastRunFailThreshold: "yes" | "no" | "unknown" = "unknown";
   private collectedResults: Map<string, Evalite.Eval> = new Map();
   private eventQueue: Promise<void> = Promise.resolve();
@@ -118,7 +122,11 @@ export class EvaliteRunner {
       case "running":
         switch (event.type) {
           case "RUN_ENDED":
-            this.updateState({ type: "idle" });
+            this.updateState({
+              type: "idle",
+              cacheHitsByEval: this.state.cacheHitsByEval,
+              cacheHitsByScorer: this.state.cacheHitsByScorer,
+            });
             break;
           case "EVAL_STARTED":
             {
@@ -267,6 +275,26 @@ export class EvaliteRunner {
                 });
               }
 
+              // Count cache hits for this eval
+              const cacheHitCount = event.eval.taskCacheHits.filter(
+                (hit) => hit.hit
+              ).length;
+              if (cacheHitCount > 0) {
+                this.state.cacheHitsByEval[evalId] = cacheHitCount;
+              }
+
+              // Count cache hits per scorer
+              if (!this.state.cacheHitsByScorer[evalId]) {
+                this.state.cacheHitsByScorer[evalId] = {};
+              }
+              for (const score of event.eval.scores) {
+                const scorerCacheHits = score.cacheHits;
+                if (scorerCacheHits && scorerCacheHits.length > 0) {
+                  this.state.cacheHitsByScorer[evalId]![score.name] =
+                    scorerCacheHits.length;
+                }
+              }
+
               const allEvals = await this.opts.storage.evals.getMany({
                 suiteIds: [suite.id],
               });
@@ -315,6 +343,8 @@ export class EvaliteRunner {
           case "RUN_BEGUN":
             // Clear collected results for new run
             this.collectedResults.clear();
+            this.state.cacheHitsByEval = {};
+            this.state.cacheHitsByScorer = {};
 
             this.updateState({
               filepaths: event.filepaths,
@@ -323,6 +353,8 @@ export class EvaliteRunner {
               runId: undefined, // Run is created lazily
               suiteNamesRunning: [],
               evalIdsRunning: [],
+              cacheHitsByEval: this.state.cacheHitsByEval,
+              cacheHitsByScorer: this.state.cacheHitsByScorer,
             });
             break;
         }
