@@ -365,9 +365,11 @@ function SuiteComponent() {
   const hasScores =
     possiblyRunningSuite.evals.some((r) => r.scores.length > 0) ?? true;
 
-  const doAnyEvalsHaveCacheHits = Object.values(
-    serverState.cacheHitsByEval
-  ).some((hits) => hits > 0);
+  const allEvalIds = possiblyRunningSuite.evals.map((r) => r.id);
+
+  const doAnyEvalsHaveCacheHits = Object.entries(serverState.cacheHitsByEval)
+    .filter(([evalId]) => allEvalIds.includes(Number(evalId)))
+    .some(([_, hits]) => hits > 0);
 
   return (
     <>
