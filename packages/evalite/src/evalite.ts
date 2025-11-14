@@ -3,7 +3,7 @@ import path from "path";
 import { describe, inject, it } from "vitest";
 import { reportTraceLocalStorage } from "./traces.js";
 import { writeFileQueueLocalStorage } from "./write-file-queue-local-storage.js";
-import { createEvaliteFileIfNeeded } from "./utils.js";
+import { createEvaliteFileIfNeeded } from "./internal-utils.js";
 import type { Evalite } from "./types.js";
 import { FILES_LOCATION } from "./backend-only-constants.js";
 import { createScorer } from "./index.js";
