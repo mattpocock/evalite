@@ -1,5 +1,12 @@
 # evalite
 
+## 1.0.0-beta.7
+
+### Patch Changes
+
+- 359039c: Added the /scorers/deterministic export to allow users to use scorers without needing the AI SDK.
+- 4252ccc: Added 'ai' as an optional peer dependency
+
 ## 1.0.0-beta.6
 
 ### Patch Changes
