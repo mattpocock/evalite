@@ -385,3 +385,46 @@ it("Should export existing data from SQLite storage", async () => {
     outputPath: exportDir,
   });
 });
+
+it("Should calculate summary score correctly in menu-items.json (issue 331)", async () => {
+  await using fixture = await loadFixture("issue-331");
+
+  await fixture.run({
+    mode: "run-once-and-exit",
+  });
+
+  const exportDir = path.join(fixture.dir, "evalite-export");
+
+  await exportCommand({
+    cwd: fixture.dir,
+    storage: fixture.storage,
+    outputPath: exportDir,
+  });
+
+  // Read menu-items.json
+  const menuItemsPath = path.join(exportDir, "data", "menu-items.json");
+  const menuItemsData: Evalite.SDK.GetMenuItemsResult = JSON.parse(
+    await readFile(menuItemsPath, "utf-8")
+  );
+
+  // Expected scores:
+  // Eval 1: 1/2 = 0.5 (1 pass, 1 fail)
+  // Eval 2: 3/3 = 1.0 (all pass)
+  // Eval 3: 4/4 = 1.0 (all pass)
+  // Average: (0.5 + 1.0 + 1.0) / 3 = 0.8333...
+
+  expect(menuItemsData.suites).toHaveLength(3);
+
+  // Find each suite by name and verify scores
+  const eval1 = menuItemsData.suites.find((s) => s.name === "Eval 1");
+  const eval2 = menuItemsData.suites.find((s) => s.name === "Eval 2");
+  const eval3 = menuItemsData.suites.find((s) => s.name === "Eval 3");
+
+  expect(eval1?.score).toBe(0.5);
+  expect(eval2?.score).toBe(1);
+  expect(eval3?.score).toBe(1);
+
+  // Verify summary score is the average of all suite scores (not 0 due to variable shadowing)
+  const expectedAverage = (0.5 + 1.0 + 1.0) / 3;
+  expect(menuItemsData.score).toBeCloseTo(expectedAverage, 5);
+});

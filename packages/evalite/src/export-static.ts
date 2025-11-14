@@ -291,8 +291,9 @@ export const exportStaticUI = async (
   );
 
   const menuItems = evalsWithPrevEvals
-    .map((e) => {
-      const evals = allEvals.filter((e) => e.suite_id === e.id);
+    .map((evalItem) => {
+      const evals = allEvals.filter((e) => e.suite_id === evalItem.id);
+
       const evalScores = allScores.filter((s) =>
         evals.some((e) => e.id === s.eval_id)
       );
@@ -301,13 +302,13 @@ export const exportStaticUI = async (
           ? evalScores.reduce((sum, s) => sum + s.score, 0) / evalScores.length
           : 0;
 
-      const prevSuiteEvals = e.prevEval
-        ? allEvals.filter((r) => r.suite_id === e.prevEval!.id)
+      const prevSuiteEvals = evalItem.prevEval
+        ? allEvals.filter((r) => r.suite_id === evalItem.prevEval!.id)
         : [];
       const prevSuiteScores = allScores.filter((s) =>
         prevSuiteEvals.some((r) => r.id === s.eval_id)
       );
-      const prevScore = e.prevEval
+      const prevScore = evalItem.prevEval
         ? prevSuiteScores.length > 0
           ? prevSuiteScores.reduce((sum, s) => sum + s.score, 0) /
             prevSuiteScores.length
@@ -317,13 +318,13 @@ export const exportStaticUI = async (
       const hasScores = evalScores.length > 0;
 
       return {
-        filepath: e.filepath,
-        name: e.name,
+        filepath: evalItem.filepath,
+        name: evalItem.name,
         score,
         prevScore,
-        suiteStatus: e.status,
-        variantName: e.variant_name,
-        variantGroup: e.variant_group,
+        suiteStatus: evalItem.status,
+        variantName: evalItem.variant_name,
+        variantGroup: evalItem.variant_group,
         hasScores,
       } satisfies Evalite.SDK.GetMenuItemsResultSuite;
     })
