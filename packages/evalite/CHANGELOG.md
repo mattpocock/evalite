@@ -1,5 +1,11 @@
 # evalite
 
+## 1.0.0-beta.6
+
+### Patch Changes
+
+- eb5f4db: Fixed a bug where during evalite export, the summary score would be incorrectly calculated.
+
 ## 1.0.0-beta.5
 
 ### Major Changes
