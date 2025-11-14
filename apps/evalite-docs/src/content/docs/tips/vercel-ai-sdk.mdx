@@ -4,66 +4,255 @@ title: Vercel AI SDK
 
 import { Aside } from "@astrojs/starlight/components";
 
-Use Evalite with Vercel's [AI SDK](https://sdk.vercel.ai/docs/introduction) to trace LLM calls and test AI-powered features.
+Deep integration with Vercel's [AI SDK](https://sdk.vercel.ai/docs/introduction) for automatic tracing and caching of LLM calls.
 
-## Automatic Tracing with `traceAISDKModel`
+## Setup
 
-Wrap your AI SDK model in `traceAISDKModel` to automatically track all LLM calls:
+Wrap your AI SDK models with `wrapAISDKModel` to enable tracing and caching:
 
 ```ts
-// my-eval.eval.ts
+import { openai } from "@ai-sdk/openai";
+import { wrapAISDKModel } from "evalite/ai-sdk";
 
+const model = wrapAISDKModel(openai("gpt-4o-mini"));
+```
+
+This single wrapper provides both automatic tracing and intelligent caching of LLM responses.
+
+## Tracing
+
+`wrapAISDKModel` automatically captures all LLM calls made through the AI SDK, including:
+
+- Full prompt/messages
+- Model responses (text and tool calls)
+- Token usage
+- Timing information
+
+### Viewing Traces
+
+Traces appear in the Evalite UI under each test case:
+
+1. Navigate to an eval result
+2. Click on a specific test case
+3. View the "Traces" section to see all LLM calls
+4. Inspect input, output, and timing for each trace
+
+### Example with Tracing
+
+```ts
 import { openai } from "@ai-sdk/openai";
 import { streamText } from "ai";
 import { evalite } from "evalite";
-import { faithfulness } from "evalite/scorers";
-import { traceAISDKModel } from "evalite/ai-sdk";
+import { wrapAISDKModel } from "evalite/ai-sdk";
 
 evalite("Test Capitals", {
   data: async () => [
     {
       input: `What's the capital of France?`,
-      expected: {
-        groundTruth: [`France's capital city is Paris.`],
-      },
+      expected: "Paris",
     },
     {
       input: `What's the capital of Germany?`,
-      expected: {
-        groundTruth: [`Germany's capital city is Berlin.`],
-      },
+      expected: "Berlin",
     },
   ],
   task: async (input) => {
     const result = streamText({
-      model: traceAISDKModel(openai("gpt-4o-mini")),
-      system: `
-        Answer the question concisely. Answer in as few words as possible.
-        Remove full stops from the end of the output.
-        If the country has no capital, return '<country> has no capital'.
-        If the country does not exist, return 'Unknown'.
-      `,
+      model: wrapAISDKModel(openai("gpt-4o-mini")),
+      system: `Answer the question concisely.`,
       prompt: input,
     });
 
+    // All calls are automatically traced
     return await result.text;
   },
   scorers: [
     {
+      name: "Exact Match",
+      scorer: ({ output, expected }) => (output === expected ? 1 : 0),
+    },
+  ],
+});
+```
+
+### Manual Traces with `reportTrace()`
+
+For non-AI SDK calls or custom processing steps, use [`reportTrace()`](/api/report-trace):
+
+```ts
+import { reportTrace } from "evalite/traces";
+
+evalite("Multi-Step Analysis", {
+  data: [{ input: "Analyze this text" }],
+  task: async (input) => {
+    // Custom processing step
+    const preprocessed = preprocess(input);
+    reportTrace({
+      input: { raw: input },
+      output: { preprocessed },
+    });
+
+    // AI SDK call (automatically traced)
+    const result = await generateText({
+      model: wrapAISDKModel(openai("gpt-4")),
+      prompt: preprocessed,
+    });
+
+    return result.text;
+  },
+});
+```
+
+## Caching
+
+`wrapAISDKModel` automatically caches LLM responses to:
+
+- **Reduce costs** - Avoid redundant API calls
+- **Speed up development** - Instant responses for repeated inputs
+- **Improve reliability** - Consistent outputs during testing
+
+Caching works for both tasks and scorers. Cache hits are tracked separately and displayed in the UI.
+
+### How Caching Works
+
+When enabled, Evalite:
+
+1. Generates a cache key from model + parameters + prompt
+2. Checks if a response exists for that key
+3. Returns cached response (0 tokens used) or executes call
+4. Stores new responses in cache (24 hour TTL)
+5. Shows cache hits in UI with saved duration
+
+### Configuration
+
+**Config file** (`evalite.config.ts`):
+
+```ts
+import { defineConfig } from "evalite/config";
+
+export default defineConfig({
+  cache: false, // Disable caching
+});
+```
+
+**CLI flag**:
+
+```bash
+evalite --no-cache        # Disable for single run
+evalite watch --no-cache  # Disable in watch mode
+```
+
+**Runtime** (programmatic usage):
+
+```ts
+import { runEvalite } from "evalite";
+
+await runEvalite({
+  cacheEnabled: false,
+  mode: "run-once-and-exit",
+});
+```
+
+**Precedence**: Runtime > Config > Default (true)
+
+### Cache Indicators in UI
+
+The UI shows:
+
+- Cache hit icon (⚡) next to evals with cached responses
+- Count of cache hits per eval
+- Separate tracking for task vs scorer cache hits
+- Saved duration in milliseconds
+
+### Per-Model Configuration
+
+Disable caching for specific models while keeping it enabled globally:
+
+```ts
+import { wrapAISDKModel } from "evalite/ai-sdk";
+import { openai } from "@ai-sdk/openai";
+
+// Caching disabled for this model only
+const model = wrapAISDKModel(openai("gpt-4o-mini"), {
+  caching: false,
+});
+```
+
+Disable tracing for specific models:
+
+```ts
+const model = wrapAISDKModel(openai("gpt-4o-mini"), {
+  tracing: false,
+});
+```
+
+### Complete Example
+
+```ts
+import { openai } from "@ai-sdk/openai";
+import { generateText } from "ai";
+import { evalite } from "evalite";
+import { faithfulness } from "evalite/scorers";
+import { wrapAISDKModel } from "evalite/ai-sdk";
+
+// Wrap once, use everywhere
+const model = wrapAISDKModel(openai("gpt-4o-mini"));
+
+evalite("RAG System", {
+  data: async () => [
+    {
+      input: "What is Evalite?",
+      expected: {
+        groundTruth: ["Evalite is a tool for testing LLM applications."],
+      },
+    },
+  ],
+  task: async (input) => {
+    // Both calls are traced and cached
+    const context = await generateText({
+      model,
+      prompt: `Retrieve context for: ${input}`,
+    });
+
+    const result = await generateText({
+      model,
+      prompt: `Answer using context: ${context.text}\n\nQuestion: ${input}`,
+    });
+
+    return result.text;
+  },
+  scorers: [
+    {
       scorer: ({ input, output, expected }) =>
+        // Scorer LLM calls are also cached
         faithfulness({
           question: input,
           answer: output,
           groundTruth: expected.groundTruth,
-          model: openai("gpt-4o-mini"),
+          model,
         }),
     },
   ],
 });
 ```
 
+## Best Practices
+
+1. **Wrap models once** - Create wrapped models at module level, reuse across evals
+2. **Keep caching enabled during development** - Speeds up iteration and reduces costs
+3. **Disable cache for production runs** - Use `--no-cache` for final evaluation runs
+4. **Use tracing for debugging** - Inspect traces to understand multi-step LLM workflows
+5. **Cache is safe for deterministic tests** - Same inputs always produce same cached outputs
+
 <Aside>
 
-`traceAISDKModel` is a no-op in production, so you can leave it in your code without worrying about performance.
+Both tracing and caching are no-ops in production (outside Evalite context), so you can safely keep `wrapAISDKModel` in your code.
 
 </Aside>
+
+## See Also
+
+- [`wrapAISDKModel()` API Reference](/api/ai-sdk) - Full API documentation
+- [`reportTrace()` API Reference](/api/report-trace) - Manual trace reporting
+- [Configuration Guide](/guides/configuration) - Cache configuration options
+- [CLI Reference](/api/cli) - Command-line flags

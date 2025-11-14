@@ -9,7 +9,7 @@ export default defineConfig({
     "/quickstart": "/guides/quickstart",
 
     // Guides reorganization
-    "/guides/traces": "/api/traces",
+    "/guides/traces": "/api/report-trace",
     "/guides/variant-comparison": "/tips/comparing-different-approaches",
     "/guides/multi-modal": "/tips/images-and-media",
     "/guides/cli": "/api/cli",
@@ -22,6 +22,10 @@ export default defineConfig({
 
     // Examples moved to tips
     "/examples/ai-sdk": "/tips/vercel-ai-sdk",
+
+    // Documentation reorganization
+    "/tips/adding-traces": "/tips/vercel-ai-sdk",
+    "/api/traces": "/api/report-trace",
   },
   integrations: [
     starlight({
@@ -151,10 +155,6 @@ export default defineConfig({
               slug: "tips/comparing-different-approaches",
             },
             {
-              label: "Adding Traces",
-              slug: "tips/adding-traces",
-            },
-            {
               label: "Vercel AI SDK",
               slug: "tips/vercel-ai-sdk",
             },
@@ -241,8 +241,12 @@ export default defineConfig({
               slug: "api/evalite-file",
             },
             {
-              label: "Traces",
-              slug: "api/traces",
+              label: "wrapAISDKModel()",
+              slug: "api/ai-sdk",
+            },
+            {
+              label: "reportTrace()",
+              slug: "api/report-trace",
             },
             {
               label: "runEvalite()",
