@@ -268,9 +268,21 @@ it("Should rewrite /assets/ paths in JS files with custom basePath", async () =>
 
     // If the file contains asset references, they should be prefixed with basePath
     if (jsContent.includes("evals-123/assets/")) {
-      expect(jsContent).toContain('"/evals-123/assets/');
+      expect(jsContent).toContain('"evals-123/assets/');
       jsFilesWithAssetReferences++;
     }
+  }
+
+  const cssFiles = assetFiles.filter((file) => file.endsWith(".css"));
+
+  for (const cssFile of cssFiles) {
+    const cssContent = await readFile(path.join(assetsDir, cssFile), "utf-8");
+
+    // Should not contain root-relative /assets/ paths or non-prefixed assets/ paths
+    expect(cssContent).not.toContain('"/assets/');
+    expect(cssContent).not.toContain("'/assets/");
+    expect(cssContent).not.toContain('"assets/');
+    expect(cssContent).not.toContain("'assets/");
   }
 
   expect(jsFilesWithAssetReferences).toBeGreaterThan(0);
