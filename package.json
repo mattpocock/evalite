@@ -9,6 +9,7 @@
   },
   "private": true,
   "scripts": {
+    "beta:release": "pnpm run ci && changeset version && git add . && git commit -m 'Bump version' && pnpm changeset publish",
     "build:evalite": "pnpm --filter evalite build",
     "build:evalite-ui": "pnpm --filter evalite-ui build && pnpm --filter evalite-ui after-build",
     "build": "pnpm run build:evalite && pnpm run build:evalite-ui",
