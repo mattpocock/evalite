@@ -109,29 +109,15 @@ export declare namespace Evalite {
 
     /**
      * Cache configuration for AI SDK model outputs
-     * @default { enabled: true, ttlDays: 30 }
+     * @default true
      * @example
      * ```ts
      * export default defineConfig({
      *   cache: false // Disable cache entirely
      * })
      * ```
-     * @example
-     * ```ts
-     * export default defineConfig({
-     *   cache: {
-     *     enabled: true,
-     *     ttlDays: 7 // Cache for 7 days
-     *   }
-     * })
-     * ```
      */
-    cache?:
-      | boolean
-      | {
-          enabled?: boolean;
-          ttlDays?: number;
-        };
+    cache?: boolean;
 
     /**
      * Pass-through Vite/Vitest configuration options.

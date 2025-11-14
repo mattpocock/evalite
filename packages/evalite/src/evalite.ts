@@ -61,6 +61,7 @@ const runTask = async <TInput, TOutput, TExpected, TVariant = undefined>(
     traces: Evalite.Trace[];
     cacheContext: CacheContextConfig;
     cacheDebug: boolean;
+    cacheEnabled: boolean;
   } & Omit<Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant>, "data">
 ) => {
   const start = performance.now();
@@ -81,6 +82,9 @@ const runTask = async <TInput, TOutput, TExpected, TVariant = undefined>(
             {
               ...opts.cacheContext,
               reportCacheHit: (hit) => {
+                if (!opts.cacheEnabled) {
+                  return;
+                }
                 scorerCacheHits.push(hit);
                 if (opts.cacheDebug) {
                   console.log(
@@ -356,10 +360,14 @@ function registerEvalite<TInput, TOutput, TExpected>(
         };
 
         const cacheDebug = inject("cacheDebug");
+        const cacheEnabled = inject("cacheEnabled");
 
         cacheContextLocalStorage.enterWith({
           ...cacheContext,
           reportCacheHit: (hit) => {
+            if (!cacheEnabled) {
+              return;
+            }
             taskCacheHits.push(hit);
             if (cacheDebug) {
               console.log(
@@ -390,6 +398,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
             traces,
             cacheContext,
             cacheDebug,
+            cacheEnabled,
           });
 
           const [outputWithFiles, tracesWithFiles, renderedColumns] =

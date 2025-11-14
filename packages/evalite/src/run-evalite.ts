@@ -31,6 +31,10 @@ declare module "vitest" {
      * Whether to log cache operations to the console.
      */
     cacheDebug: boolean;
+    /**
+     * Whether to enable cache for AI SDK model outputs.
+     */
+    cacheEnabled: boolean;
   }
 }
 
@@ -246,15 +250,7 @@ export const runEvalite = async (opts: {
   const maxConcurrency = config?.maxConcurrency;
 
   // Determine cache enabled: opts > config > default (true)
-  let cacheEnabled = true;
-  if (opts.cacheEnabled !== undefined) {
-    cacheEnabled = opts.cacheEnabled;
-  } else if (config?.cache !== undefined) {
-    cacheEnabled =
-      typeof config.cache === "boolean"
-        ? config.cache
-        : (config.cache.enabled ?? true);
-  }
+  const cacheEnabled = opts.cacheEnabled ?? config?.cache ?? true;
 
   // Merge setupFiles:
   // 1. Always include env-setup-file first to load .env files
@@ -355,6 +351,7 @@ export const runEvalite = async (opts: {
   vitest.provide("trialCount", config?.trialCount);
   vitest.provide("serverPort", actualServerPort);
   vitest.provide("cacheDebug", opts.cacheDebug ?? false);
+  vitest.provide("cacheEnabled", cacheEnabled);
 
   await vitest.start(filters);
 

@@ -61,7 +61,14 @@ export const loadFixture = async (
        * Set this to true if your test needs the server running (e.g., for cache functionality).
        */
       enableServer?: boolean;
+      /**
+       * Enable cache debug mode to log cache hits/misses.
+       */
       cacheDebug?: boolean;
+      /**
+       * Enable cache for AI SDK model outputs.
+       */
+      cacheEnabled?: boolean;
     }) => {
       const result = await runEvalite({
         ...opts,
@@ -70,6 +77,7 @@ export const loadFixture = async (
         testOutputWritable: captured.writable,
         disableServer: !opts.enableServer,
         cacheDebug: opts.cacheDebug ?? false,
+        cacheEnabled: opts.cacheEnabled,
       });
       vitestInstance = result.vitest;
       return vitestInstance;
