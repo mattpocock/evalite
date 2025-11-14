@@ -1,5 +1,21 @@
 # evalite
 
+## 1.0.0-beta.5
+
+### Major Changes
+
+- 4fd065e: Removed `traceAISDKModel` in favor of `wrapAISDKModel` which includes both caching and tracing.
+
+### Minor Changes
+
+- 4fd065e: Added cache config & --no-cache CLI flag. Config cache via evalite.config.ts or disable with --no-cache flag.
+
+### Patch Changes
+
+- 4fd065e: Added cache debug mode via debugCache in runEvalite to debug cache hits/misses.
+- 4fd065e: Server will now attempt to find another port if 3006 is unavailable.
+- a7b0dfc: Added a theme switcher for light/dark mode to Evalite's UI
+
 ## 1.0.0-beta.4
 
 ### Patch Changes
