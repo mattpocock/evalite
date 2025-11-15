@@ -25,6 +25,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "~/components/ui/tooltip";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { cn } from "~/lib/utils";
 import { formatTime, isArrayOfRenderedColumns } from "~/utils";
 import { useServerStateUtils } from "~/hooks/use-server-state-utils";
@@ -40,6 +41,7 @@ import type { Evalite } from "evalite";
 const searchSchema = z.object({
   timestamp: z.string().optional(),
   q: z.coerce.string().optional(),
+  view: z.enum(["scores", "history"]).optional().default("scores"),
 });
 
 export const Route = createFileRoute("/suite/$name")({
@@ -103,6 +105,67 @@ const makeWrapper =
       {props.children}
     </Link>
   );
+
+type ScoresGridProps = {
+  scores: Evalite.Storage.Entities.Score[];
+  evaluationWithoutLayoutShift: Evalite.SDK.GetSuiteByNameResult["suite"];
+  prevSuite: Evalite.SDK.GetSuiteByNameResult["prevSuite"];
+  possiblyRunningSuite: Evalite.SDK.GetSuiteByNameResult["suite"];
+  hasScores: boolean;
+};
+
+function ScoresGrid({
+  scores,
+  evaluationWithoutLayoutShift,
+  prevSuite,
+  possiblyRunningSuite,
+  hasScores,
+}: ScoresGridProps) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      {scores.map((scorer) => {
+        const scorerName = scorer.name;
+        const scorerAverage = average(
+          evaluationWithoutLayoutShift.evals,
+          (r) => {
+            const score = r.scores.find((s) => s.name === scorerName);
+            return score?.score ?? 0;
+          }
+        );
+
+        const prevScorerAverage = prevSuite
+          ? average(prevSuite.evals, (r) => {
+              const score = r.scores.find((s) => s.name === scorerName);
+              return score?.score ?? 0;
+            })
+          : undefined;
+
+        return (
+          <div
+            key={scorerName}
+            className="rounded-lg p-4 bg-muted/50 border dark:border-0"
+          >
+            <div className="text-sm text-muted-foreground mb-2">
+              {scorerName}
+            </div>
+            <div className="flex items-center justify-between">
+              <Score
+                score={scorerAverage}
+                state={getScoreState({
+                  score: scorerAverage,
+                  prevScore: prevScorerAverage,
+                  status: possiblyRunningSuite.status,
+                })}
+                iconClassName="size-4"
+                hasScores={hasScores}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 function EvalTableRow({
   eval: _eval,
@@ -255,7 +318,7 @@ function EvalTableRow({
 
 function SuiteComponent() {
   const { name } = Route.useParams();
-  const { timestamp } = Route.useSearch();
+  const { timestamp, view } = Route.useSearch();
   const navigate = Route.useNavigate();
 
   const [
@@ -391,7 +454,7 @@ function SuiteComponent() {
         vscodeUrl={`vscode://file${possiblyRunningSuite.filepath}`}
         filepath={possiblyRunningSuite.filepath.split(/(\/|\\)/).slice(-1)[0]!}
       >
-        <div className="text-foreground mb-10 text-sm">
+        <div className="text-foreground mb-4 text-sm">
           <h1 className="tracking-tight text-2xl mb-2 font-medium text-foreground/90">
             {name}
           </h1>
@@ -421,7 +484,7 @@ function SuiteComponent() {
                       name,
                     }}
                     preload="intent"
-                    className="bg-blue-100 uppercase tracking-wide font-medium text-blue-700 px-3 text-xs py-1 -my-1 rounded"
+                    className="bg-muted uppercase tracking-wide font-medium text-foreground px-3 text-xs py-1 -my-1 rounded"
                   >
                     View Latest
                   </Link>
@@ -431,82 +494,87 @@ function SuiteComponent() {
           </div>
         </div>
 
-        {history.length > 1 && (
-          <div className="mb-10">
-            <h2 className="mb-4 font-medium text-lg text-foreground">
-              History
-            </h2>
-            {history.length > 1 && (
-              <MyLineChart
-                data={history}
-                onDotClick={({ date }) => {
-                  if (date === mostRecentDate) {
-                    navigate({
-                      search: {},
-                    });
-                  } else {
-                    navigate({
-                      search: {
-                        timestamp: date,
-                      },
-                    });
-                  }
-                }}
-              />
-            )}
-          </div>
-        )}
         {evaluationWithoutLayoutShift &&
           evaluationWithoutLayoutShift.evals.length > 0 &&
           evaluationWithoutLayoutShiftScores.length > 0 && (
-            <div className="mb-10">
-              <h2 className="mb-4 font-medium text-lg text-foreground">
-                Scores
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {evaluationWithoutLayoutShiftScores.map((scorer) => {
-                  const scorerName = scorer.name;
-                  const scorerAverage = average(
-                    evaluationWithoutLayoutShift.evals,
-                    (r) => {
-                      const score = r.scores.find((s) => s.name === scorerName);
-                      return score?.score ?? 0;
+            <div className="mb-8">
+              {evaluationWithoutLayoutShiftScores.length > 1 &&
+              history.length > 1 ? (
+                <Tabs
+                  value={view}
+                  onValueChange={(value) => {
+                    navigate({
+                      search: (prev) => ({
+                        ...prev,
+                        view: value as "scores" | "history",
+                      }),
+                    });
+                  }}
+                >
+                  <TabsList className="mb-2">
+                    <TabsTrigger value="scores">Scores</TabsTrigger>
+                    <TabsTrigger value="history">History</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="scores">
+                    <ScoresGrid
+                      scores={evaluationWithoutLayoutShiftScores}
+                      evaluationWithoutLayoutShift={
+                        evaluationWithoutLayoutShift
+                      }
+                      prevSuite={prevSuite}
+                      possiblyRunningSuite={possiblyRunningSuite}
+                      hasScores={hasScores}
+                    />
+                  </TabsContent>
+                  <TabsContent value="history">
+                    <MyLineChart
+                      data={history}
+                      onDotClick={({ date }) => {
+                        if (date === mostRecentDate) {
+                          navigate({
+                            search: (prev) => ({
+                              ...prev,
+                              timestamp: undefined,
+                            }),
+                          });
+                        } else {
+                          navigate({
+                            search: (prev) => ({
+                              ...prev,
+                              timestamp: date,
+                            }),
+                          });
+                        }
+                      }}
+                    />
+                  </TabsContent>
+                </Tabs>
+              ) : evaluationWithoutLayoutShiftScores.length > 1 ? (
+                <ScoresGrid
+                  scores={evaluationWithoutLayoutShiftScores}
+                  evaluationWithoutLayoutShift={evaluationWithoutLayoutShift}
+                  prevSuite={prevSuite}
+                  possiblyRunningSuite={possiblyRunningSuite}
+                  hasScores={hasScores}
+                />
+              ) : history.length > 1 ? (
+                <MyLineChart
+                  data={history}
+                  onDotClick={({ date }) => {
+                    if (date === mostRecentDate) {
+                      navigate({
+                        search: {},
+                      });
+                    } else {
+                      navigate({
+                        search: {
+                          timestamp: date,
+                        },
+                      });
                     }
-                  );
-
-                  const prevScorerAverage = prevSuite
-                    ? average(prevSuite.evals, (r) => {
-                        const score = r.scores.find(
-                          (s) => s.name === scorerName
-                        );
-                        return score?.score ?? 0;
-                      })
-                    : undefined;
-
-                  return (
-                    <div
-                      key={scorerName}
-                      className="rounded-lg p-4 bg-muted/50 border dark:border-0"
-                    >
-                      <div className="text-sm text-muted-foreground mb-2">
-                        {scorerName}
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Score
-                          score={scorerAverage}
-                          state={getScoreState({
-                            score: scorerAverage,
-                            prevScore: prevScorerAverage,
-                            status: possiblyRunningSuite.status,
-                          })}
-                          iconClassName="size-4"
-                          hasScores={hasScores}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                  }}
+                />
+              ) : null}
             </div>
           )}
         {evaluationWithoutLayoutShift?.status === "fail" && (
@@ -525,9 +593,6 @@ function SuiteComponent() {
         )}
         {evaluationWithoutLayoutShift && (
           <>
-            <h2 className="mb-4 font-medium text-lg text-foreground">
-              Results
-            </h2>
             <Table>
               <TableHeader>
                 <TableRow>

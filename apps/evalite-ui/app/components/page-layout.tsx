@@ -53,7 +53,7 @@ export const InnerPageLayout = ({
           <ThemeToggle />
         </div>
       </header>
-      <div className="flex-1 p-4">{children}</div>
+      <div className="flex-1 p-4 pt-0">{children}</div>
     </div>
   );
 };
