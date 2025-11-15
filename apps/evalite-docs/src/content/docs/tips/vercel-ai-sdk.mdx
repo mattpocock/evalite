@@ -250,6 +250,23 @@ Both tracing and caching are no-ops in production (outside Evalite context), so 
 
 </Aside>
 
+## Caching with Trial Count
+
+For non-deterministic evaluations, you might worry that a lucky correct answer gets cached, giving false confidence in reliability. Quality and accuracy require many samples to measure properly.
+
+Combine cache with [`trialCount`](/api/evalite#optstrialcount) to solve this - each trial busts the cache and runs fresh, ensuring you get multiple samples while still benefiting from caching during development:
+
+```typescript
+evalite("Non-deterministic Eval", {
+  data: [...],
+  task: async (input) => {
+    const model = wrapAISDKModel(openai("gpt-4"));
+    // ...
+  },
+  trialCount: 3, // Runs 3 times, cache busted each trial
+});
+```
+
 ## See Also
 
 - [`wrapAISDKModel()` API Reference](/api/ai-sdk) - Full API documentation
