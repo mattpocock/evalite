@@ -392,8 +392,6 @@ export const runEvalite = async (opts: {
     if (typeof exitCode === "number" && opts.mode === "run-once-and-exit") {
       process.exit(exitCode);
     }
-
-    return vitest;
   }
 
   return { vitest, rerun };
