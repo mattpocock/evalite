@@ -8,6 +8,8 @@ import {
 } from "./ui/breadcrumb";
 import { Separator } from "./ui/separator";
 import { SidebarTrigger } from "./ui/sidebar";
+import { GithubIcon } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 
 export const InnerPageLayout = ({
   children,
@@ -35,6 +37,20 @@ export const InnerPageLayout = ({
           </Breadcrumb>
         </div>
         <div className="flex items-center gap-2 px-3">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <a
+                href="https://github.com/mattpocock/evalite/issues/new"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 justify-center rounded-md text-sm font-medium transition-colors h-9 px-3"
+              >
+                <GithubIcon className="size-4" />
+                <span>Give Feedback</span>
+              </a>
+            </TooltipTrigger>
+            <TooltipContent>Feedback is a gift!</TooltipContent>
+          </Tooltip>
           <ThemeToggle />
         </div>
       </header>
