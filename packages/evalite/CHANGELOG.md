@@ -1,5 +1,11 @@
 # evalite
 
+## 1.0.0-beta.9
+
+### Patch Changes
+
+- 895b1dd: Display errors when resolving evalite.config.ts instead of silently ignoring them.
+
 ## 1.0.0-beta.8
 
 ### Patch Changes

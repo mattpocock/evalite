@@ -10,6 +10,7 @@
   "changesets": [
     "0000-cache-config",
     "0000-cache-debug-mode",
+    "0000-config-errors",
     "0000-export-command-change",
     "0000-in-memory-default",
     "0000-levenshtein-scorer",

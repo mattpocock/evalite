@@ -1,6 +1,6 @@
 {
   "name": "evalite",
-  "version": "1.0.0-beta.8",
+  "version": "1.0.0-beta.9",
   "type": "module",
   "description": "Test your LLM-powered apps with a TypeScript-native, Vitest-based eval runner. No API key required.",
   "homepage": "https://evalite.dev",
