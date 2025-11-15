@@ -1,5 +1,11 @@
 # evalite
 
+## 1.0.0-beta.11
+
+### Patch Changes
+
+- c2e07c7: Various UI improvements to bring the data table further up the page.
+
 ## 1.0.0-beta.10
 
 ### Patch Changes
