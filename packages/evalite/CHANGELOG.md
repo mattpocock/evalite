@@ -1,5 +1,11 @@
 # evalite
 
+## 1.0.0-beta.10
+
+### Patch Changes
+
+- 3e0a32e: Added variant to the table displayed in the CLI
+
 ## 1.0.0-beta.9
 
 ### Patch Changes
