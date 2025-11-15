@@ -159,16 +159,15 @@ function EvalTableRow({
         </>
       ) : (
         <>
-          {(!trialConfig || trialConfig.isFirstTrial) && (
-            <TableCell
-              rowSpan={trialConfig?.rowSpan}
-              className={cn(
-                trialConfig &&
-                  (trialConfig.isOddGroup
-                    ? "border-l-4 border-l-foreground/50"
-                    : "border-l-4 border-l-foreground/20")
-              )}
-            >
+          <TableCell
+            className={cn(
+              trialConfig &&
+                (trialConfig.isOddGroup
+                  ? "border-l-4 border-l-foreground/50"
+                  : "border-l-4 border-l-foreground/20")
+            )}
+          >
+            {trialConfig && trialConfig.isFirstTrial && (
               <DisplayInput
                 className={cn(
                   isRunningEval && "opacity-25",
@@ -178,8 +177,8 @@ function EvalTableRow({
                 shouldTruncateText
                 Wrapper={Wrapper}
               />
-            </TableCell>
-          )}
+            )}
+          </TableCell>
           <TableCell>
             <DisplayInput
               className={cn(
@@ -191,8 +190,8 @@ function EvalTableRow({
               Wrapper={Wrapper}
             />
           </TableCell>
-          {showExpectedColumn && (!trialConfig || trialConfig.isFirstTrial) && (
-            <TableCell rowSpan={trialConfig?.rowSpan}>
+          {showExpectedColumn && (
+            <TableCell>
               <DisplayInput
                 className={cn(
                   isRunningEval && "opacity-25",
