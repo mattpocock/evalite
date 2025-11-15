@@ -21,9 +21,10 @@ export const Score = (props: {
   state: ScoreState;
   iconClassName?: string;
   hasScores: boolean;
+  className?: string;
 }) => {
   return (
-    <span className="flex items-center space-x-2">
+    <span className={cn("flex items-center space-x-2", props.className)}>
       {props.state === "loading" ? (
         <span>---%</span>
       ) : !props.hasScores ? (

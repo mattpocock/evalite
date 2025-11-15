@@ -77,6 +77,7 @@ type EvalTableRowProps = {
     rowSpan: number;
     isOddGroup: boolean;
   };
+  showCacheHitColumn: boolean;
 };
 
 const makeWrapper =
@@ -114,6 +115,7 @@ function EvalTableRow({
   cacheHitCount,
   cacheHitsByScorer,
   trialConfig,
+  showCacheHitColumn,
 }: EvalTableRowProps) {
   const Wrapper = useMemo(
     () => makeWrapper({ evalIndex, timestamp, name }),
@@ -121,18 +123,22 @@ function EvalTableRow({
   );
 
   return (
-    <TableRow className={cn("has-[.active]:bg-foreground/20!")}>
-      {cacheHitCount > 0 && (
+    <TableRow
+      className={cn("has-[.active]:bg-foreground/20! text-foreground/90")}
+    >
+      {showCacheHitColumn && (
         <TableCell className="pt-4 pl-4">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Zap className="size-4 text-accent-foreground" />
-            </TooltipTrigger>
-            <TooltipContent>
-              {cacheHitCount} LLM{" "}
-              {cacheHitCount === 1 ? "call was cached" : "calls were cached"}
-            </TooltipContent>
-          </Tooltip>
+          {cacheHitCount > 0 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Zap className="size-4 text-accent-foreground" />
+              </TooltipTrigger>
+              <TooltipContent>
+                {cacheHitCount} LLM{" "}
+                {cacheHitCount === 1 ? "call was cached" : "calls were cached"}
+              </TooltipContent>
+            </Tooltip>
+          )}
         </TableCell>
       )}
       {isArrayOfRenderedColumns(_eval.rendered_columns) ? (
@@ -379,11 +385,11 @@ function SuiteComponent() {
         vscodeUrl={`vscode://file${possiblyRunningSuite.filepath}`}
         filepath={possiblyRunningSuite.filepath.split(/(\/|\\)/).slice(-1)[0]!}
       >
-        <div className="text-foreground/60 mb-10 text-sm">
+        <div className="text-foreground mb-10 text-sm">
           <h1 className="tracking-tight text-2xl mb-2 font-medium text-foreground/90">
             {name}
           </h1>
-          <div className="flex items-center">
+          <div className="flex items-center text-muted-foreground">
             <Score
               score={evalScore}
               state={getScoreState({
@@ -421,7 +427,7 @@ function SuiteComponent() {
 
         {history.length > 1 && (
           <div className="mb-10">
-            <h2 className="mb-4 font-medium text-lg text-foreground/60">
+            <h2 className="mb-4 font-medium text-lg text-foreground">
               History
             </h2>
             {history.length > 1 && (
@@ -448,7 +454,7 @@ function SuiteComponent() {
           evaluationWithoutLayoutShift.evals.length > 0 &&
           evaluationWithoutLayoutShiftScores.length > 0 && (
             <div className="mb-10">
-              <h2 className="mb-4 font-medium text-lg text-foreground/60">
+              <h2 className="mb-4 font-medium text-lg text-foreground">
                 Scores
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -474,9 +480,9 @@ function SuiteComponent() {
                   return (
                     <div
                       key={scorerName}
-                      className="border rounded-lg p-4 bg-card"
+                      className="rounded-lg p-4 bg-muted/50 border dark:border-0"
                     >
-                      <div className="text-sm text-foreground/60 mb-2">
+                      <div className="text-sm text-muted-foreground mb-2">
                         {scorerName}
                       </div>
                       <div className="flex items-center justify-between">
@@ -502,7 +508,7 @@ function SuiteComponent() {
             <div className="flex-shrink-0">
               <XCircleIcon className="text-red-500 size-7" />
             </div>
-            <div className="text-sm text-foreground/60 gap-1 flex flex-col">
+            <div className="text-sm text-foreground gap-1 flex flex-col">
               <h3 className="font-semibold text-foreground/90 mb-1 text-lg">
                 Evaluation Failed
               </h3>
@@ -513,7 +519,7 @@ function SuiteComponent() {
         )}
         {evaluationWithoutLayoutShift && (
           <>
-            <h2 className="mb-4 font-medium text-lg text-foreground/60">
+            <h2 className="mb-4 font-medium text-lg text-foreground">
               Results
             </h2>
             <Table>
@@ -580,6 +586,7 @@ function SuiteComponent() {
                               rowSpan: group.evals.length,
                               isOddGroup: group.groupIndex % 2 === 1,
                             }}
+                            showCacheHitColumn={doAnyEvalsHaveCacheHits}
                           />
                         );
                       })
@@ -603,6 +610,7 @@ function SuiteComponent() {
                           prevSuite={prevSuite}
                           cacheHitCount={cacheHitCount}
                           cacheHitsByScorer={cacheHitsByScorer}
+                          showCacheHitColumn={doAnyEvalsHaveCacheHits}
                         />
                       );
                     })}

@@ -15,7 +15,15 @@ import { z } from "zod";
 import { zodValidator } from "@tanstack/zod-adapter";
 
 import type { Evalite } from "evalite/types";
-import { FolderOpen, Search, X, RotateCw } from "lucide-react";
+import {
+  FolderOpen,
+  Search,
+  X,
+  RotateCw,
+  DotIcon,
+  CircleDot,
+  CircleDotIcon,
+} from "lucide-react";
 import { lazy, useState } from "react";
 import Logo from "~/components/logo";
 import { getScoreState, Score, type ScoreState } from "~/components/score";
@@ -211,11 +219,11 @@ export default function App() {
           <SidebarContent>
             <SidebarGroup>
               <div className="px-2">
-                <p className="text-xs font-medium text-sidebar-foreground/70 mb-2">
+                <p className="text-xs font-medium text-muted-foreground mb-2">
                   Summary
                 </p>
                 <div className="flex items-center justify-between">
-                  <div className="text-foreground/60 font-medium text-2xl">
+                  <div className="text-foreground font-medium text-2xl">
                     <Score
                       score={score}
                       state={getScoreState({
@@ -232,10 +240,10 @@ export default function App() {
                       onClick={handleRerun}
                       disabled={serverState.type === "running" || isRerunning}
                       className={cn(
-                        "flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-colors",
+                        "flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-colors text-muted-foreground",
                         serverState.type === "running" || isRerunning
-                          ? "text-foreground/40 cursor-not-allowed"
-                          : "text-foreground/80 hover:bg-foreground/20"
+                          ? "cursor-not-allowed"
+                          : "hover:bg-foreground/20"
                       )}
                       title="Rerun all evals"
                     >
@@ -314,8 +322,7 @@ const VariantGroup = (props: {
   return (
     <>
       <SidebarMenuItem>
-        <div className="flex items-center gap-1.5 text-sm px-2 py-1 text-sidebar-foreground/70">
-          <FolderOpen className="size-4" />
+        <div className="flex items-center gap-2 text-xs px-2 py-1 text-muted-foreground">
           <span>{props.groupName}</span>
         </div>
       </SidebarMenuItem>
@@ -353,21 +360,23 @@ const EvalSidebarItem = (props: {
         to={`/suite/$name`}
         params={{ name: props.name }}
         search={{ q: search.q }}
-        className={
-          props.isVariant
-            ? "flex justify-between text-sm px-2 py-1 pl-7 rounded hover:bg-foreground/10 active:bg-foreground/20 transition-colors"
-            : "flex justify-between text-sm px-2 py-1 rounded hover:bg-foreground/10 active:bg-foreground/20 transition-colors"
-        }
+        className={cn(
+          "flex items-start text-sm px-2 py-1 text-sidebar-foreground rounded hover:bg-foreground/10 active:bg-foreground/20 transition-colors"
+        )}
         activeProps={{
-          className: "bg-foreground/20!",
+          className: "dark:bg-foreground/20 bg-foreground/10!",
         }}
       >
-        <span>{props.variantName || props.name}</span>
+        {props.isVariant && (
+          <div className="size-1.5 mr-2 bg-muted-foreground rounded-full mt-[7px]"></div>
+        )}
+        <span className="flex-1 mr-2">{props.variantName || props.name}</span>
 
         <Score
           score={props.score}
           state={props.state}
           hasScores={props.hasScores}
+          className="text-muted-foreground"
         />
       </Link>
     </SidebarMenuItem>
