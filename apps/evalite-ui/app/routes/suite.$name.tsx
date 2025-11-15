@@ -122,6 +122,12 @@ function EvalTableRow({
     [evalIndex, timestamp, name]
   );
 
+  const shouldDisplayFirstColumn =
+    // If there's no trial config, go ahead
+    !trialConfig ||
+    // If there is a trial config, and it's the first trial, go ahead
+    (trialConfig && trialConfig.isFirstTrial);
+
   return (
     <TableRow
       className={cn("has-[.active]:bg-foreground/20! text-foreground/90")}
@@ -167,7 +173,7 @@ function EvalTableRow({
                   : "border-l-4 border-l-foreground/20")
             )}
           >
-            {trialConfig && trialConfig.isFirstTrial && (
+            {shouldDisplayFirstColumn && (
               <DisplayInput
                 className={cn(
                   isRunningEval && "opacity-25",
