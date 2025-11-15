@@ -61,3 +61,25 @@ it("Should pass correct variant value to task function", async () => {
     "output-c"
   );
 });
+
+it("Should display variant column in CLI output", async () => {
+  await using fixture = await loadFixture("only-flag-variants");
+
+  await fixture.run({
+    mode: "run-once-and-exit",
+  });
+
+  const output = fixture.getOutput();
+
+  // Should contain Variant column header
+  expect(output).toContain("Variant");
+
+  // Should contain variant names in sorted order
+  expect(output).toContain("variant-a");
+  expect(output).toContain("variant-b");
+
+  // Verify variant-a appears before variant-b (sorted alphabetically)
+  const variantAIndex = output.indexOf("variant-a");
+  const variantBIndex = output.indexOf("variant-b");
+  expect(variantAIndex).toBeLessThan(variantBIndex);
+});
