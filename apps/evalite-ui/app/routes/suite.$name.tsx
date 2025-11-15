@@ -7,7 +7,8 @@ import type * as React from "react";
 
 import { DisplayInput } from "~/components/display-input";
 import { InnerPageLayout } from "~/components/page-layout";
-import { getScoreState, Score } from "~/components/score";
+import { Score } from "~/components/score";
+import { getScoreState } from "~/components/get-score-state";
 import { MyLineChart } from "~/components/ui/line-chart";
 import { LiveDate } from "~/components/ui/live-date";
 import { Separator } from "~/components/ui/separator";
@@ -149,7 +150,7 @@ function EvalTableRow({
       )}
       {isArrayOfRenderedColumns(_eval.rendered_columns) ? (
         <>
-          {_eval.rendered_columns.map((column, index) => (
+          {_eval.rendered_columns.map((column) => (
             <TableCell>
               <DisplayInput
                 className={cn(

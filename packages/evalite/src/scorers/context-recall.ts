@@ -1,7 +1,7 @@
-import { generateObject, jsonSchema, type LanguageModel } from "ai";
+import { generateObject, jsonSchema } from "ai";
+import { wrapAISDKModel } from "../ai-sdk.js";
 import type { Evalite } from "../types.js";
 import { promptBuilder } from "./prompt-builder.js";
-import { wrapAISDKModel } from "../ai-sdk.js";
 
 const ContextRecallClassificationsSchema = jsonSchema<{
   classifications: Evalite.Scorers.ContextRecallClassifications;

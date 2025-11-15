@@ -4,14 +4,15 @@ import { SidebarCloseIcon } from "lucide-react";
 import type React from "react";
 import { Fragment } from "react";
 import { DisplayInput } from "~/components/display-input";
-import { CopyButton } from "~/components/ui/copy-button";
-import { getScoreState, Score } from "~/components/score";
+import { Score } from "~/components/score";
+import { getScoreState } from "~/components/get-score-state";
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbList,
 } from "~/components/ui/breadcrumb";
 import { Button } from "~/components/ui/button";
+import { CopyButton } from "~/components/ui/copy-button";
 import { LiveDate } from "~/components/ui/live-date";
 import { Separator } from "~/components/ui/separator";
 import { cn } from "~/lib/utils";
@@ -25,7 +26,6 @@ import {
   getEvalQueryOptions,
   getServerStateQueryOptions,
 } from "~/data/queries";
-import { useServerStateUtils } from "~/hooks/use-server-state-utils";
 
 const searchSchema = z.object({
   trace: z.number().optional(),
@@ -93,7 +93,6 @@ function ResultComponent() {
     {
       data: { eval: _eval, prevEval, suite },
     },
-    { data: serverState },
   ] = useSuspenseQueries({
     queries: [
       getEvalQueryOptions({
@@ -101,10 +100,8 @@ function ResultComponent() {
         evalIndex: evalIndex!,
         suiteTimestamp: timestamp ?? null,
       }),
-      getServerStateQueryOptions,
     ],
   });
-  const serverStateUtils = useServerStateUtils(serverState);
 
   const startTime = _eval.traces[0]?.start_time ?? 0;
   const endTime = _eval.traces[_eval.traces.length - 1]?.end_time ?? 0;

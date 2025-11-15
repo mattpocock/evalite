@@ -30,7 +30,7 @@
     "dev": "tsc -w",
     "build": "tsc && chmod +x ./dist/bin.js",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc"
   },
   "exports": {
     ".": "./dist/index.js",

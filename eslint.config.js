@@ -2,6 +2,8 @@ import js from "@eslint/js";
 import { defineConfig } from "eslint/config";
 import globals from "globals";
 import tseslint from "typescript-eslint";
+import reactHooks from "eslint-plugin-react-hooks";
+import reactRefresh from "eslint-plugin-react-refresh";
 
 export default defineConfig(
   {
@@ -9,6 +11,8 @@ export default defineConfig(
       "**/dist/**",
       "**/.evalite/**",
       "**/evalite.db",
+      "**/packages/evalite-tests/**",
+      "**/packages/example/**",
       "apps/evalite-docs/.astro/**",
       "apps/evalite-docs/src/env.d.ts",
     ],
@@ -17,6 +21,10 @@ export default defineConfig(
   ...tseslint.configs.recommended,
   {
     files: ["**/*.{ts,tsx,mts,cts}"],
+    plugins: {
+      "react-hooks": reactHooks,
+      "react-refresh": reactRefresh,
+    },
     languageOptions: {
       ecmaVersion: 2022,
       globals: {
@@ -25,6 +33,7 @@ export default defineConfig(
       },
     },
     rules: {
+      ...reactHooks.configs.recommended.rules,
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unused-vars": [
         "error",

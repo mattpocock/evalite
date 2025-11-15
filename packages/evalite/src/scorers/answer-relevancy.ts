@@ -1,14 +1,7 @@
-import {
-  cosineSimilarity,
-  embedMany,
-  generateObject,
-  jsonSchema,
-  type EmbeddingModel,
-  type LanguageModel,
-} from "ai";
+import { cosineSimilarity, embedMany, generateObject, jsonSchema } from "ai";
+import { wrapAISDKModel } from "../ai-sdk.js";
 import type { Evalite } from "../types.js";
 import { promptBuilder } from "./prompt-builder.js";
-import { wrapAISDKModel } from "../ai-sdk.js";
 
 const AnswerRelevancyOutputSchema = jsonSchema<{
   question: string;

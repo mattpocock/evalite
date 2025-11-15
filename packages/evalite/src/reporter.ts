@@ -1,6 +1,6 @@
-import path from "node:path";
 import { getTestName } from "@vitest/runner/utils";
 import { parseStacktrace } from "@vitest/utils/source-map";
+import path from "node:path";
 import c from "tinyrainbow";
 import type { RunnerTestFile, TestAnnotation, UserConsoleLog } from "vitest";
 import type {
@@ -9,8 +9,6 @@ import type {
   SerializedError,
   TestCase,
   TestModule,
-  TestRunEndReason,
-  TestSuite,
   Vitest,
 } from "vitest/node";
 import { EvaliteRunner } from "./reporter/EvaliteRunner.js";
@@ -183,7 +181,7 @@ export default class EvaliteReporter implements Reporter {
     write("\n");
   }
 
-  onWatcherRerun(files: string[], trigger?: string): void {
+  onWatcherRerun(files: string[]): void {
     this.runner.sendEvent({
       type: "RUN_BEGUN",
       filepaths: files,
@@ -193,8 +191,7 @@ export default class EvaliteReporter implements Reporter {
 
   onTestRunEnd = async (
     testModules: ReadonlyArray<TestModule>,
-    unhandledErrors: ReadonlyArray<SerializedError>,
-    reason: TestRunEndReason
+    unhandledErrors: ReadonlyArray<SerializedError>
   ) => {
     this.runner.sendEvent({
       type: "RUN_ENDED",
@@ -264,11 +261,11 @@ export default class EvaliteReporter implements Reporter {
     }
   }
 
-  onTestSuiteReady(testSuite: TestSuite): void {
+  onTestSuiteReady(): void {
     return;
   }
 
-  onTestSuiteResult(testSuite: TestSuite): void {
+  onTestSuiteResult(): void {
     return;
   }
 

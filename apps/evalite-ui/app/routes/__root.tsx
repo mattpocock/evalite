@@ -11,22 +11,23 @@ import {
   Outlet,
   useRouter,
 } from "@tanstack/react-router";
-import { z } from "zod";
 import { zodValidator } from "@tanstack/zod-adapter";
+import { z } from "zod";
 
 import type { Evalite } from "evalite/types";
-import {
-  FolderOpen,
-  Search,
-  X,
-  RotateCw,
-  DotIcon,
-  CircleDot,
-  CircleDotIcon,
-} from "lucide-react";
+import { RotateCw, Search, X } from "lucide-react";
 import { lazy, useState } from "react";
 import Logo from "~/components/logo";
-import { getScoreState, Score, type ScoreState } from "~/components/score";
+import { Score, type ScoreState } from "~/components/score";
+import { getScoreState } from "~/components/get-score-state";
+import { ThemeProvider } from "~/components/theme-provider";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+  InputGroupText,
+} from "~/components/ui/input-group";
 import {
   Sidebar,
   SidebarContent,
@@ -42,17 +43,9 @@ import {
   getServerStateQueryOptions,
 } from "~/data/queries";
 import { useSubscribeToSocket } from "~/data/use-subscribe-to-socket";
-import "../tailwind.css";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput,
-  InputGroupText,
-} from "~/components/ui/input-group";
-import { isStaticMode, triggerRerun } from "~/sdk";
 import { cn } from "~/lib/utils";
-import { ThemeProvider } from "~/components/theme-provider";
+import { isStaticMode, triggerRerun } from "~/sdk";
+import "../tailwind.css";
 
 const TanStackRouterDevtools =
   process.env.NODE_ENV === "production"

@@ -1,26 +1,24 @@
+import type { UIMessage } from "ai";
 import type { Evalite } from "evalite/types";
 import { EvaliteFile } from "evalite/utils";
-import type { DynamicToolCall, StaticToolCall, UIMessage } from "ai";
 import {
   AlertCircle,
   ChevronDown,
   ChevronUp,
   DownloadIcon,
-  Code2,
-  Wrench,
 } from "lucide-react";
 import React, { Fragment, useLayoutEffect, useRef, useState } from "react";
 import { JSONTree } from "react-json-tree";
+import { cn } from "~/lib/utils";
 import { downloadFile, serveFile } from "~/sdk";
+import {
+  analyzeForSingleRowTable,
+  analyzeForTableRendering,
+  singleRowTableToMarkdown,
+  tableDataToMarkdown,
+} from "~/utils/render-detection";
 import { Response } from "./response";
 import { Button } from "./ui/button";
-import { cn } from "~/lib/utils";
-import {
-  analyzeForTableRendering,
-  analyzeForSingleRowTable,
-  tableDataToMarkdown,
-  singleRowTableToMarkdown,
-} from "~/utils/render-detection";
 
 // Helper function to find single string value in an object and its path
 const findSingleStringValue = (
@@ -75,6 +73,7 @@ const DisplayText = ({
   useLayoutEffect(() => {
     if (contentRef.current && shouldTruncateText) {
       if (contentRef.current.scrollHeight > MAX_HEIGHT) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setStatus("showing-show-more-button");
       }
     }
@@ -126,13 +125,7 @@ const DisplayText = ({
   );
 };
 
-const DisplayJSON = ({
-  input,
-  name,
-}: {
-  input: object;
-  name: string | undefined;
-}) => {
+const DisplayJSON = ({ input }: { input: object }) => {
   // Check if object has only one string value (legacy behavior)
   const singleStringResult = findSingleStringValue(input);
 
@@ -396,7 +389,7 @@ const DisplayAISDKToolCalls = ({
 
             {/* Tool input */}
             <div className="">
-              <DisplayJSON input={toolCall.input as object} name={undefined} />
+              <DisplayJSON input={toolCall.input as object} />
             </div>
           </div>
         );
@@ -445,6 +438,7 @@ const DisplayUIMessages = ({ messages }: { messages: UIMessage[] }) => {
   useLayoutEffect(() => {
     if (contentRef.current) {
       if (contentRef.current.scrollHeight > MAX_HEIGHT) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setStatus("showing-show-more-button");
       }
     }
@@ -496,7 +490,7 @@ const DisplayUIMessages = ({ messages }: { messages: UIMessage[] }) => {
                       <div className="text-xs uppercase font-mono text-muted-foreground mb-1">
                         {part.type}
                       </div>
-                      <DisplayJSON input={part} name={part.type} />
+                      <DisplayJSON input={part} />
                     </div>
                   );
                 })}
@@ -591,7 +585,7 @@ export const DisplayInput = (props: {
   if (typeof props.input === "object" && props.input !== null) {
     return (
       <Wrapper className={props.className}>
-        <DisplayJSON input={props.input} name={props.name} />
+        <DisplayJSON input={props.input} />
       </Wrapper>
     );
   }

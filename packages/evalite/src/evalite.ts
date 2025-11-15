@@ -69,7 +69,7 @@ const runTask = async <TInput, TOutput, TExpected, TVariant = undefined>(
   const duration = Math.round(performance.now() - start);
 
   const scores = await Promise.all(
-    (opts.scorers || []).map(async (scorerOrOpts, index) => {
+    (opts.scorers || []).map(async (scorerOrOpts) => {
       // Isolate scorer traces - LLM calls in scorers still get traced
       // but traces are discarded (not collected in parent eval)
       return reportTraceLocalStorage.run(
@@ -388,7 +388,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
 
         try {
           // Pass raw data (from closure) to scorers - allows non-serializable data
-          const { output, scores, duration, columns } = await runTask({
+          const { output, scores, columns } = await runTask({
             expected: data.expected,
             input: data.input,
             variant: undefined,

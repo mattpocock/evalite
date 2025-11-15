@@ -10,7 +10,7 @@ evalite("Exact Match", {
       },
     },
   ],
-  task: async (input) => {
+  task: async () => {
     return "Paris is the capital of France";
   },
   scorers: [

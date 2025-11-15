@@ -1,12 +1,5 @@
-import { createContext, useState } from "react";
-
-export const ThemeContext = createContext<{
-  theme: "light" | "dark" | "system";
-  setTheme: (theme: "light" | "dark") => void;
-}>({
-  theme: "system",
-  setTheme: () => {},
-});
+import { useState } from "react";
+import { ThemeContext } from "./theme-context";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<"light" | "dark">(() => {

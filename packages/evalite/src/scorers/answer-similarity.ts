@@ -1,4 +1,4 @@
-import { cosineSimilarity, embedMany, type EmbeddingModel } from "ai";
+import { cosineSimilarity, embedMany } from "ai";
 import type { Evalite } from "../types.js";
 
 /**
