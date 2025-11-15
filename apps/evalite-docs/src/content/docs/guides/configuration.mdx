@@ -85,3 +85,56 @@ export default defineConfig({
 ```
 
 This allows you to reuse your existing Vitest configuration file and plugins if needed.
+
+## TypeScript Path Aliases
+
+If you're using TypeScript path aliases in your `tsconfig.json`, Evalite can't read them by default.
+
+For example, in a Next.js app, you might have:
+
+```json
+// tsconfig.json
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./*"]
+    }
+  }
+}
+```
+
+You'll need to configure Evalite to resolve these paths - by passing the `viteConfig` option.
+
+<Steps>
+
+1. Install `vite-tsconfig-paths`:
+
+   ```bash
+   pnpm add -D vite-tsconfig-paths
+   ```
+
+2. Create a `vite.config.ts` file:
+
+   ```ts
+   // vite.config.ts
+   import { defineConfig } from "vite";
+   import tsconfigPaths from "vite-tsconfig-paths";
+
+   export default defineConfig({
+     plugins: [tsconfigPaths()],
+   });
+   ```
+
+3. Pass this config to Evalite:
+
+   ```ts
+   // evalite.config.ts
+   import viteConfig from "./vite.config.ts";
+   import { defineConfig } from "evalite/config";
+
+   export default defineConfig({
+     viteConfig,
+   });
+   ```
+
+</Steps>
