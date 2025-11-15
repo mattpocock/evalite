@@ -338,6 +338,7 @@ export class EvaliteRunner {
           default:
             this.reportInvalidStateOccurred(event);
         }
+        break;
       case "idle": {
         switch (event.type) {
           case "RUN_BEGUN":
