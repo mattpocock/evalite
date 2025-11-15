@@ -1,5 +1,10 @@
-import { expect, it } from "vitest";
-import { getSuitesAsRecordViaStorage, loadFixture } from "./test-utils.js";
+import { expect, it, vitest } from "vitest";
+import {
+  getSuitesAsRecordViaStorage,
+  loadFixture,
+  overrideConsoleError,
+  overrideExit,
+} from "./test-utils.js";
 
 it("testTimeout in evalite.config.ts should be applied", async () => {
   await using fixture = await loadFixture("config-timeout");
@@ -102,4 +107,24 @@ it("should throw error if viteConfig.test.setupFiles is set", async () => {
       mode: "run-once-and-exit",
     })
   ).rejects.toThrow(/setupFiles.*evalite\.config\.ts/i);
+});
+
+it("should throw error for module resolution errors in evalite.config.ts", async () => {
+  await using fixture = await loadFixture("config-module-resolution-error");
+
+  const exit = vitest.fn();
+  using _ = overrideExit(exit);
+
+  const consoleError = vitest.fn();
+  using _2 = overrideConsoleError(consoleError);
+
+  await fixture.run({
+    mode: "run-once-and-exit",
+  });
+
+  expect(consoleError).toHaveBeenCalledWith(
+    expect.stringContaining("Failed to load Evalite config")
+  );
+
+  expect(exit).toHaveBeenCalledWith(1);
 });

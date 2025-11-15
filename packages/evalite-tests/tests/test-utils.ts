@@ -139,6 +139,18 @@ export const overrideExit = (exit: (code: number) => void) => {
   };
 };
 
+export const overrideConsoleError = (
+  consoleError: (message: string) => void
+) => {
+  const existingConsoleError = console.error;
+  console.error = consoleError;
+  return {
+    [Symbol.dispose]: () => {
+      console.error = existingConsoleError;
+    },
+  };
+};
+
 export interface SuiteWithInlineResults extends Evalite.Storage.Entities.Suite {
   evals: EvalWithInlineScoresAndTraces[];
 }

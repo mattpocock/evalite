@@ -1,4 +1,5 @@
 import { createJiti } from "jiti";
+import { access } from "fs/promises";
 import path from "path";
 import type { Evalite } from "./types.js";
 
@@ -49,6 +50,16 @@ export async function loadEvaliteConfig(
   for (const fileName of CONFIG_FILE_NAMES) {
     const configPath = path.join(cwd, fileName);
 
+    // Check if file exists using filesystem
+    try {
+      await access(configPath);
+    } catch {
+      // File doesn't exist, try next config file name
+      continue;
+    }
+
+    // File exists, so attempt to load it
+    // Any errors here are unexpected (syntax, module resolution, etc)
     try {
       const loaded = (await jiti.import(configPath)) as any;
       const config = loaded.default || loaded.evalite || loaded;
@@ -57,18 +68,9 @@ export async function loadEvaliteConfig(
         return config as Evalite.Config;
       }
     } catch (error: any) {
-      // File not found is expected, ignore it
-      if (
-        error.code === "ERR_MODULE_NOT_FOUND" ||
-        error.code === "ENOENT" ||
-        error.message?.includes("Cannot find module")
-      ) {
-        continue;
-      }
-      // Other errors (syntax errors, etc) should be thrown
-      throw new Error(
-        `Failed to load Evalite config from ${configPath}: ${error.message}`
-      );
+      console.error(`Failed to load Evalite config from ${configPath}`);
+      console.error(error);
+      process.exit(1);
     }
   }
 
