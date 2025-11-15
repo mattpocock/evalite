@@ -1,5 +1,11 @@
 # evalite
 
+## 1.0.0-beta.8
+
+### Patch Changes
+
+- df561c2: Made visual improvements to the UI, balancing colours and improving JSON output.
+
 ## 1.0.0-beta.7
 
 ### Patch Changes
