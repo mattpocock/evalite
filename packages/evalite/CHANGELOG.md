@@ -1,5 +1,11 @@
 # evalite
 
+## 1.0.0-beta.14
+
+### Patch Changes
+
+- f2a8460: A further fix for the strange env-setup-file.ts error.
+
 ## 1.0.0-beta.13
 
 ### Patch Changes
