@@ -1,5 +1,6 @@
-import type { TestUserConfig } from "vitest/config";
-import type { LanguageModelV2, EmbeddingModelV2 } from "@ai-sdk/provider";
+import type { EmbeddingModelV2, LanguageModelV2 } from "@ai-sdk/provider";
+import type { ViteUserConfig } from "vitest/config";
+import type { TestUserConfig } from "vitest/node";
 
 export declare namespace Evalite {
   export type StrictOmit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
@@ -138,7 +139,7 @@ export declare namespace Evalite {
      * })
      * ```
      */
-    viteConfig?: {
+    viteConfig?: StrictOmit<ViteUserConfig, "test"> & {
       test?: StrictOmit<
         TestUserConfig,
         | "testTimeout"
