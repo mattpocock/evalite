@@ -1,5 +1,11 @@
 # evalite
 
+## 1.0.0-beta.13
+
+### Patch Changes
+
+- 04bee19: Fixed confusing message when running Evalite regarding env-setup-file.
+
 ## 1.0.0-beta.12
 
 ### Patch Changes
