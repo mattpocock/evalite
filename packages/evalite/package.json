@@ -24,7 +24,8 @@
   },
   "files": [
     "./dist/*",
-    "./tsconfig-warning/*"
+    "./tsconfig-warning/*",
+    "./setup-files/*"
   ],
   "scripts": {
     "dev": "tsc -w",
@@ -47,7 +48,7 @@
     "./export-static": "./dist/export-static.js",
     "./sqlite-storage": "./dist/storage/sqlite.js",
     "./in-memory-storage": "./dist/storage/in-memory.js",
-    "./env-setup-file": "./dist/env-setup-file.js",
+    "./env-setup-file": "./setup-files/env.js",
     "./scorers": "./dist/scorers/index.js",
     "./scorers/deterministic": "./dist/scorers/deterministic.js",
     "./_internal": "./dist/internal.js"
