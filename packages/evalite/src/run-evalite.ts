@@ -355,7 +355,7 @@ export const runEvalite = async (opts: {
 
   await vitest.start(filters);
 
-  const dispose = registerConsoleShortcuts(
+  const disposeConsoleShortcuts = registerConsoleShortcuts(
     vitest,
     process.stdin,
     process.stdout
@@ -378,8 +378,10 @@ export const runEvalite = async (opts: {
     vitest.shouldKeepServer() || opts.mode === "run-once-and-serve";
 
   if (!shouldKeepRunning) {
-    dispose();
+    disposeConsoleShortcuts();
     await vitest.close();
+
+    await server?.stop();
 
     if (opts.outputPath) {
       await exportResultsToJSON({
@@ -394,5 +396,5 @@ export const runEvalite = async (opts: {
     }
   }
 
-  return { vitest, rerun };
+  return { vitest };
 };

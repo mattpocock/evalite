@@ -561,5 +561,8 @@ export const createServer = (opts: { storage: Evalite.Storage }) => {
     setRerunFn: (fn: () => Promise<void>) => {
       rerunFn = fn;
     },
+    stop: () => {
+      return server.close();
+    },
   };
 };

@@ -4,9 +4,10 @@ import { createInMemoryStorage } from "evalite/in-memory-storage";
 import { runEvalite } from "evalite/runner";
 import { createSqliteStorage } from "evalite/sqlite-storage";
 import { readdir, readFile } from "node:fs/promises";
+import { Server } from "node:http";
 import path from "node:path";
 import { assert, expect, it } from "vitest";
-import { getSuitesAsRecordViaStorage, loadFixture } from "./test-utils.js";
+import { loadFixture } from "./test-utils.js";
 
 it("Should export all required files and directory structure", async () => {
   await using fixture = await loadFixture("export");
@@ -428,3 +429,24 @@ it("Should calculate summary score correctly in menu-items.json (issue 331)", as
   const expectedAverage = (0.5 + 1.0 + 1.0) / 3;
   expect(menuItemsData.score).toBeCloseTo(expectedAverage, 5);
 });
+
+it("Should not hang endlessly", async () => {
+  await using fixture = await loadFixture("export");
+
+  const exportDir = path.join(fixture.dir, "evalite-export");
+
+  await exportCommand({
+    cwd: fixture.dir,
+    storage: fixture.storage,
+    outputPath: exportDir,
+  });
+
+  // Get all the active handles
+  const activeHandles = (process as any)._getActiveHandles();
+
+  const areAnyHandlesOfServerType = activeHandles.some(
+    (handle: any) => handle instanceof Server
+  );
+
+  expect(areAnyHandlesOfServerType).toBe(false);
+}, 1000);

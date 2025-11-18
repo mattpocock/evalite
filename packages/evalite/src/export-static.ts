@@ -181,7 +181,6 @@ export const exportCommand = async (opts: {
   if (isEmpty) {
     console.log("Storage is empty. Running evaluations first...");
     await runEvalite({
-      path: undefined,
       cwd: opts.cwd,
       mode: "run-once",
       storage: opts.storage,
