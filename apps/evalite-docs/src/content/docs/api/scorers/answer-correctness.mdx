@@ -1,0 +1,155 @@
+---
+title: answerCorrectness
+---
+
+Checks if your AI's answer is correct by comparing it to a reference answer. Combines factual accuracy (75%) and semantic similarity (25%) by default.
+
+**When to use**: When you need comprehensive answer evaluation that balances exact correctness with semantic equivalence. Ideal for QA systems where both factual accuracy and meaning matter.
+
+**When NOT to use**: If you only care about exact facts (use [faithfulness](/api/scorers/faithfulness)), or only semantic similarity (use `answerSimilarity`). Not suitable for creative tasks where divergence from reference is desired.
+
+## Example
+
+```ts
+import { openai } from "@ai-sdk/openai";
+import { evalite } from "evalite";
+import { answerCorrectness } from "evalite/scorers";
+
+evalite("Answer Correctness", {
+  data: [
+    {
+      input: "What is the capital of France?",
+      expected: {
+        reference: "Paris is the capital of France.",
+      },
+    },
+    {
+      input: "Who invented the telephone?",
+      expected: {
+        reference:
+          "Alexander Graham Bell invented the telephone. The telephone was patented in 1876.",
+      },
+    },
+  ],
+  task: async (input) => {
+    // Your AI task here
+    return "Paris is the capital of France and has many museums.";
+  },
+  scorers: [
+    {
+      scorer: ({ input, output, expected }) =>
+        answerCorrectness({
+          question: input,
+          answer: output,
+          reference: expected.reference,
+          model: openai("gpt-4o-mini"),
+          embeddingModel: openai.embedding("text-embedding-3-small"),
+        }),
+    },
+  ],
+});
+```
+
+## Signature
+
+```ts
+function answerCorrectness(opts: {
+  question: string;
+  answer: string;
+  reference: string;
+  model: LanguageModel;
+  embeddingModel: EmbeddingModel;
+  weights?: [number, number];
+  beta?: number;
+}): Promise<{
+  name: string;
+  description: string;
+  score: number;
+  metadata: {
+    classification: {
+      TP: Array<{ statement: string; reason: string }>;
+      FP: Array<{ statement: string; reason: string }>;
+      FN: Array<{ statement: string; reason: string }>;
+    };
+    factualityScore: number;
+    similarityScore: number;
+    responseStatements: string[];
+    referenceStatements: string[];
+  };
+}>;
+```
+
+## Parameters
+
+### question
+
+**Type:** `string`
+
+The question being asked.
+
+### answer
+
+**Type:** `string`
+
+The AI's answer to evaluate.
+
+### reference
+
+**Type:** `string`
+
+Reference answer for comparison. Should be a complete, accurate answer.
+
+### model
+
+**Type:** `LanguageModel`
+
+Language model to use for evaluation.
+
+### embeddingModel
+
+**Type:** `EmbeddingModel`
+
+Embedding model to use for semantic similarity calculation.
+
+### weights (optional)
+
+**Type:** `[number, number]`
+**Default:** `[0.75, 0.25]`
+
+Weights for combining factuality and similarity scores: `[factualityWeight, similarityWeight]`. Default weighs factual accuracy at 75% and semantic similarity at 25%.
+
+### beta (optional)
+
+**Type:** `number`
+**Default:** `1.0`
+
+Beta parameter for F-beta score calculation. `beta > 1` favors recall (catching all reference statements), `beta < 1` favors precision (avoiding false positives).
+
+import { Aside } from "@astrojs/starlight/components";
+
+<Aside>
+  This scorer requires the AI SDK. This example uses OpenAI's models via
+  `@ai-sdk/openai`. The AI SDK supports [many
+  providers](https://sdk.vercel.ai/providers/ai-sdk-providers) including
+  Anthropic, Google, Mistral, and more.
+</Aside>
+
+## Return Value
+
+Returns an object with:
+
+- `name`: "Answer Correctness"
+- `description`: Description of what was evaluated
+- `score`: Number between 0-1 (weighted combination of factuality and similarity)
+- `metadata`: Object containing:
+  - `classification`: TP (true positives), FP (false positives), FN (false negatives) with statements and reasons
+  - `factualityScore`: F-beta score based on statement classification
+  - `similarityScore`: Cosine similarity between embeddings
+  - `responseStatements`: Decomposed statements from the answer
+  - `referenceStatements`: Decomposed statements from the reference
+
+## See Also
+
+- [createScorer()](/api/create-scorer)
+- [faithfulness](/api/scorers/faithfulness)
+- [exactMatch](/api/scorers/exact-match)

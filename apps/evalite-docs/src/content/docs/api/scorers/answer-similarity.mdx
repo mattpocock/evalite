@@ -1,0 +1,99 @@
+---
+title: answerSimilarity
+---
+
+Checks how similar your AI's answer is to the expected answer in meaning (not exact words). This is a "soft" comparison using embeddings and cosine similarity.
+
+**When to use**: When there are many valid ways to express the correct answer, and you want to allow flexibility in phrasing. Good for cases where multiple phrasings are valid.
+
+**When NOT to use**: When you need to verify specific facts (use answerCorrectness or faithfulness), or need exact matches (use exactMatch).
+
+## Example
+
+```ts
+import { openai } from "@ai-sdk/openai";
+import { evalite } from "evalite";
+import { answerSimilarity } from "evalite/scorers";
+
+evalite("Answer Similarity", {
+  data: [
+    {
+      input: "What is the capital of France?",
+      expected: {
+        reference: "Paris is the capital of France.",
+      },
+    },
+  ],
+  task: async (input) => {
+    return "The capital city of France is Paris.";
+  },
+  scorers: [
+    {
+      scorer: ({ output, expected }) =>
+        answerSimilarity({
+          answer: output,
+          reference: expected.reference,
+          embeddingModel: openai.embedding("text-embedding-3-small"),
+        }),
+    },
+  ],
+});
+```
+
+## Signature
+
+```ts
+async function answerSimilarity(opts: {
+  answer: string;
+  reference: string;
+  embeddingModel: EmbeddingModel;
+}): Promise<{
+  name: string;
+  description: string;
+  score: number;
+}>;
+```
+
+## Parameters
+
+### answer
+
+**Type:** `string`
+
+The AI's answer to evaluate.
+
+### reference
+
+**Type:** `string`
+
+Reference answer for comparison (complete, accurate answer).
+
+### embeddingModel
+
+**Type:** `EmbeddingModel`
+
+Embedding model to use for semantic similarity. Supports any AI SDK embedding model.
+
+import { Aside } from "@astrojs/starlight/components";
+
+<Aside>
+  This scorer requires the AI SDK. This example uses OpenAI's embeddings via
+  `@ai-sdk/openai`. The AI SDK supports [many
+  providers](https://sdk.vercel.ai/providers/ai-sdk-providers) including
+  Anthropic, Google, Mistral, and more.
+</Aside>
+
+## Return Value
+
+Returns an object with:
+
+- `name`: "Answer Similarity"
+- `description`: Description of what was evaluated
+- `score`: Number between 0-1 (cosine similarity between embeddings)
+
+## See Also
+
+- [createScorer()](/api/create-scorer)
+- [exactMatch](/api/scorers/exact-match)
+- [answerCorrectness](/api/scorers/answer-correctness)
+- [SAS Paper](https://arxiv.org/pdf/2108.06130.pdf) - Research paper this scorer is based on

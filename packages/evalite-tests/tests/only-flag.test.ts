@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
+import { getSuitesAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Should run only the marked entry when only: true is present", async () => {
   await using fixture = await loadFixture("only-flag-single");
@@ -8,13 +8,13 @@ it("Should run only the marked entry when only: true is present", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+  const suites = await getSuitesAsRecordViaStorage(fixture.storage);
 
   // Should only have 1 result (the one with only: true)
-  expect(evals["Only Flag Single"]?.[0]?.results).toHaveLength(1);
+  expect(suites["Only Flag Single"]?.[0]?.evals).toHaveLength(1);
 
   // Verify it's the correct entry (input "c")
-  expect(evals["Only Flag Single"]?.[0]?.results[0]?.input).toBe("c");
+  expect(suites["Only Flag Single"]?.[0]?.evals[0]?.input).toBe("c");
 });
 
 it("Should run all entries when no only: true is present", async () => {
@@ -24,13 +24,13 @@ it("Should run all entries when no only: true is present", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+  const suites = await getSuitesAsRecordViaStorage(fixture.storage);
 
   // Should have all 3 results
-  expect(evals["Only Flag None"]?.[0]?.results).toHaveLength(3);
+  expect(suites["Only Flag None"]?.[0]?.evals).toHaveLength(3);
 
   // Verify all inputs are present
-  const inputs = evals["Only Flag None"]?.[0]?.results.map((r) => r.input);
+  const inputs = suites["Only Flag None"]?.[0]?.evals.map((r) => r.input);
   expect(inputs).toEqual(expect.arrayContaining(["a", "b", "c"]));
 });
 
@@ -41,13 +41,13 @@ it("Should run multiple entries when multiple only: true are present", async () 
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
 
   // Should only have 2 results (the ones with only: true)
-  expect(evals["Only Flag Multiple"]?.[0]?.results).toHaveLength(2);
+  expect(evals["Only Flag Multiple"]?.[0]?.evals).toHaveLength(2);
 
   // Verify it's the correct entries (input "b" and "d")
-  const inputs = evals["Only Flag Multiple"]?.[0]?.results.map((r) => r.input);
+  const inputs = evals["Only Flag Multiple"]?.[0]?.evals.map((r) => r.input);
   expect(inputs).toEqual(expect.arrayContaining(["b", "d"]));
 });
 
@@ -71,16 +71,38 @@ it("Should work with variants when only: true is present", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
 
   // Should have 2 evals (one per variant), each with 1 result
   const variantAEval = evals["Only Flag Variants [variant-a]"];
   const variantBEval = evals["Only Flag Variants [variant-b]"];
 
-  expect(variantAEval?.[0]?.results).toHaveLength(1);
-  expect(variantBEval?.[0]?.results).toHaveLength(1);
+  expect(variantAEval?.[0]?.evals).toHaveLength(1);
+  expect(variantBEval?.[0]?.evals).toHaveLength(1);
 
   // Verify the correct entry ran for each variant
-  expect(variantAEval?.[0]?.results[0]?.input).toBe("test2");
-  expect(variantBEval?.[0]?.results[0]?.input).toBe("test2");
+  expect(variantAEval?.[0]?.evals[0]?.input).toBe("test2");
+  expect(variantBEval?.[0]?.evals[0]?.input).toBe("test2");
+});
+
+it("Should only run marked variant when only: true is on variant", async () => {
+  await using fixture = await loadFixture("only-flag-variants-only");
+
+  await fixture.run({
+    mode: "run-once-and-exit",
+  });
+
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
+
+  // Should only have variant-b (marked with only: true)
+  expect(evals["Only Flag Variants Only [variant-a]"]).toBeUndefined();
+  expect(evals["Only Flag Variants Only [variant-b]"]?.[0]?.evals).toHaveLength(
+    3
+  );
+
+  // Verify all data ran for variant-b
+  const inputs = evals["Only Flag Variants Only [variant-b]"]?.[0]?.evals.map(
+    (r) => r.input
+  );
+  expect(inputs).toEqual(expect.arrayContaining(["test1", "test2", "test3"]));
 });

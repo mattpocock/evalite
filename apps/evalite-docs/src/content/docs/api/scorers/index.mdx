@@ -1,0 +1,59 @@
+---
+title: Built-in Scorers
+---
+
+Ready-to-use scorer functions for common evaluation patterns. Import from `evalite/scorers`.
+
+```ts
+import { exactMatch, faithfulness, toolCallAccuracy } from "evalite/scorers";
+```
+
+Evalite's built-in scorers are deeply integrated with the [Vercel AI SDK](https://sdk.vercel.ai/), making it easy to evaluate LLM outputs using standardized models and embeddings.
+
+Many scorers require AI SDK models for LLM-based evaluation. Evalite makes these cheap to use by caching their results with [wrapAISDKModel](/api/ai-sdk).
+
+## String Scorers
+
+Simple deterministic scorers for text matching. No AI SDK required.
+
+- [**exactMatch**](/api/scorers/exact-match) - Exact string comparison
+- [**contains**](/api/scorers/contains) - Substring matching
+- [**levenshtein**](/api/scorers/levenshtein) - Fuzzy string matching with edit distance
+
+## RAG Scorers
+
+LLM-based scorers for evaluating retrieval-augmented generation systems. Require AI SDK models.
+
+- [**faithfulness**](/api/scorers/faithfulness) - Detects hallucinations by checking if answers stick to provided context
+- [**answerSimilarity**](/api/scorers/answer-similarity) - Measures semantic similarity between answers using embeddings
+- [**answerCorrectness**](/api/scorers/answer-correctness) - Comprehensive evaluation combining factual accuracy and semantic similarity
+- [**answerRelevancy**](/api/scorers/answer-relevancy) - Checks if AI actually answered the question (vs going off-topic)
+- [**contextRecall**](/api/scorers/context-recall) - Evaluates if retrieval system found the right documents
+
+## Advanced Scorers
+
+Specialized scorers for specific use cases.
+
+- [**toolCallAccuracy**](/api/scorers/tool-call-accuracy) - Verifies AI is calling correct functions with correct parameters
+- [**noiseSensitivity**](/api/scorers/noise-sensitivity) - Diagnoses if AI is misled by irrelevant documents in RAG systems
+
+## Quick Reference
+
+| Scorer            | AI SDK Required        | Use Case                      |
+| ----------------- | ---------------------- | ----------------------------- |
+| exactMatch        | No                     | Exact string matching         |
+| contains          | No                     | Substring matching            |
+| levenshtein       | No                     | Fuzzy string matching         |
+| faithfulness      | Yes (LLM)              | RAG hallucination detection   |
+| answerSimilarity  | Yes (Embeddings)       | Semantic similarity           |
+| answerCorrectness | Yes (LLM + Embeddings) | Comprehensive evaluation      |
+| answerRelevancy   | Yes (LLM + Embeddings) | On-topic checking             |
+| contextRecall     | Yes (LLM)              | Retrieval quality             |
+| toolCallAccuracy  | No                     | Function calling verification |
+| noiseSensitivity  | Yes (LLM)              | RAG debugging                 |
+
+## See Also
+
+- [Scorers Guide](/guides/scorers) - Learn how to create custom scorers
+- [createScorer()](/api/create-scorer) - API for building reusable scorers
+- [Vercel AI SDK](/tips/vercel-ai-sdk) - AI SDK integration guide

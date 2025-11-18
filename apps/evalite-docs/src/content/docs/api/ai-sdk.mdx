@@ -1,0 +1,182 @@
+---
+title: AI SDK
+---
+
+Evalite integrates deeply with the Vercel AI SDK to provide automatic tracing and caching of all LLM calls.
+
+## `wrapAISDKModel()`
+
+Wraps a Vercel AI SDK model to enable automatic tracing and caching of all LLM calls.
+
+```typescript
+import { openai } from "@ai-sdk/openai";
+import { generateText } from "ai";
+import { evalite } from "evalite";
+import { wrapAISDKModel } from "evalite/ai-sdk";
+
+// Wrap the model
+const model = wrapAISDKModel(openai("gpt-4o-mini"));
+
+evalite("My Eval", {
+  data: [{ input: "Hello", expected: "Hi" }],
+  task: async (input) => {
+    // All calls are automatically traced and cached
+    const result = await generateText({
+      model,
+      prompt: input,
+    });
+
+    return result.text;
+  },
+});
+```
+
+### Signature
+
+```typescript
+wrapAISDKModel(
+  model: LanguageModelV2,
+  options?: {
+    tracing?: boolean;
+    caching?: boolean;
+  }
+): LanguageModelV2
+```
+
+**Parameters:**
+
+- `model` - A Vercel AI SDK language model (from `@ai-sdk/openai`, `@ai-sdk/anthropic`, etc.)
+- `options` (optional) - Configuration options:
+  - `tracing` - Enable automatic trace capture (default: `true`)
+  - `caching` - Enable response caching (default: `true`)
+
+**Returns:** A wrapped model with the same interface as the original.
+
+### Disabling Tracing
+
+```typescript
+const model = wrapAISDKModel(openai("gpt-4o-mini"), {
+  tracing: false, // Disable automatic traces for this model
+});
+```
+
+### Disabling Caching
+
+```typescript
+const model = wrapAISDKModel(openai("gpt-4o-mini"), {
+  caching: false, // Disable caching for this model
+});
+```
+
+## What Gets Captured
+
+### Tracing
+
+When tracing is enabled, `wrapAISDKModel` automatically captures:
+
+- Full prompt/messages sent to the model
+- Model responses (text and tool calls)
+- Token usage (input, output, total)
+- Timing information (start/end timestamps)
+
+Traces appear in the Evalite UI under each test case.
+
+### Caching
+
+When caching is enabled, `wrapAISDKModel` automatically:
+
+- Generates cache keys from model + parameters + prompt
+- Checks cache before making LLM calls
+- Returns cached responses (0 tokens used) on cache hits
+- Stores new responses in cache for future runs
+- Reports cache hits to the UI
+
+Cache hits are then tracked and displayed in the UI.
+
+### Persistent Caching
+
+By default, Evalite's uses an in-memory [storage](/guides/storage), both for caching and for storing results.
+
+If you want to persist the cache across runs, you can use the SQLite storage adapter.
+
+```ts
+// evalite.config.ts
+import { defineConfig } from "evalite/config";
+import { createSqliteStorage } from "evalite/sqlite-storage";
+
+export default defineConfig({
+  storage: () => createSqliteStorage("./evalite.db"),
+});
+```
+
+## Works With All AI SDK Methods
+
+`wrapAISDKModel` works with all Vercel AI SDK methods:
+
+**Generate:**
+
+```typescript
+import { generateText } from "ai";
+
+const result = await generateText({
+  model: wrapAISDKModel(openai("gpt-4")),
+  prompt: "Hello",
+});
+```
+
+**Stream:**
+
+```typescript
+import { streamText } from "ai";
+
+const result = await streamText({
+  model: wrapAISDKModel(openai("gpt-4")),
+  prompt: "Hello",
+});
+
+const text = await result.text;
+```
+
+**Generate Object:**
+
+```typescript
+import { generateObject } from "ai";
+import { z } from "zod";
+
+const result = await generateObject({
+  model: wrapAISDKModel(openai("gpt-4")),
+  schema: z.object({ name: z.string() }),
+  prompt: "Generate a person",
+});
+```
+
+**Stream Object:**
+
+```typescript
+import { streamObject } from "ai";
+import { z } from "zod";
+
+const result = await streamObject({
+  model: wrapAISDKModel(openai("gpt-4")),
+  schema: z.object({ name: z.string() }),
+  prompt: "Generate a person",
+});
+
+const object = await result.object;
+```
+
+## Behavior in Production
+
+`wrapAISDKModel` is a no-op when called outside an Evalite context:
+
+- Tracing: No traces are captured (no performance overhead)
+- Caching: No cache reads or writes occur (normal LLM behavior)
+
+This means you can safely use `wrapAISDKModel` in production code without any performance impact.
+
+## See Also
+
+- [Vercel AI SDK Guide](/tips/vercel-ai-sdk) - Complete integration guide with examples
+- [`reportTrace()` Reference](/api/report-trace) - Manual trace reporting for non-AI SDK calls
+- [Configuration Guide](/guides/configuration) - Global cache configuration options
+- [CLI Reference](/api/cli) - Command-line flags for controlling cache behavior

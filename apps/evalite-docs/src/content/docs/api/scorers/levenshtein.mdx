@@ -1,0 +1,92 @@
+---
+title: levenshtein
+---
+
+Measures string similarity using Levenshtein distance (edit distance), normalized to a 0-1 score. Returns a score from 0 to 1, where 1 means identical strings and 0 means completely different.
+
+**When to use**: For fuzzy string matching when you want to tolerate small typos, spelling variations, or minor differences. Useful for testing outputs that should be close but not necessarily exact.
+
+**When NOT to use**: When exact matches are required (use exactMatch) or when you need semantic similarity that understands meaning (use answerSimilarity).
+
+:::note
+Most scorers in Evalite depend on models or embedding models from the AI SDK. This scorer doesn't require the AI SDK, so if you're not using it, you can import from `evalite/scorers/deterministic` instead.
+:::
+
+## Example
+
+```ts
+import { evalite } from "evalite";
+import { levenshtein } from "evalite/scorers/deterministic";
+
+evalite("Levenshtein", {
+  data: [
+    {
+      input: "What is the capital of France?",
+      expected: {
+        reference: "Paris",
+      },
+    },
+  ],
+  task: async (input) => {
+    return "Pari"; // Typo - missing 's'
+  },
+  scorers: [
+    {
+      scorer: ({ output, expected }) =>
+        levenshtein({
+          actual: output,
+          expected: expected.reference,
+        }),
+    },
+  ],
+});
+```
+
+In this example, the output "Pari" compared to expected "Paris" would score 0.8 (4 matching characters out of 5 maximum length).
+
+## Signature
+
+```ts
+async function levenshtein(opts: {
+  actual: string;
+  expected: string;
+}): Promise<{
+  name: string;
+  description: string;
+  score: number;
+}>;
+```
+
+## Parameters
+
+### actual
+
+**Type:** `string`
+
+The actual output to check.
+
+### expected
+
+**Type:** `string`
+
+The expected string to compare against.
+
+## How it works
+
+The score is calculated as:
+
+```
+score = 1 - (edit_distance / max_length)
+```
+
+Where:
+
+- `edit_distance` is the minimum number of single-character edits (insertions, deletions, substitutions) needed to change one string into the other
+- `max_length` is the length of the longer string
+
+## See Also
+
+- [createScorer()](/api/create-scorer)
+- [exactMatch](/api/scorers/exact-match)
+- [contains](/api/scorers/contains)
+- [answerSimilarity](/api/scorers/answer-similarity)

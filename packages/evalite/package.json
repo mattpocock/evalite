@@ -1,6 +1,6 @@
 {
   "name": "evalite",
-  "version": "0.19.0",
+  "version": "1.0.0-beta.15",
   "type": "module",
   "description": "Test your LLM-powered apps with a TypeScript-native, Vitest-based eval runner. No API key required.",
   "homepage": "https://evalite.dev",
@@ -24,12 +24,14 @@
   },
   "files": [
     "./dist/*",
-    "./tsconfig-warning/*"
+    "./tsconfig-warning/*",
+    "./setup-files/*"
   ],
   "scripts": {
     "dev": "tsc -w",
     "build": "tsc && chmod +x ./dist/bin.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "typecheck": "tsc"
   },
   "exports": {
     ".": "./dist/index.js",
@@ -45,28 +47,47 @@
     "./runner": "./dist/run-evalite.js",
     "./export-static": "./dist/export-static.js",
     "./sqlite-storage": "./dist/storage/sqlite.js",
-    "./in-memory-storage": "./dist/storage/in-memory.js"
+    "./in-memory-storage": "./dist/storage/in-memory.js",
+    "./env-setup-file": "./setup-files/env.js",
+    "./scorers": "./dist/scorers/index.js",
+    "./scorers/deterministic": "./dist/scorers/deterministic.js",
+    "./_internal": "./dist/internal.js"
   },
   "dependencies": {
-    "@ai-sdk/provider": "^2.0.0",
     "@fastify/static": "^8.2.0",
     "@fastify/websocket": "11.2.0",
     "@stricli/auto-complete": "^1.2.0",
     "@stricli/core": "^1.2.0",
     "@vitest/runner": "^4.0.0",
     "@vitest/utils": "^4.0.1",
-    "better-sqlite3": "^11.6.0",
+    "dotenv": "^16.4.7",
     "fastify": "^5.6.1",
     "file-type": "^19.6.0",
+    "get-port": "^7.1.0",
     "jiti": "^2.6.1",
+    "js-levenshtein": "^1.1.6",
     "table": "^6.9.0",
     "tinyrainbow": "^3.0.3"
   },
+  "peerDependencies": {
+    "better-sqlite3": "^11.6.0",
+    "ai": "^5"
+  },
+  "peerDependenciesMeta": {
+    "better-sqlite3": {
+      "optional": true
+    },
+    "ai": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@ai-sdk/provider": "^2.0.0",
     "@types/better-sqlite3": "^7.6.13",
+    "@types/js-levenshtein": "^1.1.3",
     "@types/ws": "^8.18.1",
     "ai": "^5.0.59",
-    "autoevals": "^0.0.131",
+    "better-sqlite3": "^11.6.0",
     "unstorage": "^1.17.1"
   }
 }

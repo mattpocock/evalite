@@ -170,6 +170,7 @@ export function renderTable(
       value: unknown;
     }[];
     score: number | null;
+    variant?: string;
   }[]
 ) {
   logger.log("");
@@ -177,6 +178,7 @@ export function renderTable(
   const availableColumns = process.stdout.columns || 80;
 
   const hasScores = rows.some((row) => row.score !== null);
+  const hasVariants = rows.some((row) => row.variant !== undefined);
 
   const columns = rows[0]?.columns;
 
@@ -184,11 +186,21 @@ export function renderTable(
     return;
   }
 
-  const numColumns = columns.length + (hasScores ? 1 : 0);
+  // Calculate variant column width based on longest variant name
+  const variantWidth = hasVariants
+    ? Math.max(
+        "Variant".length,
+        ...rows.map((row) => (row.variant || "").length)
+      ) + 2 // Add padding
+    : 0;
+
+  const numColumns =
+    columns.length + (hasScores ? 1 : 0) + (hasVariants ? 1 : 0);
   // Calculate table overhead: borders (numColumns + 1) + padding (numColumns × 2)
   const tableOverhead = numColumns * 3 + 1;
   const scoreWidth = hasScores ? 5 : 0;
-  const availableInnerSpace = availableColumns - tableOverhead - scoreWidth;
+  const availableInnerSpace =
+    availableColumns - tableOverhead - scoreWidth - variantWidth;
 
   const colWidth = Math.min(
     Math.floor(availableInnerSpace / columns.length),
@@ -199,10 +211,12 @@ export function renderTable(
     table(
       [
         [
+          ...(hasVariants ? [c.cyan(c.bold("Variant"))] : []),
           ...columns.map((col) => c.cyan(c.bold(col.label))),
           ...(hasScores ? [c.cyan(c.bold("Score"))] : []),
         ],
         ...rows.map((row) => [
+          ...(hasVariants ? [row.variant || ""] : []),
           ...row.columns.map((col) => {
             return typeof col.value === "object"
               ? inspect(col.value, {
@@ -219,6 +233,9 @@ export function renderTable(
       ],
       {
         columns: [
+          ...(hasVariants
+            ? [{ width: variantWidth, paddingLeft: 1, paddingRight: 1 }]
+            : []),
           ...columns.map((col) => ({
             width: colWidth,
             wrapWord: typeof col.value === "string",
@@ -296,32 +313,42 @@ export function renderSummaryStats(
 
 export function renderDetailedTable(
   logger: { log: (msg: string) => void },
-  results: Evalite.Result[],
+  evals: Evalite.Eval[],
   failedCount: number
 ) {
+  const hasVariants = evals.some((e) => e.variantName !== undefined);
+
+  // Sort by variant name if variants exist
+  const sortedEvals = hasVariants
+    ? [...evals].sort((a, b) =>
+        (a.variantName || "").localeCompare(b.variantName || "")
+      )
+    : evals;
+
   renderTable(
     logger,
-    results.map((result) => ({
+    sortedEvals.map((_eval) => ({
       columns:
-        result.renderedColumns.length > 0
-          ? result.renderedColumns.map((col) => ({
+        _eval.renderedColumns.length > 0
+          ? _eval.renderedColumns.map((col) => ({
               label: col.label,
               value: renderMaybeEvaliteFile(col.value),
             }))
           : [
               {
                 label: "Input",
-                value: renderMaybeEvaliteFile(result.input),
+                value: renderMaybeEvaliteFile(_eval.input),
               },
               {
                 label: "Output",
-                value: renderMaybeEvaliteFile(result.output),
+                value: renderMaybeEvaliteFile(_eval.output),
               },
             ],
       score:
-        result.scores.length === 0
+        _eval.scores.length === 0
           ? null
-          : average(result.scores, (s) => s.score ?? 0),
+          : average(_eval.scores, (s) => s.score ?? 0),
+      variant: _eval.variantName,
     }))
   );
 
@@ -339,37 +366,37 @@ export function renderDetailedTable(
 
 export function renderTask(opts: {
   logger: { log: (msg: string) => void };
-  result: {
+  eval: {
     filePath: string;
-    status: Evalite.ResultStatus;
+    status: Evalite.EvalStatus;
     scores: Evalite.Score[];
     numberOfEvals: number | string;
   };
 }) {
-  const scores = opts.result.scores.map((s) => s.score ?? 0);
+  const scores = opts.eval.scores.map((s) => s.score ?? 0);
 
   const totalScore = scores.reduce((a, b) => a + b, 0);
   const averageScore = scores.length === 0 ? null : totalScore / scores.length;
 
   const prefix =
-    opts.result.status === "fail"
+    opts.eval.status === "fail"
       ? c.red("✖")
-      : opts.result.status === "running"
+      : opts.eval.status === "running"
         ? c.yellow("⏳")
         : displayScore(averageScore);
 
   const text =
-    opts.result.status === "running"
-      ? c.dim(opts.result.filePath)
-      : opts.result.filePath;
+    opts.eval.status === "running"
+      ? c.dim(opts.eval.filePath)
+      : opts.eval.filePath;
 
   const toLog = [
     ` ${prefix} `,
     `${text}  `,
     c.dim(
-      opts.result.numberOfEvals === 1
-        ? `(${opts.result.numberOfEvals} eval)`
-        : `(${opts.result.numberOfEvals} evals)`
+      opts.eval.numberOfEvals === 1
+        ? `(${opts.eval.numberOfEvals} eval)`
+        : `(${opts.eval.numberOfEvals} evals)`
     ),
   ];
 

@@ -1,0 +1,123 @@
+---
+title: contextRecall
+---
+
+Checks if your retrieval system (like RAG) is finding the right documents. Compares the correct answer to what's in your retrieved documents.
+
+**When to use**: To diagnose and improve your document retrieval. Helps identify when you're not fetching relevant documents. Low score means retrieval is missing important info. High score means you retrieved the right stuff.
+
+**When NOT to use**: If you don't have a retrieval system, or if your AI should use general knowledge beyond retrieved docs.
+
+## Example
+
+```ts
+import { openai } from "@ai-sdk/openai";
+import { evalite } from "evalite";
+import { contextRecall } from "evalite/scorers";
+
+evalite("RAG Context Recall", {
+  data: [
+    {
+      input: "When did the Space Shuttle program end?",
+      expected: {
+        answer:
+          "The Space Shuttle program ended in 2011 with the final flight of Atlantis on July 21, 2011.",
+        groundTruth: [
+          "NASA's Space Shuttle program operated from 1981 to 2011, completing 135 missions.",
+          "The final Space Shuttle mission was STS-135, flown by Atlantis in July 2011.",
+        ],
+      },
+    },
+  ],
+  task: async (input) => {
+    // Your RAG system here
+    return "The Space Shuttle program ended in 2011.";
+  },
+  scorers: [
+    {
+      scorer: ({ input, expected }) =>
+        contextRecall({
+          question: input,
+          answer: expected.answer,
+          groundTruth: expected.groundTruth,
+          model: openai("gpt-4o-mini"),
+        }),
+    },
+  ],
+});
+```
+
+## Signature
+
+```ts
+async function contextRecall(opts: {
+  question: string;
+  answer: string;
+  groundTruth: string[];
+  model: LanguageModel;
+}): Promise<{
+  name: string;
+  description: string;
+  score: number;
+  metadata: {
+    classifications: Array<{
+      statement: string;
+      reason: string;
+      attributed: number;
+    }>;
+    reason: string;
+  };
+}>;
+```
+
+## Parameters
+
+### question
+
+**Type:** `string`
+
+The question being asked.
+
+### answer
+
+**Type:** `string`
+
+The reference answer to evaluate against the retrieved context. Note: Only supports string output, not multi-turn.
+
+### groundTruth
+
+**Type:** `string[]`
+
+Array of retrieved context documents/passages that should support the reference answer.
+
+### model
+
+**Type:** `LanguageModel`
+
+Language model to use for evaluation.
+
+import { Aside } from "@astrojs/starlight/components";
+
+<Aside>
+  This scorer requires the AI SDK. This example uses OpenAI's models via
+  `@ai-sdk/openai`. The AI SDK supports [many
+  providers](https://sdk.vercel.ai/providers/ai-sdk-providers) including
+  Anthropic, Google, Mistral, and more.
+</Aside>
+
+## Return Value
+
+Returns an object with:
+
+- `name`: "Context Recall"
+- `description`: Description of what was evaluated
+- `score`: Number between 0-1 (percentage of statements from reference answer attributed to retrieved contexts)
+- `metadata`: Object containing:
+  - `classifications`: Array of evaluations for each statement with `statement`, `reason`, and `attributed` fields
+  - `reason`: Summary string explaining the score
+
+## See Also
+
+- [createScorer()](/api/create-scorer)
+- [faithfulness](/api/scorers/faithfulness)
+- [answerCorrectness](/api/scorers/answer-correctness)

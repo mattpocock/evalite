@@ -17,4 +17,13 @@ export default defineConfig({
     tsconfigPaths(),
     viteReact(),
   ],
+  server: {
+    proxy: {
+      "/api": {
+        target: "http://localhost:3006",
+        changeOrigin: true,
+        ws: true,
+      },
+    },
+  },
 });

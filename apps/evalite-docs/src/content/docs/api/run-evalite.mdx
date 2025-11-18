@@ -1,0 +1,294 @@
+---
+title: runEvalite()
+---
+
+Run evaluations programmatically from Node.js scripts or custom tooling.
+
+## Signature
+
+```typescript
+runEvalite(opts: {
+  mode: "run-once-and-exit" | "watch-for-file-changes" | "run-once-and-serve";
+  path?: string;
+  cwd?: string;
+  scoreThreshold?: number;
+  outputPath?: string;
+  hideTable?: boolean;
+  storage?: Evalite.Storage;
+}): Promise<void>
+```
+
+## Parameters
+
+### `opts.mode`
+
+**Type:** `"run-once-and-exit" | "watch-for-file-changes" | "run-once-and-serve"` (required)
+
+The execution mode for running evals.
+
+**Modes:**
+
+- `"run-once-and-exit"` - Run evals once and exit. Ideal for CI/CD pipelines.
+- `"watch-for-file-changes"` - Watch for file changes and re-run automatically. Starts the UI server.
+- `"run-once-and-serve"` - Run evals once and serve the UI without watching for changes.
+
+```typescript
+import { runEvalite } from "evalite/runner";
+
+// CI/CD mode
+await runEvalite({
+  mode: "run-once-and-exit",
+});
+
+// Development mode with watch
+await runEvalite({
+  mode: "watch-for-file-changes",
+});
+
+// Run once and keep UI open
+await runEvalite({
+  mode: "run-once-and-serve",
+});
+```
+
+### `opts.path`
+
+**Type:** `string` (optional)
+
+Path filter to run specific eval files. If not provided, runs all `.eval.ts` files.
+
+```typescript
+await runEvalite({
+  mode: "run-once-and-exit",
+  path: "my-eval.eval.ts",
+});
+```
+
+### `opts.cwd`
+
+**Type:** `string` (optional)
+
+The working directory to run evals from. Defaults to `process.cwd()`.
+
+```typescript
+await runEvalite({
+  mode: "run-once-and-exit",
+  cwd: "/path/to/my/project",
+});
+```
+
+### `opts.scoreThreshold`
+
+**Type:** `number` (optional, 0-100)
+
+Minimum average score threshold. If the average score falls below this threshold, the process will exit with code 1.
+
+```typescript
+await runEvalite({
+  mode: "run-once-and-exit",
+  scoreThreshold: 80, // Fail if average score < 80
+});
+```
+
+Useful for CI/CD pipelines where you want to fail the build if evals don't meet a quality threshold.
+
+### `opts.outputPath`
+
+**Type:** `string` (optional)
+
+Path to write test results in JSON format after evaluation completes.
+
+```typescript
+await runEvalite({
+  mode: "run-once-and-exit",
+  outputPath: "./results.json",
+});
+```
+
+The exported JSON contains the complete run data including all evals, results, scores, and traces.
+
+**Note:** Not supported in `watch-for-file-changes` mode.
+
+### `opts.hideTable`
+
+**Type:** `boolean` (optional, default: `false`)
+
+Hide the detailed results table in terminal output. Keeps the score summary but removes the detailed table.
+
+```typescript
+await runEvalite({
+  mode: "watch-for-file-changes",
+  hideTable: true, // Useful for debugging with console.log
+});
+```
+
+### `opts.storage`
+
+**Type:** `Evalite.Storage` (optional)
+
+Custom storage backend instance. If not provided, uses the storage from `evalite.config.ts` or defaults to in-memory storage.
+
+```typescript
+import { runEvalite } from "evalite/runner";
+import { createSqliteStorage } from "evalite/sqlite-storage";
+
+await runEvalite({
+  mode: "run-once-and-exit",
+  storage: createSqliteStorage("./custom.db"),
+});
+```
+
+See [Storage](/api/storage) for more details.
+
+## Usage Examples
+
+### Basic CI/CD Script
+
+```typescript
+import { runEvalite } from "evalite/runner";
+
+async function runTests() {
+  try {
+    await runEvalite({
+      mode: "run-once-and-exit",
+      scoreThreshold: 75,
+      outputPath: "./results.json",
+    });
+    console.log("All evals passed!");
+  } catch (error) {
+    console.error("Evals failed:", error);
+    process.exit(1);
+  }
+}
+
+runTests();
+```
+
+### Development Script
+
+```typescript
+import { runEvalite } from "evalite/runner";
+
+// Run specific eval in watch mode
+await runEvalite({
+  mode: "watch-for-file-changes",
+  path: "chat.eval.ts",
+  hideTable: true,
+});
+```
+
+### Custom Storage
+
+```typescript
+import { runEvalite } from "evalite/runner";
+import { createSqliteStorage } from "evalite/sqlite-storage";
+
+const storage = createSqliteStorage("./evalite.db");
+
+await runEvalite({
+  mode: "run-once-and-exit",
+  storage,
+});
+```
+
+### Multi-Environment Testing
+
+```typescript
+import { runEvalite } from "evalite/runner";
+
+const environments = [
+  { name: "staging", url: "https://staging.example.com" },
+  { name: "production", url: "https://example.com" },
+];
+
+for (const env of environments) {
+  console.log(`Running evals for ${env.name}...`);
+
+  process.env.API_URL = env.url;
+
+  await runEvalite({
+    mode: "run-once-and-exit",
+    scoreThreshold: 80,
+    outputPath: `./results-${env.name}.json`,
+  });
+}
+```
+
+### Parallel Eval Execution
+
+```typescript
+import { runEvalite } from "evalite/runner";
+
+// Run multiple eval sets in parallel
+await Promise.all([
+  runEvalite({
+    mode: "run-once-and-exit",
+    path: "chat.eval.ts",
+  }),
+  runEvalite({
+    mode: "run-once-and-exit",
+    path: "completion.eval.ts",
+  }),
+]);
+```
+
+## Configuration Priority
+
+Options merge in this order (highest to lowest priority):
+
+1. Function arguments (`opts`)
+2. Config file (`evalite.config.ts`)
+3. Defaults
+
+Example:
+
+```typescript
+// evalite.config.ts
+export default defineConfig({
+  scoreThreshold: 70,
+  hideTable: true,
+});
+
+// script.ts
+await runEvalite({
+  mode: "run-once-and-exit",
+  scoreThreshold: 80, // Overrides config (80 used)
+  // hideTable not specified, uses config (true)
+});
+```
+
+## Error Handling
+
+The function throws an error if:
+
+- Evals fail to run
+- Score threshold is not met
+- Invalid options are provided
+
+```typescript
+try {
+  await runEvalite({
+    mode: "run-once-and-exit",
+    scoreThreshold: 90,
+  });
+} catch (error) {
+  console.error("Eval run failed:", error);
+  // Handle error or exit
+  process.exit(1);
+}
+```
+
+## Return Value
+
+Returns a `Promise<void>`. The function completes when:
+
+- `run-once-and-exit`: All evals finish
+- `watch-for-file-changes`: Never (runs indefinitely)
+- `run-once-and-serve`: All evals finish, but UI server keeps process alive
+
+## See Also
+
+- [CLI](/api/cli) - Command-line interface
+- [defineConfig()](/api/define-config) - Configuration file
+- [Storage](/api/storage) - Custom storage backends
+- [Run Evals Programmatically Guide](/tips/run-evals-programmatically) - More examples

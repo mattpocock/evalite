@@ -1,0 +1,249 @@
+---
+title: evalite()
+---
+
+The main function for defining evaluations in `.eval.ts` files.
+
+## Signature
+
+```typescript
+evalite<TInput, TOutput, TExpected = TOutput>(
+  evalName: string,
+  opts: {
+    data: Array<{ input: TInput; expected?: TExpected; only?: boolean }>
+      | (() => Promise<Array<{ input: TInput; expected?: TExpected; only?: boolean }>>);
+    task: (input: TInput) => Promise<TOutput> | TOutput;
+    scorers?: Array<Scorer<TInput, TOutput, TExpected> | ScorerOpts<TInput, TOutput, TExpected>>;
+    columns?: (opts: { input: TInput; output: TOutput; expected?: TExpected }) =>
+      Promise<Array<{ label: string; value: unknown }>> |
+      Array<{ label: string; value: unknown }>;
+    trialCount?: number;
+  }
+): void
+```
+
+## Parameters
+
+### `evalName`
+
+**Type:** `string`
+
+The name of your evaluation. This appears in the UI and test output.
+
+```typescript
+evalite("Greeting Generator", {
+  // ...
+});
+```
+
+### `opts.data`
+
+**Type:** `Array<{ input: TInput; expected?: TExpected; only?: boolean }>` or `() => Promise<Array<...>>`
+
+The dataset for your evaluation. Each item becomes a separate test case.
+
+Can be an array or an async function that returns an array.
+
+```typescript
+// Static array
+evalite("My Eval", {
+  data: [
+    { input: "Hello", expected: "Hi there!" },
+    { input: "Goodbye", expected: "See you later!" },
+  ],
+  // ...
+});
+
+// Async function
+evalite("My Eval", {
+  data: async () => {
+    const dataset = await fetch("/api/dataset").then((r) => r.json());
+    return dataset;
+  },
+  // ...
+});
+```
+
+**`only` flag:** Mark specific data points to run exclusively during development:
+
+```typescript
+evalite("My Eval", {
+  data: [
+    { input: "test1", only: true }, // Only this will run
+    { input: "test2" },
+    { input: "test3" },
+  ],
+  // ...
+});
+```
+
+### `opts.task`
+
+**Type:** `(input: TInput) => Promise<TOutput> | TOutput`
+
+The function to test. Receives input from data, returns output to be scored.
+
+```typescript
+evalite("My Eval", {
+  data: [{ input: "Hello" }],
+  task: async (input) => {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [{ role: "user", content: input }],
+    });
+    return response.choices[0].message.content;
+  },
+  // ...
+});
+```
+
+### `opts.scorers`
+
+**Type:** `Array<Scorer | ScorerOpts>` (optional)
+
+Functions that evaluate the output quality. Each scorer returns a score between 0 and 1.
+
+```typescript
+evalite("My Eval", {
+  data: [{ input: "Hello", expected: "Hi" }],
+  task: async (input) => callLLM(input),
+  scorers: [
+    // Inline scorer
+    {
+      name: "Exact Match",
+      scorer: ({ output, expected }) => {
+        return output === expected ? 1 : 0;
+      },
+    },
+    // Using createScorer
+    createScorer({
+      name: "Length Check",
+      scorer: ({ output }) => {
+        return output.length > 10 ? 1 : 0;
+      },
+    }),
+  ],
+});
+```
+
+See [createScorer()](/api/create-scorer) for more details.
+
+### `opts.columns`
+
+**Type:** `(opts: { input, output, expected }) => Promise<Array<{ label, value }>> | Array<{ label, value }>` (optional)
+
+Custom columns to display in the UI alongside input/output/expected.
+
+```typescript
+evalite("My Eval", {
+  data: [{ input: "Hello" }],
+  task: async (input) => callLLM(input),
+  columns: ({ output }) => [
+    { label: "Word Count", value: output.split(" ").length },
+    { label: "Has Emoji", value: /\p{Emoji}/u.test(output) },
+  ],
+});
+```
+
+### `opts.trialCount`
+
+**Type:** `number` (optional, default: `1`)
+
+Number of times to run each test case. Useful for measuring variance in non-deterministic evaluations.
+
+```typescript
+evalite("My Eval", {
+  data: [{ input: "Hello" }],
+  task: async (input) => callLLM(input),
+  trialCount: 5, // Run each data point 5 times
+});
+```
+
+Can also be set globally in [defineConfig()](/api/define-config).
+
+## Methods
+
+### `evalite.skip()`
+
+Skip an entire evaluation.
+
+```typescript
+evalite.skip("My Eval", {
+  data: [{ input: "Hello" }],
+  task: async (input) => callLLM(input),
+});
+```
+
+### `evalite.each()`
+
+Run the same evaluation with different variants (e.g., comparing models or prompts).
+
+```typescript
+evalite.each([
+  { name: "gpt-4", input: "gpt-4" },
+  { name: "gpt-3.5-turbo", input: "gpt-3.5-turbo" },
+])("Model Comparison", {
+  data: [{ input: "Hello" }],
+  task: async (input, model) => {
+    const response = await openai.chat.completions.create({
+      model,
+      messages: [{ role: "user", content: input }],
+    });
+    return response.choices[0].message.content;
+  },
+});
+```
+
+**`only` flag:** Mark specific variants to run exclusively during development:
+
+```typescript
+evalite.each([
+  { name: "gpt-4", input: "gpt-4" },
+  { name: "gpt-3.5-turbo", input: "gpt-3.5-turbo", only: true }, // Only this variant will run
+])("Model Comparison", {
+  data: [{ input: "Hello" }],
+  task: async (input, model) => {
+    // ...
+  },
+});
+```
+
+See [Comparing Different Approaches](/tips/comparing-different-approaches) for more details.
+
+## Example
+
+```typescript
+// example.eval.ts
+import { evalite } from "evalite";
+import { exactMatch } from "evalite/scorers";
+
+evalite("Greeting Generator", {
+  data: async () => {
+    return [
+      { input: "Hello", expected: "Hi there!" },
+      { input: "Good morning", expected: "Good morning to you!" },
+      { input: "Howdy", expected: "Howdy partner!" },
+    ];
+  },
+  task: async (input) => {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: "Generate a friendly greeting response.",
+        },
+        { role: "user", content: input },
+      ],
+    });
+    return response.choices[0].message.content;
+  },
+  scorers: [
+    {
+      scorer: ({ output, expected }) =>
+        exactMatch({ actual: output, expected }),
+    },
+  ],
+  columns: ({ output }) => [{ label: "Length", value: output.length }],
+});
+```

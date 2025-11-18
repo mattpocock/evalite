@@ -1,0 +1,114 @@
+---
+title: faithfulness
+---
+
+Checks if your AI is making things up or sticking to the provided information.
+
+**When to use**: Essential for RAG systems where accuracy matters (medical, legal, financial). Catches when your AI invents facts not in your documents.
+
+**When NOT to use**: If your AI should add knowledge beyond the context, or for creative tasks where invention is desired.
+
+## Example
+
+```ts
+import { openai } from "@ai-sdk/openai";
+import { evalite } from "evalite";
+import { faithfulness } from "evalite/scorers";
+
+evalite("RAG Faithfulness", {
+  data: [
+    {
+      input: "What programming languages does John know?",
+      expected: {
+        groundTruth: [
+          "John is a software engineer at XYZ Corp. He specializes in backend development using Python and Go. He has 5 years of experience in the industry.",
+        ],
+      },
+    },
+  ],
+  task: async () => {
+    return "John knows Python, Go, and JavaScript. He also invented TypeScript and works at Google.";
+  },
+  scorers: [
+    {
+      scorer: ({ input, output, expected }) =>
+        faithfulness({
+          question: input,
+          answer: output,
+          groundTruth: expected.groundTruth,
+          model: openai("gpt-4o-mini"),
+        }),
+    },
+  ],
+});
+```
+
+## Signature
+
+```ts
+function faithfulness(opts: {
+  question: string;
+  answer: string;
+  groundTruth: string[];
+  model: LanguageModel;
+}): Promise<{
+  name: string;
+  description: string;
+  score: number;
+  metadata: Array<{
+    statement: string;
+    reason: string;
+    verdict: number;
+  }>;
+}>;
+```
+
+## Parameters
+
+### question
+
+**Type:** `string`
+
+The question being asked.
+
+### answer
+
+**Type:** `string`
+
+The AI's answer to evaluate. Note: Only supports string output, not multi-turn.
+
+### groundTruth
+
+**Type:** `string[]`
+
+Array of source documents/passages that should support all claims.
+
+### model
+
+**Type:** `LanguageModel`
+
+Language model to use for evaluation.
+
+import { Aside } from "@astrojs/starlight/components";
+
+<Aside>
+  This scorer requires the AI SDK. This example uses OpenAI's models via
+  `@ai-sdk/openai`. The AI SDK supports [many
+  providers](https://sdk.vercel.ai/providers/ai-sdk-providers) including
+  Anthropic, Google, Mistral, and more.
+</Aside>
+
+## Return Value
+
+Returns an object with:
+
+- `name`: "Faithfulness"
+- `description`: Description of what was evaluated
+- `score`: Number between 0-1 (percentage of claims supported by ground truth)
+- `metadata`: Array of verdicts for each statement with `statement`, `reason`, and `verdict` fields
+
+## See Also
+
+- [createScorer()](/api/create-scorer)
+- [contextRecall](/api/scorers/context-recall)
+- [answerCorrectness](/api/scorers/answer-correctness)

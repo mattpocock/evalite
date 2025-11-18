@@ -11,15 +11,19 @@ export type Server = ReturnType<typeof createServer>;
 
 const THROTTLE_TIME = 100;
 
+const INITIAL_STATE: Evalite.IdleServerState = {
+  type: "idle",
+  cacheHitsByEval: {},
+  cacheHitsByScorer: {},
+};
+
 export const handleWebsockets = (server: fastify.FastifyInstance) => {
   const websocketListeners = new Map<
     string,
     (event: Evalite.ServerState) => void
   >();
 
-  let currentState: Evalite.ServerState = {
-    type: "idle",
-  };
+  let currentState: Evalite.ServerState = INITIAL_STATE;
 
   let timeout: NodeJS.Timeout | undefined;
 
@@ -74,6 +78,8 @@ export const createServer = (opts: { storage: Evalite.Storage }) => {
 
   const websockets = handleWebsockets(server);
 
+  let rerunFn: (() => Promise<void>) | undefined = undefined;
+
   server.get<{
     Reply: Evalite.ServerState;
   }>("/api/server-state", async (req, reply) => {
@@ -94,10 +100,10 @@ export const createServer = (opts: { storage: Evalite.Storage }) => {
 
     if (!latestFullRun) {
       return reply.code(200).send({
-        evals: [],
+        suites: [],
         prevScore: undefined,
         score: 0,
-        evalStatus: "success",
+        runStatus: "success",
       });
     }
 
@@ -126,14 +132,14 @@ export const createServer = (opts: { storage: Evalite.Storage }) => {
       (id): id is number => typeof id === "number"
     );
 
-    const evalsFromDb = await opts.storage.evals.getMany({
+    const evalsFromDb = await opts.storage.suites.getMany({
       runIds,
       statuses: ["fail", "success", "running"],
     });
 
-    const allEvals = await Promise.all(
+    const allSuites = await Promise.all(
       evalsFromDb.map(async (e) => {
-        const prevEvalResults = await opts.storage.evals.getMany({
+        const prevEvalResults = await opts.storage.suites.getMany({
           name: e.name,
           createdBefore: e.created_at,
           statuses: ["fail", "success"],
@@ -148,18 +154,18 @@ export const createServer = (opts: { storage: Evalite.Storage }) => {
       })
     );
 
-    const allResults = await opts.storage.results.getMany({
-      evalIds: allEvals.map((e) => e.id),
+    const allEvals = await opts.storage.evals.getMany({
+      suiteIds: allSuites.map((e) => e.id),
     });
 
     const allScores = await opts.storage.scores.getMany({
-      resultIds: allResults.map((r) => r.id),
+      evalIds: allEvals.map((r) => r.id),
     });
 
     const calcEvalAverage = (evalId: number): number => {
-      const evalResults = allResults.filter((r) => r.eval_id === evalId);
+      const evalResults = allEvals.filter((r) => r.suite_id === evalId);
       const evalScores = allScores.filter((s) =>
-        evalResults.some((r) => r.id === s.result_id)
+        evalResults.some((r) => r.id === s.eval_id)
       );
       if (evalScores.length === 0) return 0;
       return (
@@ -168,14 +174,14 @@ export const createServer = (opts: { storage: Evalite.Storage }) => {
     };
 
     const createEvalMenuItem = (
-      e: (typeof allEvals)[number]
-    ): Evalite.SDK.GetMenuItemsResultEval => {
+      e: (typeof allSuites)[number]
+    ): Evalite.SDK.GetMenuItemsResultSuite => {
       const score = calcEvalAverage(e.id);
       const prevScore = e.prevEval ? calcEvalAverage(e.prevEval.id) : undefined;
 
-      const evalResults = allResults.filter((r) => r.eval_id === e.id);
+      const evalResults = allEvals.filter((r) => r.suite_id === e.id);
       const evalScores = allScores.filter((s) =>
-        evalResults.some((r) => r.id === s.result_id)
+        evalResults.some((r) => r.id === s.eval_id)
       );
       const hasScores = evalScores.length > 0;
 
@@ -184,19 +190,19 @@ export const createServer = (opts: { storage: Evalite.Storage }) => {
         name: e.name,
         score,
         prevScore,
-        evalStatus: e.status,
+        suiteStatus: e.status,
         variantName: e.variant_name,
         variantGroup: e.variant_group,
         hasScores,
       };
     };
 
-    let lastFullRunEvals = allEvals.filter(
+    let lastFullRunEvals = allSuites.filter(
       (e) => e.run_id === latestFullRun.id
     );
 
     if (latestPartialRun) {
-      const partialEvals = allEvals.filter(
+      const partialEvals = allSuites.filter(
         (e) => e.run_id === latestPartialRun.id
       );
 
@@ -215,10 +221,10 @@ export const createServer = (opts: { storage: Evalite.Storage }) => {
     });
 
     return reply.code(200).send({
-      evals: menuItems,
+      suites: menuItems,
       score: average(menuItems, (e) => e.score),
       prevScore: average(menuItems, (e) => e.prevScore ?? e.score),
-      evalStatus: menuItems.some((e) => e.evalStatus === "fail")
+      runStatus: menuItems.some((e) => e.suiteStatus === "fail")
         ? "fail"
         : "success",
     });
@@ -229,10 +235,10 @@ export const createServer = (opts: { storage: Evalite.Storage }) => {
       name: string;
       timestamp?: string;
     };
-    Reply: Evalite.SDK.GetEvalByNameResult;
+    Reply: Evalite.SDK.GetSuiteByNameResult;
   }>({
     method: "GET",
-    url: "/api/eval",
+    url: "/api/suite",
     schema: {
       querystring: {
         type: "object",
@@ -246,7 +252,7 @@ export const createServer = (opts: { storage: Evalite.Storage }) => {
     handler: async (req, res) => {
       const name = req.query.name;
 
-      const evaluationResults = await opts.storage.evals.getMany({
+      const evaluationResults = await opts.storage.suites.getMany({
         name,
         createdAt: req.query.timestamp,
         orderBy: "created_at",
@@ -260,7 +266,7 @@ export const createServer = (opts: { storage: Evalite.Storage }) => {
         return res.code(404).send();
       }
 
-      const prevEvaluationResults = await opts.storage.evals.getMany({
+      const prevSuites = await opts.storage.suites.getMany({
         name,
         createdBefore: evaluation.created_at,
         statuses: ["fail", "success"],
@@ -269,39 +275,39 @@ export const createServer = (opts: { storage: Evalite.Storage }) => {
         limit: 1,
       });
 
-      const prevEvaluation = prevEvaluationResults[0];
+      const prevSuite = prevSuites[0];
 
-      const evalIds = [evaluation.id, prevEvaluation?.id].filter(
+      const suiteIds = [evaluation.id, prevSuite?.id].filter(
         (i): i is number => typeof i === "number"
       );
 
-      const results = await opts.storage.results.getMany({
-        evalIds,
+      const evals = await opts.storage.evals.getMany({
+        suiteIds: suiteIds,
       });
 
       const scores = await opts.storage.scores.getMany({
-        resultIds: results.map((r) => r.id),
+        evalIds: evals.map((e) => e.id),
       });
 
-      const historyEvals = await opts.storage.evals.getMany({
+      const historySuites = await opts.storage.suites.getMany({
         name,
         statuses: ["fail", "success"],
         orderBy: "created_at",
         orderDirection: "asc",
       });
 
-      const historyResults = await opts.storage.results.getMany({
-        evalIds: historyEvals.map((e) => e.id),
+      const historyResults = await opts.storage.evals.getMany({
+        suiteIds: historySuites.map((e) => e.id),
       });
 
       const historyScores = await opts.storage.scores.getMany({
-        resultIds: historyResults.map((r) => r.id),
+        evalIds: historyResults.map((r) => r.id),
       });
 
-      const history = historyEvals.map((e) => {
-        const evalResults = historyResults.filter((r) => r.eval_id === e.id);
+      const history = historySuites.map((e) => {
+        const evalResults = historyResults.filter((r) => r.suite_id === e.id);
         const evalScores = historyScores.filter((s) =>
-          evalResults.some((r) => r.id === s.result_id)
+          evalResults.some((r) => r.id === s.eval_id)
         );
         const average_score =
           evalScores.length > 0
@@ -319,23 +325,23 @@ export const createServer = (opts: { storage: Evalite.Storage }) => {
           score: h.average_score,
           date: h.created_at,
         })),
-        evaluation: {
+        suite: {
           ...evaluation,
-          results: results
-            .filter((r) => r.eval_id === evaluation.id)
+          evals: evals
+            .filter((r) => r.suite_id === evaluation.id)
             .map((r) => ({
               ...r,
-              scores: scores.filter((s) => s.result_id === r.id),
+              scores: scores.filter((s) => s.eval_id === r.id),
             })),
         },
-        prevEvaluation: prevEvaluation
+        prevSuite: prevSuite
           ? {
-              ...prevEvaluation,
-              results: results
-                .filter((r) => r.eval_id === prevEvaluation.id)
+              ...prevSuite,
+              evals: evals
+                .filter((r) => r.suite_id === prevSuite.id)
                 .map((r) => ({
                   ...r,
-                  scores: scores.filter((s) => s.result_id === r.id),
+                  scores: scores.filter((s) => s.eval_id === r.id),
                 })),
             }
           : undefined,
@@ -349,10 +355,10 @@ export const createServer = (opts: { storage: Evalite.Storage }) => {
       index: string;
       timestamp?: string;
     };
-    Reply: Evalite.SDK.GetResultResult;
+    Reply: Evalite.SDK.GetEvalResult;
   }>({
     method: "GET",
-    url: "/api/eval/result",
+    url: "/api/suite/eval",
     schema: {
       querystring: {
         type: "object",
@@ -365,7 +371,7 @@ export const createServer = (opts: { storage: Evalite.Storage }) => {
       },
     },
     handler: async (req, res) => {
-      const evaluationResults = await opts.storage.evals.getMany({
+      const suites = await opts.storage.suites.getMany({
         name: req.query.name,
         createdAt: req.query.timestamp,
         statuses: ["fail", "success"],
@@ -374,33 +380,33 @@ export const createServer = (opts: { storage: Evalite.Storage }) => {
         limit: 1,
       });
 
-      const evaluation = evaluationResults[0];
+      const suite = suites[0];
 
-      if (!evaluation) {
+      if (!suite) {
         return res.code(404).send();
       }
 
-      const prevEvaluationResults = await opts.storage.evals.getMany({
+      const prevSuites = await opts.storage.suites.getMany({
         name: req.query.name,
-        createdBefore: evaluation.created_at,
+        createdBefore: suite.created_at,
         statuses: ["fail", "success"],
         orderBy: "created_at",
         orderDirection: "desc",
         limit: 1,
       });
 
-      const prevEvaluation = prevEvaluationResults[0];
+      const prevSuite = prevSuites[0];
 
-      const evalIds = [evaluation.id, prevEvaluation?.id].filter(
+      const suiteIds = [suite.id, prevSuite?.id].filter(
         (i): i is number => typeof i === "number"
       );
 
-      const results = await opts.storage.results.getMany({
-        evalIds,
+      const evals = await opts.storage.evals.getMany({
+        suiteIds,
       });
 
-      const thisEvaluationResults = results.filter(
-        (r) => r.eval_id === evaluation.id
+      const thisEvaluationResults = evals.filter(
+        (e) => e.suite_id === suite.id
       );
 
       const thisResult = thisEvaluationResults[Number(req.query.index)];
@@ -409,46 +415,44 @@ export const createServer = (opts: { storage: Evalite.Storage }) => {
         return res.code(404).send();
       }
 
-      const prevResultsForEval = results.filter(
-        (r) => r.eval_id === prevEvaluation?.id
+      const prevEvalsForSuite = evals.filter(
+        (e) => e.suite_id === prevSuite?.id
       );
 
       const scores = await opts.storage.scores.getMany({
-        resultIds: results.map((r) => r.id),
+        evalIds: evals.map((e) => e.id),
       });
 
       const averageScores = computeAverageScores(scores);
 
       const traces = await opts.storage.traces.getMany({
-        resultIds: results.map((r) => r.id),
+        evalIds: evals.map((e) => e.id),
       });
 
-      const result: Evalite.SDK.GetResultResult["result"] = {
+      const _eval: Evalite.SDK.GetEvalResult["eval"] = {
         ...thisResult,
         score:
-          averageScores.find((s) => s.result_id === thisResult.id)?.average ??
-          0,
-        scores: scores.filter((s) => s.result_id === thisResult.id),
-        traces: traces.filter((t) => t.result_id === thisResult.id),
+          averageScores.find((s) => s.eval_id === thisResult.id)?.average ?? 0,
+        scores: scores.filter((s) => s.eval_id === thisResult.id),
+        traces: traces.filter((t) => t.eval_id === thisResult.id),
       };
 
-      const prevResultInDb = prevResultsForEval[Number(req.query.index)];
+      const prevEvalInDb = prevEvalsForSuite[Number(req.query.index)];
 
-      const prevResult: Evalite.SDK.GetResultResult["prevResult"] =
-        prevResultInDb
-          ? {
-              ...prevResultInDb,
-              score:
-                averageScores.find((s) => s.result_id === prevResultInDb.id)
-                  ?.average ?? 0,
-              scores: scores.filter((s) => s.result_id === prevResultInDb.id),
-            }
-          : undefined;
+      const prevEval: Evalite.SDK.GetEvalResult["prevEval"] = prevEvalInDb
+        ? {
+            ...prevEvalInDb,
+            score:
+              averageScores.find((s) => s.eval_id === prevEvalInDb.id)
+                ?.average ?? 0,
+            scores: scores.filter((s) => s.eval_id === prevEvalInDb.id),
+          }
+        : undefined;
 
       return res.code(200).send({
-        result,
-        prevResult,
-        evaluation,
+        eval: _eval,
+        prevEval: prevEval,
+        suite: suite,
       });
     },
   });
@@ -489,6 +493,56 @@ export const createServer = (opts: { storage: Evalite.Storage }) => {
     },
   });
 
+  server.route({
+    method: "POST",
+    url: "/api/rerun",
+    handler: async (req, res) => {
+      if (!rerunFn) {
+        return res.code(400).send({ error: "Rerun not available" });
+      }
+
+      await rerunFn();
+      return res.code(200).send({ success: true });
+    },
+  });
+
+  server.route<{
+    Params: {
+      keyHash: string;
+    };
+    Reply: { value: unknown; duration: number } | null;
+  }>({
+    method: "GET",
+    url: "/api/cache/:keyHash",
+    handler: async (req, res) => {
+      const result = await opts.storage.cache.get(req.params.keyHash);
+      return res.code(200).send(result);
+    },
+  });
+
+  server.route<{
+    Params: {
+      keyHash: string;
+    };
+    Body: { value: unknown; duration: number };
+  }>({
+    method: "POST",
+    url: "/api/cache/:keyHash",
+    handler: async (req, res) => {
+      await opts.storage.cache.set(req.params.keyHash, req.body);
+      return res.code(200).send({ success: true });
+    },
+  });
+
+  server.route({
+    method: "DELETE",
+    url: "/api/cache",
+    handler: async (req, res) => {
+      await opts.storage.cache.clear();
+      return res.code(200).send({ success: true });
+    },
+  });
+
   return {
     updateState: websockets.updateState,
     start: (port: number) => {
@@ -503,6 +557,12 @@ export const createServer = (opts: { storage: Evalite.Storage }) => {
           }
         }
       );
+    },
+    setRerunFn: (fn: () => Promise<void>) => {
+      rerunFn = fn;
+    },
+    stop: () => {
+      return server.close();
     },
   };
 };

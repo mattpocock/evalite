@@ -1,5 +1,4 @@
 import { evalite } from "evalite";
-import { Levenshtein } from "autoevals";
 import { setTimeout } from "node:timers/promises";
 
 evalite("Much Data", {
@@ -28,5 +27,10 @@ evalite("Much Data", {
     await setTimeout(10);
     return input + "def";
   },
-  scorers: [Levenshtein],
+  scorers: [
+    {
+      name: "Pass",
+      scorer: () => ({ score: 1 }),
+    },
+  ],
 });

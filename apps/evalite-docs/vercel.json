@@ -1,0 +1,10 @@
+{
+  "buildCommand": "cd ../.. && pnpm install && pnpm --filter evalite-docs build",
+  "outputDirectory": "dist",
+  "framework": "astro",
+  "git": {
+    "deploymentEnabled": {
+      "v1": true
+    }
+  }
+}

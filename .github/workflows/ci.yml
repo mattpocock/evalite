@@ -1,5 +1,10 @@
 name: CI Checks
-on: push
+on:
+  push:
+    branches:
+      - v1
+      - main
+  pull_request:
 
 jobs:
   ci:

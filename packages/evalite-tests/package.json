@@ -6,13 +6,12 @@
   "scripts": {
     "dev": "vitest -w",
     "test": "vitest run",
-    "lint": "tsc"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "evalite": "workspace:*",
     "evalite-ui": "workspace:*",
     "strip-ansi": "^7.1.2",
-    "autoevals": "^0.0.131",
     "@ai-sdk/openai": "^2.0.42",
     "ai": "^5.0.59"
   }

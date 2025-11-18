@@ -22,10 +22,23 @@ export function MyLineChart(props: {
   data: { date: string; score: number }[];
   onDotClick: (props: { date: string }) => void;
 }) {
+  const getWidthClass = () => {
+    const count = props.data.length;
+    if (count <= 2) return "max-w-[10ch]";
+    if (count === 3) return "max-w-[20ch]";
+    if (count === 4) return "max-w-[30ch]";
+    if (count === 5) return "max-w-[40ch]";
+    if (count === 6) return "max-w-[50ch]";
+    if (count === 7) return "max-w-[60ch]";
+    if (count === 8) return "max-w-[70ch]";
+    if (count === 9) return "max-w-[80ch]";
+    return "max-w-[90ch]"; // 10+
+  };
+
   return (
     <ChartContainer
       config={chartConfig}
-      className="h-24 overflow-visible max-w-[120ch] -mb-6 w-full"
+      className={`h-24 overflow-visible ${getWidthClass()} -mb-6 w-full`}
     >
       <AreaChart
         accessibilityLayer
@@ -54,16 +67,7 @@ export function MyLineChart(props: {
           type="linear"
           className="--var"
           strokeWidth={1}
-          activeDot={({
-            points,
-            payload,
-            height,
-            width,
-            className,
-            dataKey,
-            key,
-            ...dotProps
-          }) => {
+          activeDot={({ payload, key, ...dotProps }) => {
             const onClick = () => {
               props.onDotClick({ date: payload.date });
             };

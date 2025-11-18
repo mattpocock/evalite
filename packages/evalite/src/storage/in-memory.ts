@@ -2,14 +2,18 @@ import type { Evalite } from "../types.js";
 
 export class InMemoryStorage implements Evalite.Storage {
   private runsStore = new Map<number, Evalite.Storage.Entities.Run>();
+  private suitesStore = new Map<number, Evalite.Storage.Entities.Suite>();
   private evalsStore = new Map<number, Evalite.Storage.Entities.Eval>();
-  private resultsStore = new Map<number, Evalite.Storage.Entities.Result>();
   private scoresStore = new Map<number, Evalite.Storage.Entities.Score>();
   private tracesStore = new Map<number, Evalite.Storage.Entities.Trace>();
+  private cacheStore = new Map<
+    string,
+    { value: unknown; duration: number; createdAt: number }
+  >();
 
   private nextRunId = 1;
+  private nextSuiteId = 1;
   private nextEvalId = 1;
-  private nextResultId = 1;
   private nextScoreId = 1;
   private nextTraceId = 1;
 
@@ -78,12 +82,12 @@ export class InMemoryStorage implements Evalite.Storage {
     },
   };
 
-  evals = {
+  suites = {
     create: async (
-      opts: Evalite.Storage.Evals.CreateOpts
-    ): Promise<Evalite.Storage.Entities.Eval> => {
-      const evalEntity: Evalite.Storage.Entities.Eval = {
-        id: this.nextEvalId++,
+      opts: Evalite.Storage.Suites.CreateOpts
+    ): Promise<Evalite.Storage.Entities.Suite> => {
+      const suite: Evalite.Storage.Entities.Suite = {
+        id: this.nextSuiteId++,
         run_id: opts.runId,
         name: opts.name,
         filepath: opts.filepath,
@@ -94,65 +98,65 @@ export class InMemoryStorage implements Evalite.Storage {
         created_at: new Date().toISOString(),
       };
 
-      this.evalsStore.set(evalEntity.id, evalEntity);
-      return evalEntity;
+      this.suitesStore.set(suite.id, suite);
+      return suite;
     },
 
     update: async (
-      opts: Evalite.Storage.Evals.UpdateOpts
-    ): Promise<Evalite.Storage.Entities.Eval> => {
-      const evalEntity = this.evalsStore.get(opts.id);
-      if (!evalEntity) {
+      opts: Evalite.Storage.Suites.UpdateOpts
+    ): Promise<Evalite.Storage.Entities.Suite> => {
+      const suite = this.suitesStore.get(opts.id);
+      if (!suite) {
         throw new Error(`Eval with id ${opts.id} not found`);
       }
 
       const updated = {
-        ...evalEntity,
+        ...suite,
         status: opts.status,
         duration: 0,
       };
 
-      this.evalsStore.set(opts.id, updated);
+      this.suitesStore.set(opts.id, updated);
       return updated;
     },
 
     getMany: async (
-      opts?: Evalite.Storage.Evals.GetManyOpts
-    ): Promise<Evalite.Storage.Entities.Eval[]> => {
-      let evals = Array.from(this.evalsStore.values());
+      opts?: Evalite.Storage.Suites.GetManyOpts
+    ): Promise<Evalite.Storage.Entities.Suite[]> => {
+      let suites = Array.from(this.suitesStore.values());
 
       if (opts?.ids && opts.ids.length > 0) {
-        evals = evals.filter((e) => opts.ids!.includes(e.id));
+        suites = suites.filter((e) => opts.ids!.includes(e.id));
       }
 
       if (opts?.runIds && opts.runIds.length > 0) {
-        evals = evals.filter((e) => opts.runIds!.includes(e.run_id));
+        suites = suites.filter((e) => opts.runIds!.includes(e.run_id));
       }
 
       if (opts?.name) {
-        evals = evals.filter((e) => e.name === opts.name);
+        suites = suites.filter((e) => e.name === opts.name);
       }
 
       if (opts?.statuses && opts.statuses.length > 0) {
-        evals = evals.filter((e) => opts.statuses!.includes(e.status));
+        suites = suites.filter((e) => opts.statuses!.includes(e.status));
       }
 
       if (opts?.createdAt) {
-        evals = evals.filter((e) => e.created_at === opts.createdAt);
+        suites = suites.filter((e) => e.created_at === opts.createdAt);
       }
 
       if (opts?.createdAfter) {
-        evals = evals.filter((e) => e.created_at > opts.createdAfter!);
+        suites = suites.filter((e) => e.created_at > opts.createdAfter!);
       }
 
       if (opts?.createdBefore) {
-        evals = evals.filter((e) => e.created_at < opts.createdBefore!);
+        suites = suites.filter((e) => e.created_at < opts.createdBefore!);
       }
 
       const orderBy = opts?.orderBy ?? "created_at";
       const orderDirection = opts?.orderDirection ?? "desc";
 
-      evals.sort((a, b) => {
+      suites.sort((a, b) => {
         const aVal = a[orderBy as keyof typeof a]!;
         const bVal = b[orderBy as keyof typeof b]!;
         const comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
@@ -160,20 +164,20 @@ export class InMemoryStorage implements Evalite.Storage {
       });
 
       if (opts?.limit) {
-        evals = evals.slice(0, opts.limit);
+        suites = suites.slice(0, opts.limit);
       }
 
-      return evals;
+      return suites;
     },
   };
 
-  results = {
+  evals = {
     create: async (
-      opts: Evalite.Storage.Results.CreateOpts
-    ): Promise<Evalite.Storage.Entities.Result> => {
-      const result: Evalite.Storage.Entities.Result = {
-        id: this.nextResultId++,
-        eval_id: opts.evalId,
+      opts: Evalite.Storage.Evals.CreateOpts
+    ): Promise<Evalite.Storage.Entities.Eval> => {
+      const _eval: Evalite.Storage.Entities.Eval = {
+        id: this.nextEvalId++,
+        suite_id: opts.suiteId,
         col_order: opts.order,
         input: JSON.stringify(opts.input),
         expected: JSON.stringify(opts.expected),
@@ -185,9 +189,9 @@ export class InMemoryStorage implements Evalite.Storage {
         created_at: new Date().toISOString(),
       };
 
-      this.resultsStore.set(result.id, result);
+      this.evalsStore.set(_eval.id, _eval);
       return {
-        ...result,
+        ..._eval,
         input: opts.input,
         expected: opts.expected,
         output: opts.output,
@@ -196,15 +200,15 @@ export class InMemoryStorage implements Evalite.Storage {
     },
 
     update: async (
-      opts: Evalite.Storage.Results.UpdateOpts
-    ): Promise<Evalite.Storage.Entities.Result> => {
-      const result = this.resultsStore.get(opts.id);
-      if (!result) {
+      opts: Evalite.Storage.Evals.UpdateOpts
+    ): Promise<Evalite.Storage.Entities.Eval> => {
+      const _eval = this.evalsStore.get(opts.id);
+      if (!_eval) {
         throw new Error(`Result with id ${opts.id} not found`);
       }
 
-      const updated: Evalite.Storage.Entities.Result = {
-        ...result,
+      const updated: Evalite.Storage.Entities.Eval = {
+        ..._eval,
         ...(opts.input !== undefined && {
           input: JSON.stringify(opts.input),
         }),
@@ -222,47 +226,47 @@ export class InMemoryStorage implements Evalite.Storage {
         ...(opts.trialIndex !== undefined && { trial_index: opts.trialIndex }),
       };
 
-      this.resultsStore.set(opts.id, updated);
+      this.evalsStore.set(opts.id, updated);
 
       return {
         ...updated,
-        input: opts.input ?? JSON.parse(result.input as string),
-        expected: opts.expected ?? JSON.parse(result.expected as string),
-        output: opts.output ?? JSON.parse(result.output as string),
+        input: opts.input ?? JSON.parse(_eval.input as string),
+        expected: opts.expected ?? JSON.parse(_eval.expected as string),
+        output: opts.output ?? JSON.parse(_eval.output as string),
         rendered_columns:
-          opts.renderedColumns ?? JSON.parse(result.rendered_columns as string),
+          opts.renderedColumns ?? JSON.parse(_eval.rendered_columns as string),
       };
     },
 
     getMany: async (
-      opts?: Evalite.Storage.Results.GetManyOpts
-    ): Promise<Evalite.Storage.Entities.Result[]> => {
-      let results = Array.from(this.resultsStore.values());
+      opts?: Evalite.Storage.Evals.GetManyOpts
+    ): Promise<Evalite.Storage.Entities.Eval[]> => {
+      let evals = Array.from(this.evalsStore.values());
 
       if (opts?.ids && opts.ids.length > 0) {
-        results = results.filter((r) => opts.ids!.includes(r.id));
+        evals = evals.filter((e) => opts.ids!.includes(e.id));
       }
 
-      if (opts?.evalIds && opts.evalIds.length > 0) {
-        results = results.filter((r) => opts.evalIds!.includes(r.eval_id));
+      if (opts?.suiteIds && opts.suiteIds.length > 0) {
+        evals = evals.filter((e) => opts.suiteIds!.includes(e.suite_id));
       }
 
       if (opts?.order !== undefined) {
-        results = results.filter((r) => r.col_order === opts.order);
+        evals = evals.filter((e) => e.col_order === opts.order);
       }
 
       if (opts?.statuses && opts.statuses.length > 0) {
-        results = results.filter((r) => opts.statuses!.includes(r.status));
+        evals = evals.filter((e) => opts.statuses!.includes(e.status));
       }
 
-      results.sort((a, b) => a.col_order - b.col_order);
+      evals.sort((a, b) => a.col_order - b.col_order);
 
-      return results.map((r) => ({
-        ...r,
-        input: JSON.parse(r.input as string),
-        expected: JSON.parse(r.expected as string),
-        output: JSON.parse(r.output as string),
-        rendered_columns: JSON.parse(r.rendered_columns as string),
+      return evals.map((e) => ({
+        ...e,
+        input: JSON.parse(e.input as string),
+        expected: JSON.parse(e.expected as string),
+        output: JSON.parse(e.output as string),
+        rendered_columns: JSON.parse(e.rendered_columns as string),
       }));
     },
   };
@@ -273,7 +277,7 @@ export class InMemoryStorage implements Evalite.Storage {
     ): Promise<Evalite.Storage.Entities.Score> => {
       const score: Evalite.Storage.Entities.Score = {
         id: this.nextScoreId++,
-        result_id: opts.resultId,
+        eval_id: opts.evalId,
         name: opts.name,
         score: opts.score,
         description: opts.description,
@@ -298,8 +302,8 @@ export class InMemoryStorage implements Evalite.Storage {
         scores = scores.filter((s) => opts.ids!.includes(s.id));
       }
 
-      if (opts?.resultIds && opts.resultIds.length > 0) {
-        scores = scores.filter((s) => opts.resultIds!.includes(s.result_id));
+      if (opts?.evalIds && opts.evalIds.length > 0) {
+        scores = scores.filter((s) => opts.evalIds!.includes(s.eval_id));
       }
 
       return scores.map((s) => ({
@@ -315,7 +319,7 @@ export class InMemoryStorage implements Evalite.Storage {
     ): Promise<Evalite.Storage.Entities.Trace> => {
       const trace: Evalite.Storage.Entities.Trace = {
         id: this.nextTraceId++,
-        result_id: opts.resultId,
+        eval_id: opts.evalId,
         input: JSON.stringify(opts.input),
         output: JSON.stringify(opts.output),
         start_time: opts.start,
@@ -344,8 +348,8 @@ export class InMemoryStorage implements Evalite.Storage {
         traces = traces.filter((t) => opts.ids!.includes(t.id));
       }
 
-      if (opts?.resultIds && opts.resultIds.length > 0) {
-        traces = traces.filter((t) => opts.resultIds!.includes(t.result_id));
+      if (opts?.evalIds && opts.evalIds.length > 0) {
+        traces = traces.filter((t) => opts.evalIds!.includes(t.eval_id));
       }
 
       traces.sort((a, b) => a.col_order - b.col_order);
@@ -355,6 +359,49 @@ export class InMemoryStorage implements Evalite.Storage {
         input: JSON.parse(t.input as string),
         output: JSON.parse(t.output as string),
       }));
+    },
+  };
+
+  cache = {
+    get: async (
+      keyHash: string
+    ): Promise<{ value: unknown; duration: number } | null> => {
+      const entry = this.cacheStore.get(keyHash);
+
+      if (!entry) {
+        return null;
+      }
+
+      // Clean up expired entries (older than 1 day)
+      const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+      if (entry.createdAt < oneDayAgo) {
+        this.cacheStore.delete(keyHash);
+        return null;
+      }
+
+      return {
+        value: entry.value,
+        duration: entry.duration,
+      };
+    },
+
+    set: async (
+      keyHash: string,
+      data: { value: unknown; duration: number }
+    ): Promise<void> => {
+      this.cacheStore.set(keyHash, {
+        value: data.value,
+        duration: data.duration,
+        createdAt: Date.now(),
+      });
+    },
+
+    delete: async (keyHash: string): Promise<void> => {
+      this.cacheStore.delete(keyHash);
+    },
+
+    clear: async (): Promise<void> => {
+      this.cacheStore.clear();
     },
   };
 

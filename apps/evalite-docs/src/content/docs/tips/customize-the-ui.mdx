@@ -1,0 +1,111 @@
+---
+title: Customize The UI
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+Customize which columns appear in the Evalite UI to show only the data you care about.
+
+## Creating Custom Columns
+
+By default, Evalite renders input, expected and output columns:
+
+| Input                    | Expected                    | Output           |
+| ------------------------ | --------------------------- | ---------------- |
+| `input` passed to `data` | `expected` passed to `data` | Result of `task` |
+
+You can customize the columns shown by the UI by passing a `columns` attribute to the `evalite` function:
+
+```ts
+import { evalite } from "evalite";
+
+evalite("My Eval", {
+  data: [{ input: { a: 1, b: 2, c: 3, theOnlyPropertyWeWantToShow: "Hello" } }],
+  task: async (input) => {
+    return input.theOnlyPropertyWeWantToShow + " World!";
+  },
+  scorers: [],
+  columns: async (result) => {
+    return [
+      {
+        label: "Custom Input",
+        value: result.input.theOnlyPropertyWeWantToShow, // "Hello"
+      },
+      {
+        label: "Output",
+        value: result.output, // "Hello World!"
+      },
+    ];
+  },
+});
+```
+
+This will show two columns:
+
+| Custom Input | Output       |
+| ------------ | ------------ |
+| Hello        | Hello World! |
+
+### Accessing Scores and Traces in Columns
+
+The `columns` function also receives the computed `scores` and `traces` arrays, allowing you to display scorer results and trace information:
+
+```ts
+import { evalite } from "evalite";
+import { reportTrace } from "evalite/traces";
+
+evalite("My Eval", {
+  data: [{ input: "test", expected: "TEST" }],
+  task: async (input) => {
+    reportTrace({
+      start: 0,
+      end: 100,
+      input: { prompt: input },
+      output: { result: input.toUpperCase() },
+      usage: {
+        inputTokens: 10,
+        outputTokens: 20,
+        totalTokens: 30,
+      },
+    });
+    return input.toUpperCase();
+  },
+  scorers: [
+    {
+      name: "exact-match",
+      scorer: ({ output, expected }) => {
+        return {
+          score: output === expected ? 1 : 0,
+          metadata: { matched: output === expected },
+        };
+      },
+    },
+  ],
+  columns: async ({ input, output, scores, traces }) => {
+    return [
+      {
+        label: "Input",
+        value: input,
+      },
+      {
+        label: "Output",
+        value: output,
+      },
+      {
+        label: "Match Score",
+        value: scores.find((s) => s.name === "exact-match")?.score,
+      },
+      {
+        label: "Match Metadata",
+        value: JSON.stringify(
+          scores.find((s) => s.name === "exact-match")?.metadata
+        ),
+      },
+      {
+        label: "Total Tokens",
+        value: traces.reduce((sum, t) => sum + (t.usage?.totalTokens || 0), 0),
+      },
+    ];
+  },
+});
+```

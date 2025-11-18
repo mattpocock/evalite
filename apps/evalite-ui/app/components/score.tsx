@@ -1,4 +1,3 @@
-import type { Evalite } from "evalite";
 import {
   ChevronDownCircleIcon,
   ChevronRightCircleIcon,
@@ -21,9 +20,10 @@ export const Score = (props: {
   state: ScoreState;
   iconClassName?: string;
   hasScores: boolean;
+  className?: string;
 }) => {
   return (
-    <span className="flex items-center space-x-2">
+    <span className={cn("flex items-center space-x-2", props.className)}>
       {props.state === "loading" ? (
         <span>---%</span>
       ) : !props.hasScores ? (
@@ -86,29 +86,4 @@ export const Score = (props: {
       })()}
     </span>
   );
-};
-
-export const getScoreState = (opts: {
-  status: Evalite.Storage.Entities.EvalStatus;
-  score: number;
-  prevScore: number | null | undefined;
-}) => {
-  if (opts.status === "fail") {
-    return "failed";
-  }
-
-  if (opts.status === "running") {
-    return "loading";
-  }
-
-  const state: ScoreState =
-    typeof opts.prevScore === "undefined" || opts.prevScore === null
-      ? "first"
-      : opts.score > opts.prevScore
-        ? "up"
-        : opts.score < opts.prevScore
-          ? "down"
-          : "same";
-
-  return state;
 };

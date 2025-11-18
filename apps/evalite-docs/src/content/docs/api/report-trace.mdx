@@ -1,0 +1,217 @@
+---
+title: reportTrace()
+---
+
+Manually report a trace for custom LLM calls or processing steps.
+
+## Signature
+
+```typescript
+reportTrace(trace: {
+  input: unknown;
+  output: unknown;
+  usage?: {
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+  };
+  start?: number;
+  end?: number;
+}): void
+```
+
+## Parameters
+
+- `input` - The input to the operation (e.g., prompt, messages, raw data)
+- `output` - The output from the operation (e.g., LLM response, processed result)
+- `usage` (optional) - Token usage statistics
+  - `inputTokens` - Number of input tokens consumed
+  - `outputTokens` - Number of output tokens generated
+  - `totalTokens` - Total tokens (input + output)
+- `start` (optional) - Start timestamp in milliseconds (from `performance.now()`). Defaults to current time.
+- `end` (optional) - End timestamp in milliseconds (from `performance.now()`). Defaults to current time.
+
+## Import
+
+```typescript
+import { reportTrace } from "evalite/traces";
+```
+
+## Basic Usage
+
+```typescript
+import { evalite } from "evalite";
+import { reportTrace } from "evalite/traces";
+
+evalite("Multi-Step Analysis", {
+  data: [{ input: "Analyze this text" }],
+  task: async (input) => {
+    // First LLM call
+    reportTrace({
+      input: { prompt: "Summarize: " + input },
+      output: { text: "Summary of the text" },
+      usage: {
+        inputTokens: 50,
+        outputTokens: 20,
+        totalTokens: 70,
+      },
+    });
+
+    // Second LLM call
+    reportTrace({
+      input: { prompt: "Translate to Spanish: Summary of the text" },
+      output: { text: "Resumen del texto" },
+      usage: {
+        inputTokens: 30,
+        outputTokens: 15,
+        totalTokens: 45,
+      },
+    });
+
+    return "Final result";
+  },
+  scorers: [],
+});
+```
+
+## With Timestamps
+
+Capture timing information for performance analysis:
+
+```typescript
+const start = performance.now();
+const result = await callLLM(input);
+const end = performance.now();
+
+reportTrace({
+  input,
+  output: result,
+  start,
+  end,
+});
+```
+
+## Viewing Traces
+
+Traces appear in the Evalite UI under each test case:
+
+1. Navigate to an eval result
+2. Click on a specific test case
+3. View the "Traces" section to see all reported traces
+4. Inspect input, output, timing, and token usage for each trace
+
+## When to Use
+
+Use `reportTrace()` for:
+
+- **Custom LLM integrations** - Track calls to LLM providers not supported by AI SDK
+- **Non-LLM processing steps** - Track parsing, validation, data transformation
+- **Manual instrumentation** - Full control over what gets traced
+
+For Vercel AI SDK models, use [`wrapAISDKModel()`](/api/ai-sdk) instead for automatic tracing.
+
+## Complete Example
+
+Combining automatic AI SDK tracing with manual traces:
+
+```typescript
+import { evalite } from "evalite";
+import { reportTrace } from "evalite/traces";
+import { wrapAISDKModel } from "evalite/ai-sdk";
+import { openai } from "@ai-sdk/openai";
+import { generateText } from "ai";
+
+const model = wrapAISDKModel(openai("gpt-4"));
+
+evalite("Research Agent", {
+  data: [
+    {
+      input: "What is the capital of France?",
+      expected: "Paris",
+    },
+  ],
+  task: async (input) => {
+    // Step 1: Extract intent (manually traced)
+    const intent = await extractIntent(input);
+    reportTrace({
+      input: { query: input },
+      output: { intent },
+    });
+
+    // Step 2: Generate response (automatically traced via AI SDK)
+    const result = await generateText({
+      model,
+      prompt: `Answer this question: ${input}`,
+    });
+
+    // Step 3: Format result (manually traced)
+    const formatted = formatResponse(result.text);
+    reportTrace({
+      input: { raw: result.text },
+      output: { formatted },
+    });
+
+    return formatted;
+  },
+  scorers: [
+    {
+      name: "Exact Match",
+      scorer: ({ output, expected }) => {
+        return output === expected ? 1 : 0;
+      },
+    },
+  ],
+});
+
+async function extractIntent(query: string) {
+  // Custom intent extraction logic
+  return "question";
+}
+
+function formatResponse(text: string) {
+  // Custom formatting logic
+  return text.trim();
+}
+```
+
+## Best Practices
+
+1. **Include usage data** - Track token consumption to monitor costs
+2. **Use timestamps** - Capture timing information for performance analysis
+3. **Keep trace data relevant** - Don't trace every small operation
+4. **Combine with AI SDK** - Use `wrapAISDKModel()` for AI SDK calls, `reportTrace()` for custom steps
+5. **Structured data** - Use objects for input/output to make traces more readable in the UI
+
+## Behavior in Production
+
+`reportTrace()` is a no-op when called outside an Evalite context, so you can safely leave it in your code without any performance overhead.
+
+## Troubleshooting
+
+### Traces not appearing
+
+Make sure you're calling `reportTrace()` inside a `task` function:
+
+```typescript
+// ✅ Correct
+evalite("My Eval", {
+  data: [{ input: "test" }],
+  task: async (input) => {
+    reportTrace({ input, output: "result" }); // Works
+    return "result";
+  },
+});
+
+// ❌ Wrong
+reportTrace({ input: "test", output: "result" }); // Outside eval
+```
+
+### Error: "reportTrace must be called inside an evalite eval"
+
+This error occurs when `reportTrace()` is called outside the `task` function context. Make sure all `reportTrace()` calls are within the `task` function.
+
+## See Also
+
+- [`wrapAISDKModel()` Reference](/api/ai-sdk) - Automatic tracing for Vercel AI SDK models
+- [Vercel AI SDK Guide](/tips/vercel-ai-sdk) - Complete integration guide
+- [`evalite()`](/api/evalite) - Main evaluation function

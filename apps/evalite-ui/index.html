@@ -15,13 +15,22 @@
     <link rel="icon" href="/assets/favicon.ico" sizes="any" />
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
     <script>
-      // Set the theme to system default and listen for changes
-      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-      function updateTheme(e) {
-        document.documentElement.classList.toggle("dark", e.matches);
+      let preferredTheme = localStorage.getItem("theme") || "system";
+
+      if (preferredTheme === "system") {
+        const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+        function updateTheme(e) {
+          document.documentElement.classList.toggle("dark", e.matches);
+          localStorage.setItem("theme", e.matches ? "dark" : "light");
+        }
+        updateTheme(mediaQuery);
+        mediaQuery.addEventListener("change", updateTheme);
+      } else {
+        document.documentElement.classList.toggle(
+          "dark",
+          preferredTheme === "dark"
+        );
       }
-      updateTheme(mediaQuery);
-      mediaQuery.addEventListener("change", updateTheme);
     </script>
   </head>
   <body>
