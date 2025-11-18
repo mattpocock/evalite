@@ -17,6 +17,11 @@ const ADAPTERS_TO_TEST: StorageTestFactory[] = [
     factory: async () => SqliteStorage.create(":memory:"),
   },
   {
+    name: "LibsqlStorage",
+    factory: async () =>
+      SqliteStorage.create({ engine: "libsql", filepath: ":memory:" }),
+  },
+  {
     name: "InMemoryStorage",
     factory: async () => InMemoryStorage.create(),
   },
