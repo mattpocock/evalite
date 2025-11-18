@@ -1,0 +1,33 @@
+{
+  "name": "@evalite/braintrust",
+  "version": "1.0.0-beta.14",
+  "type": "module",
+  "description": "Braintrust storage backend for Evalite",
+  "homepage": "https://evalite.dev",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "./dist/*"
+  ],
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "dev": "tsc -w",
+    "build": "tsc",
+    "test": "vitest run",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "braintrust": "^0.4.9"
+  },
+  "peerDependencies": {
+    "evalite": "^1.0.0-beta.14"
+  },
+  "devDependencies": {
+    "evalite": "workspace:*",
+    "typescript": "5.6.2",
+    "vitest": "^2.1.8"
+  }
+}
