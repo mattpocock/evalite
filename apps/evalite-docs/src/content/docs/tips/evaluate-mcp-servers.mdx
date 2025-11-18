@@ -1,0 +1,150 @@
+---
+title: Evaluate MCP Servers
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+[Model Context Protocol (MCP)](https://modelcontextprotocol.io) servers expose tools, resources, and prompts to LLM clients. Use Evalite to verify that your MCP tools are described clearly and called with the right arguments.
+
+We'll lean on the [AI SDK MCP client](https://ai-sdk.dev/docs/ai-sdk-core/mcp-tools) to connect to your server and surface its tools to the rest of the AI SDK stack, so there are no custom adapters required.
+
+1. Start your MCP server so tools are available.
+2. Initialize an [AI SDK MCP client](https://ai-sdk.dev/docs/ai-sdk-core/mcp-tools) to connect to that server.
+3. Call [`await client.tools()`](https://ai-sdk.dev/docs/ai-sdk-core/mcp-tools#clienttools) to convert MCP tools into the AI SDK's tool format.
+4. Run the AI model with those tools enabled.
+5. Score the returned tool calls with [`toolCallAccuracy`](/api/scorers/tool-call-accuracy).
+
+## Setup
+
+Before running evals, ensure your MCP server is running. If you haven't set up Evalite yet, follow the [quickstart](/guides/quickstart) guide.
+
+Install the required packages:
+
+```bash
+pnpm add -D @ai-sdk/mcp @ai-sdk/openai ai evalite
+```
+
+<Aside type="note">
+
+We use OpenAI in these examples, but you're free to use any AI SDK provider (Anthropic, Google, etc.).
+
+</Aside>
+
+## Run the Eval
+
+The example below checks that a recipe agent first searches for recipes and then fetches the right one. We mirror the MCP server's expected calls in `expected` so `toolCallAccuracy` can compare them to the model's real tool invocations.
+
+```ts
+// mcp.eval.ts
+
+import { experimental_createMCPClient as createMCPClient } from "@ai-sdk/mcp";
+import { openai } from "@ai-sdk/openai";
+import { generateText } from "ai";
+import { evalite } from "evalite";
+import { wrapAISDKModel } from "evalite/ai-sdk";
+import { toolCallAccuracy } from "evalite/scorers";
+
+const MCP_URL = process.env.MCP_URL ?? "http://localhost:3000/mcp";
+const model = wrapAISDKModel(openai("gpt-4o-mini"));
+
+evalite("Evaluate MCP Tool Calls", {
+  data: async () => [
+    {
+      input: "Search for recipes with chicken",
+      expected: [
+        {
+          toolName: "search_recipes",
+          input: { query: "chicken" },
+        },
+      ],
+    },
+    {
+      input: "Get the recipe with ID 123",
+      expected: [
+        {
+          toolName: "get_recipe",
+          input: { id: "123" },
+        },
+      ],
+    },
+  ],
+  task: async (input) => {
+    const mcpClient = await createMCPClient({
+      transport: { type: "http", url: MCP_URL },
+    });
+
+    try {
+      const result = await generateText({
+        model,
+        prompt: input,
+        tools: await mcpClient.tools(),
+      });
+
+      return result.toolCalls ?? [];
+    } finally {
+      await mcpClient.close();
+    }
+  },
+  scorers: [
+    async ({ output, expected }) =>
+      toolCallAccuracy({
+        actualCalls: output,
+        expectedCalls: expected,
+      }),
+  ],
+});
+```
+
+<Aside>
+
+[`wrapAISDKModel`](/api/ai-sdk) automatically enables tracing and caching for every LLM call in your evals.
+
+</Aside>
+
+### Allow Multiple Tool Calls
+
+Let the model chain several MCP calls by adding `maxSteps` (or your own `stopWhen` logic) to the `generateText` call:
+
+```ts
+const result = await generateText({
+  model,
+  prompt: input,
+  tools: await mcpClient.tools(),
+  maxSteps: 5,
+});
+```
+
+### Scoring Tips
+
+- Provide the full `input` object to assert that arguments match exactly.
+- If you only care about a tool being invoked, omit the `input` field entirely for that expectation.
+
+## Environment Configuration
+
+Store your MCP server URL in an environment variable:
+
+```bash
+# .env
+MCP_URL=http://localhost:3000/mcp # or any other deployed MCP
+```
+
+Then reference it in your eval:
+
+```ts
+const MCP_URL = process.env.MCP_URL ?? "http://localhost:3000/mcp";
+```
+
+## Best Practices
+
+1. **Start your MCP server first** — evals fail fast if the transport isn't available.
+2. **Reuse clients carefully** — create one per test case and close it in a `finally` block.
+3. **Match critical paths** — focus on the user flows and tools that matter most in production.
+4. **Document expectations** — the `expected` array doubles as living documentation for tool behavior.
+5. **Trace everything** — keep `wrapAISDKModel` enabled so you can review prompts, responses, and tool payloads.
+
+## See Also
+
+- [`toolCallAccuracy` scorer reference](/api/scorers/tool-call-accuracy) – Detailed API docs
+- [Vercel AI SDK Guide](/tips/vercel-ai-sdk) – Tracing and caching configuration
+- [AI SDK MCP Tools Documentation](https://ai-sdk.dev/docs/ai-sdk-core/mcp-tools) – Official MCP integration docs
+- [MCP Starter Template](https://github.com/onmax/nuxt-mcp-starter) – Ready-made server with sample tools

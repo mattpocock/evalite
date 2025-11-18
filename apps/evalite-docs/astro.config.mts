@@ -159,6 +159,10 @@ export default defineConfig({
               slug: "tips/vercel-ai-sdk",
             },
             {
+              label: "Evaluate MCP Servers",
+              slug: "tips/evaluate-mcp-servers",
+            },
+            {
               label: "Images And Media",
               slug: "tips/images-and-media",
             },
