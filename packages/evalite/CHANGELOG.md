@@ -1,5 +1,11 @@
 # evalite
 
+## 1.0.0-beta.15
+
+### Patch Changes
+
+- 27401f7: Fixed a bug where evalite export would hang until closed.
+
 ## 1.0.0-beta.14
 
 ### Patch Changes
