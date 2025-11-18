@@ -56,6 +56,36 @@ pnpm approve-builds
 This allows `better-sqlite3` to compile its native bindings. Without this, you may see errors about missing `.node` files when running Evalite.
 :::
 
+### Using `libsql` for SQLite Storage
+
+LibSQL is a fork of SQLite, you can use it with their `better-sqlite3` compatible client library `libsql`.
+Configure Evalite to use it by installing the required peer dependency:
+
+```bash
+pnpm add -D libsql
+```
+
+Then configure Evalite to use `libsql` storage:
+
+```ts
+// evalite.config.ts
+import { defineConfig } from "evalite/config";
+import { createSqliteStorage } from "evalite/sqlite-storage";
+
+export default defineConfig({
+  storage: () =>
+    createSqliteStorage({
+      engine: "libsql",
+      filepath: "./evalite.db",
+      libSqlOptions: {
+        /** other libsql config options */
+      },
+    }),
+});
+```
+
+See [libsql](https://www.npmjs.com/package/libsql) for more information.
+
 ## Custom Storage Adapters
 
 You can build your own storage adapter to integrate with remote databases, cloud storage, or custom data pipelines. This is useful for:

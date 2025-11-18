@@ -70,14 +70,18 @@
     "tinyrainbow": "^3.0.3"
   },
   "peerDependencies": {
+    "ai": "^5",
     "better-sqlite3": "^11.6.0",
-    "ai": "^5"
+    "libsql": "^0.5.22"
   },
   "peerDependenciesMeta": {
     "better-sqlite3": {
       "optional": true
     },
     "ai": {
+      "optional": true
+    },
+    "libsql": {
       "optional": true
     }
   },
@@ -88,6 +92,7 @@
     "@types/ws": "^8.18.1",
     "ai": "^5.0.59",
     "better-sqlite3": "^11.6.0",
+    "libsql": "^0.5.22",
     "unstorage": "^1.17.1"
   }
 }

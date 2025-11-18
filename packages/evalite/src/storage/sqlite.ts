@@ -3,7 +3,7 @@ import { jsonParseFields, jsonParseFieldsArray } from "./utils.js";
 import type { Evalite } from "../types.js";
 import { mkdir } from "fs/promises";
 import path from "path";
-import Database from "better-sqlite3";
+import type * as LibSql from "libsql";
 
 const tableNames = {
   runs: "runs",
@@ -14,8 +14,59 @@ const tableNames = {
   cache: "cache",
 };
 
-const createDatabase = (url: string): BetterSqlite3.Database => {
-  const db: BetterSqlite3.Database = new Database(url);
+type DatabaseConfig = {
+  filepath: string;
+} & (
+  | {
+      engine: "libsql";
+      libSqlOptions?: LibSql.Options;
+    }
+  | {
+      engine: "better-sqlite3";
+      betterSqlite3Options?: BetterSqlite3.Options;
+    }
+);
+
+type Database = BetterSqlite3.Database;
+
+const createDatabase = async (
+  urlOrConfig: string | DatabaseConfig
+): Promise<Database> => {
+  let db: Database;
+  if (
+    typeof urlOrConfig === "string" ||
+    urlOrConfig.engine === "better-sqlite3"
+  ) {
+    const DatabaseClass = await import("better-sqlite3")
+      .then((m) => m.default)
+      .catch((e) => {
+        throw new Error(
+          "`better-sqlite3` is not installed, in order to use this storage engine you must install it",
+          { cause: e }
+        );
+      });
+
+    db = new DatabaseClass(
+      typeof urlOrConfig === "string" ? urlOrConfig : urlOrConfig.filepath,
+      typeof urlOrConfig === "string" ? {} : urlOrConfig.betterSqlite3Options
+    );
+  } else if (urlOrConfig.engine === "libsql") {
+    const DatabaseClass = await import("libsql")
+      .then((m) => m.default)
+      .catch((e) => {
+        throw new Error(
+          "`libsql` is not installed, in order to use this storage engine you must install it",
+          { cause: e }
+        );
+      });
+    db = new DatabaseClass(
+      urlOrConfig.filepath,
+      urlOrConfig.libSqlOptions
+    ) as BetterSqlite3.Database;
+  } else {
+    throw new Error("Invalid database config");
+  }
+
   db.pragma("journal_mode = WAL");
   db.exec(`
     CREATE TABLE IF NOT EXISTS ${tableNames.runs} (
@@ -130,9 +181,9 @@ const createDatabase = (url: string): BetterSqlite3.Database => {
 };
 
 export class SqliteStorage implements Evalite.Storage {
-  private db: BetterSqlite3.Database;
+  private db: Database;
 
-  private constructor(db: BetterSqlite3.Database) {
+  private constructor(db: Database) {
     this.db = db;
   }
 
@@ -407,8 +458,10 @@ export class SqliteStorage implements Evalite.Storage {
   /**
    * Create a new SQLite storage
    */
-  static create(location: string): SqliteStorage {
-    const db = createDatabase(location);
+  static async create(
+    urlOrConfig: string | DatabaseConfig
+  ): Promise<SqliteStorage> {
+    const db = await createDatabase(urlOrConfig);
     return new SqliteStorage(db);
   }
 
@@ -744,12 +797,17 @@ export class SqliteStorage implements Evalite.Storage {
 
 /**
  * Create a new SQLite storage
- * @param dbLocation - Path to the SQLite database file
+ * @param urlOrConfig - Path to the SQLite database file or database config
  * @returns A new SqliteStorage instance
  */
 export const createSqliteStorage = async (
-  dbLocation: string
+  urlOrConfig: string | DatabaseConfig
 ): Promise<SqliteStorage> => {
-  await mkdir(path.dirname(dbLocation), { recursive: true });
-  return SqliteStorage.create(dbLocation);
+  await mkdir(
+    path.dirname(
+      typeof urlOrConfig === "string" ? urlOrConfig : urlOrConfig.filepath
+    ),
+    { recursive: true }
+  );
+  return await SqliteStorage.create(urlOrConfig);
 };
