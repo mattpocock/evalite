@@ -11,9 +11,8 @@
   "scripts": {
     "beta:release": "pnpm run ci && changeset version && git add . && git commit -m 'Bump version' && git push && pnpm changeset publish",
     "build:evalite": "pnpm --filter evalite build",
-    "build:braintrust": "pnpm --filter @evalite/braintrust build",
     "build:evalite-ui": "pnpm --filter evalite-ui build && pnpm --filter evalite-ui after-build",
-    "build": "pnpm run build:evalite && pnpm run build:braintrust && pnpm run build:evalite-ui",
+    "build": "pnpm run build:evalite && pnpm run build:evalite-ui",
     "dev": "pnpm build:evalite && pnpm build:evalite-ui && pnpm --filter evalite --filter evalite-tests --parallel run dev",
     "dev:evalite": "pnpm --filter evalite dev",
     "dev:evalite-ui": "pnpm --filter evalite-ui dev",

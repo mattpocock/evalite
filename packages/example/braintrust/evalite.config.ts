@@ -1,11 +1,11 @@
 import { defineConfig } from "evalite/config";
-import { createBraintrustStorage } from "@evalite/braintrust";
+import { createBraintrustStorage } from "evalite/braintrust";
 
 /**
  * Example configuration for using Braintrust as the storage backend.
  *
  * To use this configuration:
- * 1. Install the Braintrust package: `pnpm add @evalite/braintrust`
+ * 1. Install the Braintrust package: `pnpm add braintrust`
  * 2. Rename this file to `evalite.config.ts` (or use --config flag)
  * 3. Set the BRAINTRUST_API_KEY environment variable
  * 4. Run evalite as normal

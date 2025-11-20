@@ -1,11 +1,6 @@
-import type { Evalite } from "evalite";
-import {
-  init,
-  currentSpan,
-  _internalGetGlobalState,
-  type Experiment,
-  type Span,
-} from "braintrust";
+import type { Evalite } from "./types.js";
+import type { Experiment, Span } from "braintrust";
+import { init, _internalGetGlobalState } from "braintrust";
 
 interface BraintrustStorageOptions {
   /**
@@ -324,7 +319,7 @@ export class BraintrustStorage implements Evalite.Storage {
     update: async (
       opts: Evalite.Storage.Evals.UpdateOpts
     ): Promise<Evalite.Storage.Entities.Eval> => {
-      const experiment = await this.initExperiment();
+      await this.initExperiment();
       const eval_ = this.entityStore.evals.get(opts.id);
       if (!eval_) {
         throw new Error(`Eval with id ${opts.id} not found`);
@@ -396,7 +391,7 @@ export class BraintrustStorage implements Evalite.Storage {
     create: async (
       opts: Evalite.Storage.Scores.CreateOpts
     ): Promise<Evalite.Storage.Entities.Score> => {
-      const experiment = await this.initExperiment();
+      await this.initExperiment();
 
       const score: Evalite.Storage.Entities.Score = {
         id: this.nextId.score++,

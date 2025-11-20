@@ -1,5 +1,5 @@
 import { defineConfig } from "evalite/config";
-import { createBraintrustStorage } from "@evalite/braintrust";
+import { createBraintrustStorage } from "evalite/braintrust";
 
 export default defineConfig({
   storage: async () => {
