@@ -1,6 +1,7 @@
-import { embed, type EmbeddingModel } from "ai";
+import { embed } from "ai";
 import { Graph, Node } from "../graph.js";
 import type { Transformer } from "./transformer.js";
+import type { EmbeddingModelV2 } from "@ai-sdk/provider";
 
 export function embedExtractor<
   TInput extends { content: string },
@@ -10,7 +11,7 @@ export function embedExtractor<
   field,
   filter,
 }: {
-  model: EmbeddingModel<string>;
+  model: EmbeddingModelV2<string>;
   field: Field;
   filter?: (node: Node<TInput>) => boolean;
 }): Transformer<TInput, TInput & { [K in `${Field}Embedding`]?: number[] }> {
