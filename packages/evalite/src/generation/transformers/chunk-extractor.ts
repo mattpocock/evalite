@@ -1,56 +1,21 @@
-import { Graph, Node, type Edge } from "../graph.js";
-import type { Transformer } from "./transformer.js";
+import { node, type NoData } from "../graph.js";
+import { transformer } from "./transformer.js";
 
 export type ChunkerFn = (content: string) => string[];
 
-export function chunkExtractor<
-  TInput extends { content: string },
-  TInputEdgeTypeDataMap extends Record<string, any> = {},
->({
-  chunker,
-  filter,
-}: {
-  chunker: ChunkerFn;
-  filter?: (node: Node<TInput, TInputEdgeTypeDataMap>) => boolean;
-}): Transformer<
-  TInput,
-  { content: string } & Partial<TInput>,
-  TInputEdgeTypeDataMap,
-  TInputEdgeTypeDataMap & { chunk: undefined; parent: undefined }
-> {
-  return async (graph: Graph<TInput, TInputEdgeTypeDataMap>) => {
-    const newGraph = new Graph<
-      { content: string } & Partial<TInput>,
-      TInputEdgeTypeDataMap & { chunk: undefined; parent: undefined }
-    >();
+export const chunkExtractor = transformer<
+  { chunker: ChunkerFn },
+  { content: string },
+  {},
+  { chunk: NoData; parent: NoData }
+>(async ({ chunker }, { graph, nodes }) => {
+  for (const n of nodes) {
+    const chunks = chunker(n.data.content);
 
-    for (const node of graph.getNodes().values()) {
-      if (filter && !filter(node)) {
-        newGraph.addNode(new Node(node.id, node.type, node.data));
-        continue;
-      }
-
-      const chunks = chunker(node.data.content);
-      newGraph.addNode(
-        new Node<
-          { content: string } & Partial<TInput>,
-          TInputEdgeTypeDataMap & { chunk: undefined; parent: undefined }
-        >(node.id, node.type, node.data)
-      );
-
-      for (const chunk of chunks) {
-        const newNode = new Node<
-          { content: string } & Partial<TInput>,
-          TInputEdgeTypeDataMap & { chunk: undefined; parent: undefined }
-        >(crypto.randomUUID(), "chunk", {
-          content: chunk,
-        } as { content: string } & Partial<TInput>);
-        newGraph.addNode(newNode);
-        newGraph.addEdge(node.id, newNode.id, "chunk", undefined);
-        newGraph.addEdge(newNode.id, node.id, "parent", undefined);
-      }
+    for (const chunk of chunks) {
+      const newNode = graph.addNode(node("chunk", { content: chunk }));
+      graph.addEdge(n.id, newNode.id, "chunk", {});
+      graph.addEdge(newNode.id, n.id, "parent", {});
     }
-
-    return newGraph;
-  };
-}
+  }
+});

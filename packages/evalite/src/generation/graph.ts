@@ -1,3 +1,7 @@
+export type NoData = {};
+export type GraphNodeData<G> = G extends Graph<infer N, any> ? N : never;
+export type GraphEdgeMap<G> = G extends Graph<any, infer E> ? E : never;
+
 export type Edge<
   TNodeData,
   TEdgeTypeDataMap extends Record<string, any> = {},
@@ -24,6 +28,7 @@ export class Graph<
 
   addNode(node: Node<TNodeData, TEdgeTypeDataMap>) {
     this.nodes.set(node.id, node);
+    return node;
   }
 
   getNode(id: string) {
@@ -131,6 +136,10 @@ export function graph<
 export function node<
   TNodeData,
   TEdgeTypeDataMap extends Record<string, any> = {},
->(type: "document" | "chunk", data: TNodeData) {
-  return new Node<TNodeData, TEdgeTypeDataMap>(crypto.randomUUID(), type, data);
+>(type: "document" | "chunk", data: TNodeData, id?: string) {
+  return new Node<TNodeData, TEdgeTypeDataMap>(
+    id ?? crypto.randomUUID(),
+    type,
+    data
+  );
 }

@@ -1,66 +1,30 @@
 import { cosineSimilarity } from "ai";
-import type { Transformer } from "./transformer.js";
-import { Graph, Node } from "../graph.js";
+import { transformer } from "./transformer.js";
 
-export function embeddingSimilarity<
-  TInput,
-  TKey extends keyof TInput & string,
-  TInputEdgeTypeDataMap extends Record<string, any> = {},
->({
-  property,
-  filter,
-  threshold = 0.5,
-}: {
-  property: TKey;
-  filter?: (node: Node<TInput, TInputEdgeTypeDataMap>) => boolean;
-  threshold?: number;
-}): Transformer<
-  TInput,
-  TInput,
-  TInputEdgeTypeDataMap,
-  TInputEdgeTypeDataMap & {
-    [K in `${TKey}Similarity`]: { score: number };
-  }
-> {
-  return async (graph: Graph<TInput, TInputEdgeTypeDataMap>) => {
-    const clonedGraph = graph.clone<
-      TInput,
-      TInputEdgeTypeDataMap & {
-        [K in `${TKey}Similarity`]: { score: number };
-      }
-    >();
-    const nodes = Array.from(clonedGraph.getNodes().values());
+export const embeddingSimilarity = transformer<
+  { property: string; threshold?: number },
+  Record<string, unknown>,
+  {},
+  { embeddingSimilarity: { score: number; property: string } }
+>(async ({ property, threshold = 0.5 }, { graph, nodes }) => {
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      const nodeA = nodes[i];
+      const nodeB = nodes[j];
+      if (!nodeA || !nodeB) continue;
 
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        const nodeA = nodes[i];
-        const nodeB = nodes[j];
+      const valueA = nodeA.data[property];
+      const valueB = nodeB.data[property];
+      if (!valueA || !valueB) continue;
+      if (!Array.isArray(valueA) || !Array.isArray(valueB)) continue;
 
-        if (!nodeA || !nodeB) continue;
-
-        if (filter && (!filter(nodeA) || !filter(nodeB))) {
-          continue;
-        }
-
-        const valueA = nodeA.data[property];
-        const valueB = nodeB.data[property];
-
-        if (!valueA || !valueB) continue;
-
-        if (!Array.isArray(valueA) || !Array.isArray(valueB)) {
-          continue;
-        }
-
-        const similarity = cosineSimilarity(valueA, valueB);
-
-        if (similarity > threshold) {
-          clonedGraph.addEdge(nodeA.id, nodeB.id, `${property}Similarity`, {
-            score: similarity,
-          });
-        }
+      const similarity = cosineSimilarity(valueA, valueB);
+      if (similarity > threshold) {
+        graph.addEdge(nodeA.id, nodeB.id, "embeddingSimilarity", {
+          score: similarity,
+          property,
+        });
       }
     }
-
-    return clonedGraph;
-  };
-}
+  }
+});

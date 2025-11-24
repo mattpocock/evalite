@@ -1,50 +1,18 @@
-import { embed } from "ai";
-import { Graph, Node } from "../graph.js";
-import type { Transformer } from "./transformer.js";
-import type { EmbeddingModel } from "ai";
+import { embed, type EmbeddingModel } from "ai";
+import { transformer } from "./transformer.js";
 
-export function embedExtractor<
-  TInput,
-  TKey extends keyof TInput,
-  TEdgeTypeDataMap extends Record<string, any> = {},
->({
-  model,
-  field,
-  filter,
-}: {
-  model: EmbeddingModel<any>;
-  field: TKey;
-  filter?: (node: Node<TInput, TEdgeTypeDataMap>) => boolean;
-}): Transformer<
-  TInput,
-  TInput & { [K in TKey as `${string & K}Embedding`]: number[] },
-  TEdgeTypeDataMap,
-  TEdgeTypeDataMap
-> {
-  return async (graph: Graph<TInput, TEdgeTypeDataMap>) => {
-    const clonedGraph = graph.clone<
-      TInput & { [K in TKey as `${string & K}Embedding`]: number[] },
-      TEdgeTypeDataMap
-    >();
-    const nodes = Array.from(clonedGraph.getNodes().values());
+export const embedExtractor = transformer<
+  { model: EmbeddingModel<string>; field: string },
+  Record<string, unknown>,
+  { embedding: number[]; embeddingField: string }
+>(async ({ model, field }, { nodes }) => {
+  for (const node of nodes) {
+    if (node.data[field] == null) continue;
 
-    for (const node of nodes) {
-      if (filter && !filter(node)) continue;
-      if (node.data[field] == null) continue;
-
-      const value = String(node.data[field]);
-
-      const { embedding } = await embed({
-        model,
-        value,
-      });
-
-      node.data = {
-        ...node.data,
-        [`${String(field)}Embedding`]: embedding,
-      };
-    }
-
-    return clonedGraph;
-  };
-}
+    const { embedding } = await embed({
+      model,
+      value: String(node.data[field]),
+    });
+    node.data = { ...node.data, embedding, embeddingField: field };
+  }
+});

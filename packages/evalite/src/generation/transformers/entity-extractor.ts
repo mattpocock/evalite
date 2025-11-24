@@ -1,14 +1,9 @@
-import { Graph, Node } from "../graph.js";
-import type { Transformer } from "./transformer.js";
+import { transformer } from "./transformer.js";
 import { generateObject, jsonSchema, type LanguageModel } from "ai";
 import { promptBuilder } from "../../scorers/prompt-builder.js";
 
 const EntitiesSchema = jsonSchema<{
-  entities: Array<{
-    type: string;
-    value: string;
-    description?: string;
-  }>;
+  entities: Array<{ type: string; value: string; description?: string }>;
 }>({
   type: "object",
   properties: {
@@ -55,11 +50,7 @@ const extractEntitiesPrompt = promptBuilder({
             value: "Apple Inc.",
             description: "Technology company",
           },
-          {
-            type: "PERSON",
-            value: "Tim Cook",
-            description: "CEO of Apple",
-          },
+          { type: "PERSON", value: "Tim Cook", description: "CEO of Apple" },
           {
             type: "LOCATION",
             value: "San Francisco",
@@ -77,50 +68,20 @@ const extractEntitiesPrompt = promptBuilder({
   task: ["content"],
 });
 
-export function entityExtractor<TInput extends { content: string }>({
-  model,
-  filter,
-}: {
-  model: LanguageModel;
-  filter?: (node: Node<TInput>) => boolean;
-}): Transformer<
-  TInput,
-  TInput & {
-    entities?: { type: string; value: string; description?: string }[];
+type Entity = { type: string; value: string; description?: string };
+
+export const entityExtractor = transformer<
+  { model: LanguageModel },
+  { content: string },
+  { entities?: Entity[] }
+>(async ({ model }, { nodes }) => {
+  for (const node of nodes) {
+    const result = await generateObject({
+      model,
+      schema: EntitiesSchema,
+      prompt: extractEntitiesPrompt({ content: node.data.content }),
+    });
+
+    node.data = { ...node.data, entities: result.object.entities };
   }
-> {
-  return async (graph: Graph<TInput>) => {
-    const nodes: Node<
-      TInput & {
-        entities?: { type: string; value: string; description?: string }[];
-      }
-    >[] = [];
-
-    for (const node of graph.getNodes().values()) {
-      if (filter && !filter(node)) {
-        nodes.push(
-          new Node(node.id, node.type, {
-            ...node.data,
-          })
-        );
-        continue;
-      }
-      const result = await generateObject({
-        model,
-        schema: EntitiesSchema,
-        prompt: extractEntitiesPrompt({
-          content: node.data.content,
-        }),
-      });
-
-      nodes.push(
-        new Node(node.id, node.type, {
-          ...node.data,
-          entities: result.object.entities,
-        })
-      );
-    }
-
-    return new Graph(nodes);
-  };
-}
+});

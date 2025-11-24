@@ -1,53 +1,90 @@
-import type { Graph } from "../graph.js";
+import type { Graph, Node } from "../graph.js";
 
 export type Transformer<
-  TInputNodeData = {},
-  TOutputNodeData = {},
-  TInputEdgeTypeDataMap extends Record<string, any> = {},
-  TOutputEdgeTypeDataMap extends Record<string, any> = {},
-> = (
-  graph: Graph<TInputNodeData, TInputEdgeTypeDataMap>
-) => PromiseLike<Graph<TOutputNodeData, TOutputEdgeTypeDataMap>>;
+  TInput extends Graph<any, any> = Graph<{}, {}>,
+  TOutput extends Graph<any, any> = Graph<{}, {}>,
+> = (graph: TInput) => PromiseLike<TOutput>;
 
-export type TransformerPipeline<
-  TCurrentNodeData,
-  TCurrentEdgeTypeDataMap extends Record<string, any>,
-> = {
-  pipe<TNextNodeData, TNextEdgeTypeDataMap extends Record<string, any>>(
-    transformer: Transformer<
-      TCurrentNodeData,
-      TNextNodeData,
-      TCurrentEdgeTypeDataMap,
-      TNextEdgeTypeDataMap
-    >
-  ): TransformerPipeline<TNextNodeData, TNextEdgeTypeDataMap>;
-  build(): Promise<Graph<TCurrentNodeData, TCurrentEdgeTypeDataMap>>;
+export type TransformerPipeline<TGraph extends Graph<any, any>> = {
+  pipe<TNext extends Graph<any, any>>(
+    transformer: Transformer<TGraph, TNext>
+  ): TransformerPipeline<TNext>;
+  build(): Promise<TGraph>;
 };
 
-export function transform<
-  TInputNodeData,
-  TInputEdgeTypeDataMap extends Record<string, any> = {},
+type FilterFn<T> = (node: Node<T, Record<string, unknown>>) => boolean;
+
+export function transformer<
+  TOptions,
+  TInputConstraint,
+  TDataAdditions = {},
+  TEdgeAdditions extends Record<string, any> = {},
 >(
-  graph: Graph<TInputNodeData, TInputEdgeTypeDataMap>
-): TransformerPipeline<TInputNodeData, TInputEdgeTypeDataMap> {
-  const createPipeline = <
-    TCurrentNodeData,
-    TCurrentEdgeTypeDataMap extends Record<string, any>,
+  handler: (
+    options: TOptions,
+    data: {
+      graph: Graph<TInputConstraint & TDataAdditions, TEdgeAdditions>;
+      nodes: Node<TInputConstraint & TDataAdditions, TEdgeAdditions>[];
+    }
+  ) => PromiseLike<void>
+): <TInput extends TInputConstraint, TEdgeMap extends Record<string, any> = {}>(
+  options: TOptions & { filter?: FilterFn<TInputConstraint> }
+) => Transformer<
+  Graph<TInput, TEdgeMap>,
+  Graph<TInput & TDataAdditions, TEdgeMap & TEdgeAdditions>
+> {
+  return <
+    TInput extends TInputConstraint,
+    TEdgeMap extends Record<string, any>,
   >(
-    currentGraph: PromiseLike<Graph<TCurrentNodeData, TCurrentEdgeTypeDataMap>>
-  ): TransformerPipeline<TCurrentNodeData, TCurrentEdgeTypeDataMap> => ({
-    pipe<TNextNodeData, TNextEdgeTypeDataMap extends Record<string, any>>(
-      transformer: Transformer<
-        TCurrentNodeData,
-        TNextNodeData,
-        TCurrentEdgeTypeDataMap,
-        TNextEdgeTypeDataMap
-      >
+    options: TOptions & { filter?: FilterFn<TInputConstraint> }
+  ): Transformer<
+    Graph<TInput, TEdgeMap>,
+    Graph<TInput & TDataAdditions, TEdgeMap & TEdgeAdditions>
+  > => {
+    return async (
+      graph: Graph<TInput, TEdgeMap>
+    ): Promise<Graph<TInput & TDataAdditions, TEdgeMap & TEdgeAdditions>> => {
+      const clonedGraph = graph.clone() as unknown as Graph<
+        TInputConstraint & TDataAdditions,
+        TEdgeAdditions
+      >;
+
+      const { filter, ...restOptions } = options;
+      const allNodes = Array.from(clonedGraph.getNodes().values());
+      const filteredNodes = filter
+        ? allNodes.filter((n) =>
+            filter(
+              n as unknown as Node<TInputConstraint, Record<string, unknown>>
+            )
+          )
+        : allNodes;
+
+      await handler(restOptions as TOptions, {
+        graph: clonedGraph,
+        nodes: filteredNodes,
+      });
+      return clonedGraph as Graph<
+        TInput & TDataAdditions,
+        TEdgeMap & TEdgeAdditions
+      >;
+    };
+  };
+}
+
+export function transform<TGraph extends Graph<any, any>>(
+  graph: TGraph
+): TransformerPipeline<TGraph> {
+  const createPipeline = <TCurrentGraph extends Graph<any, any>>(
+    currentGraph: PromiseLike<TCurrentGraph>
+  ): TransformerPipeline<TCurrentGraph> => ({
+    pipe<TNextGraph extends Graph<any, any>>(
+      transformer: Transformer<TCurrentGraph, TNextGraph>
     ) {
       const nextGraph = Promise.resolve(currentGraph).then((resolvedGraph) =>
         transformer(resolvedGraph)
       );
-      return createPipeline<TNextNodeData, TNextEdgeTypeDataMap>(nextGraph);
+      return createPipeline<TNextGraph>(nextGraph);
     },
     build() {
       return Promise.resolve(currentGraph);

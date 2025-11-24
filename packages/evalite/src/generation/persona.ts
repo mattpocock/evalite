@@ -64,9 +64,9 @@ const generatePersonaPrompt = promptBuilder({
 
 export async function generatePersona<
   TNodeData extends { content: string; summary?: string },
-  TEdgeTypeDataMap extends Record<string, unknown> = Record<string, unknown>,
+  TEdgeMap extends Record<string, unknown> = Record<string, unknown>,
 >(
-  graph: Graph<TNodeData, TEdgeTypeDataMap>,
+  graph: Graph<TNodeData, TEdgeMap>,
   {
     model,
     amount,
@@ -74,7 +74,7 @@ export async function generatePersona<
   }: {
     model: LanguageModel;
     amount?: number;
-    filter?: (node: Node<TNodeData, TEdgeTypeDataMap>) => boolean;
+    filter?: (node: Node<TNodeData, TEdgeMap>) => boolean;
   }
 ): Promise<Persona[]> {
   const allNodes = Array.from(graph.getNodes().values());

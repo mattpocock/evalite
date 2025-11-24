@@ -1,5 +1,4 @@
-import { Graph, Node } from "../graph.js";
-import type { Transformer } from "./transformer.js";
+import { transformer } from "./transformer.js";
 import { generateObject, jsonSchema, type LanguageModel } from "ai";
 import { promptBuilder } from "../../scorers/prompt-builder.js";
 
@@ -35,46 +34,18 @@ const extractSummaryPrompt = promptBuilder({
   task: ["content"],
 });
 
-export function summaryExtractor<
-  TInput extends { content: string },
-  TEdgeTypeDataMap extends Record<string, any> = {},
->({
-  model,
-  filter,
-}: {
-  model: LanguageModel;
-  filter?: (node: Node<TInput, TEdgeTypeDataMap>) => boolean;
-}): Transformer<
-  TInput,
-  TInput & { summary?: string },
-  TEdgeTypeDataMap,
-  TEdgeTypeDataMap
-> {
-  return async (graph: Graph<TInput, TEdgeTypeDataMap>) => {
-    const clonedGraph = graph.clone<
-      TInput & { summary?: string },
-      TEdgeTypeDataMap
-    >();
-    const nodes = Array.from(clonedGraph.getNodes().values());
+export const summaryExtractor = transformer<
+  { model: LanguageModel },
+  { content: string },
+  { summary?: string }
+>(async ({ model }, { nodes }) => {
+  for (const node of nodes) {
+    const result = await generateObject({
+      model,
+      schema: SummarySchema,
+      prompt: extractSummaryPrompt({ content: node.data.content }),
+    });
 
-    for (const node of nodes) {
-      if (filter && !filter(node)) {
-        continue;
-      }
-      const result = await generateObject({
-        model,
-        schema: SummarySchema,
-        prompt: extractSummaryPrompt({
-          content: node.data.content,
-        }),
-      });
-
-      node.data = {
-        ...node.data,
-        summary: result.object.summary,
-      };
-    }
-
-    return clonedGraph;
-  };
-}
+    node.data = { ...node.data, summary: result.object.summary };
+  }
+});
