@@ -23,7 +23,13 @@ export function embeddingSimilarity<
   }
 > {
   return async (graph: Graph<TInput, TInputEdgeTypeDataMap>) => {
-    const nodes = Array.from(graph.getNodes().values());
+    const clonedGraph = graph.clone<
+      TInput,
+      TInputEdgeTypeDataMap & {
+        [K in `${TKey}Similarity`]: { score: number };
+      }
+    >();
+    const nodes = Array.from(clonedGraph.getNodes().values());
 
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
@@ -48,13 +54,13 @@ export function embeddingSimilarity<
         const similarity = cosineSimilarity(valueA, valueB);
 
         if (similarity > threshold) {
-          (graph as any).addEdge(nodeA.id, nodeB.id, `${property}Similarity`, {
+          clonedGraph.addEdge(nodeA.id, nodeB.id, `${property}Similarity`, {
             score: similarity,
           });
         }
       }
     }
 
-    return graph;
+    return clonedGraph;
   };
 }

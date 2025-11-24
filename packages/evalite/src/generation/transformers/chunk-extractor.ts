@@ -46,8 +46,8 @@ export function chunkExtractor<
           content: chunk,
         } as { content: string } & Partial<TInput>);
         newGraph.addNode(newNode);
-        newGraph.addEdge(node.id, newNode.id, "chunk", undefined as any);
-        newGraph.addEdge(newNode.id, node.id, "parent", undefined as any);
+        newGraph.addEdge(node.id, newNode.id, "chunk", undefined);
+        newGraph.addEdge(newNode.id, node.id, "parent", undefined);
       }
     }
 

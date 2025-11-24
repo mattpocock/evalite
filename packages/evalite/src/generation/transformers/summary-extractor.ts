@@ -51,7 +51,11 @@ export function summaryExtractor<
   TEdgeTypeDataMap
 > {
   return async (graph: Graph<TInput, TEdgeTypeDataMap>) => {
-    const nodes = Array.from(graph.getNodes().values());
+    const clonedGraph = graph.clone<
+      TInput & { summary?: string },
+      TEdgeTypeDataMap
+    >();
+    const nodes = Array.from(clonedGraph.getNodes().values());
 
     for (const node of nodes) {
       if (filter && !filter(node)) {
@@ -71,9 +75,6 @@ export function summaryExtractor<
       };
     }
 
-    return graph as unknown as Graph<
-      TInput & { summary?: string },
-      TEdgeTypeDataMap
-    >;
+    return clonedGraph;
   };
 }

@@ -57,7 +57,11 @@ export function topicExtractor<
   TEdgeTypeDataMap
 > {
   return async (graph: Graph<TInput, TEdgeTypeDataMap>) => {
-    const nodes = Array.from(graph.getNodes().values());
+    const clonedGraph = graph.clone<
+      TInput & { topics?: string[] },
+      TEdgeTypeDataMap
+    >();
+    const nodes = Array.from(clonedGraph.getNodes().values());
 
     for (const node of nodes) {
       if (filter && !filter(node)) {
@@ -77,9 +81,6 @@ export function topicExtractor<
       };
     }
 
-    return graph as unknown as Graph<
-      TInput & { topics?: string[] },
-      TEdgeTypeDataMap
-    >;
+    return clonedGraph;
   };
 }

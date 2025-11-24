@@ -22,7 +22,13 @@ export function jaccardSimilarity<
   }
 > {
   return async (graph: Graph<TInput, TInputEdgeTypeDataMap>) => {
-    const nodes = Array.from(graph.getNodes().values());
+    const clonedGraph = graph.clone<
+      TInput,
+      TInputEdgeTypeDataMap & {
+        [K in `${TKey}JaccardSimilarity`]: { score: number };
+      }
+    >();
+    const nodes = Array.from(clonedGraph.getNodes().values());
 
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
@@ -58,7 +64,7 @@ export function jaccardSimilarity<
           union.size === 0 ? 0 : intersection.size / union.size;
 
         if (similarity > threshold) {
-          (graph as any).addEdge(
+          clonedGraph.addEdge(
             nodeA.id,
             nodeB.id,
             `${property}JaccardSimilarity`,
@@ -70,11 +76,6 @@ export function jaccardSimilarity<
       }
     }
 
-    return graph as unknown as Graph<
-      TInput,
-      TInputEdgeTypeDataMap & {
-        [K in `${TKey}JaccardSimilarity`]: { score: number };
-      }
-    >;
+    return clonedGraph;
   };
 }

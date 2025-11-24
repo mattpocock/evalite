@@ -22,7 +22,11 @@ export function embedExtractor<
   TEdgeTypeDataMap
 > {
   return async (graph: Graph<TInput, TEdgeTypeDataMap>) => {
-    const nodes = Array.from(graph.getNodes().values());
+    const clonedGraph = graph.clone<
+      TInput & { [K in TKey as `${string & K}Embedding`]: number[] },
+      TEdgeTypeDataMap
+    >();
+    const nodes = Array.from(clonedGraph.getNodes().values());
 
     for (const node of nodes) {
       if (filter && !filter(node)) continue;
@@ -38,12 +42,9 @@ export function embedExtractor<
       node.data = {
         ...node.data,
         [`${String(field)}Embedding`]: embedding,
-      } as any;
+      };
     }
 
-    return graph as unknown as Graph<
-      TInput & { [K in TKey as `${string & K}Embedding`]: number[] },
-      TEdgeTypeDataMap
-    >;
+    return clonedGraph;
   };
 }

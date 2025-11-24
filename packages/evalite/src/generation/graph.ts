@@ -39,7 +39,14 @@ export class Graph<
     node2: string,
     type: K,
     data: TEdgeTypeDataMap[K]
-  ) {
+  ): void;
+  addEdge<K extends string, D>(
+    node1: string,
+    node2: string,
+    type: K,
+    data: D
+  ): void;
+  addEdge(node1: string, node2: string, type: string, data: unknown) {
     const node1Node = this.nodes.get(node1);
     const node2Node = this.nodes.get(node2);
     if (!node1Node || !node2Node) {
@@ -52,6 +59,39 @@ export class Graph<
       data,
     } as Edge<TNodeData, TEdgeTypeDataMap>;
     node1Node.addEdge(edge);
+  }
+
+  clone<
+    TNewNodeData = TNodeData,
+    TNewEdgeTypeDataMap extends Record<string, any> = TEdgeTypeDataMap,
+  >(): Graph<TNewNodeData, TNewEdgeTypeDataMap> {
+    const newNodes = new Map<string, Node<TNewNodeData, TNewEdgeTypeDataMap>>();
+
+    for (const [id, node] of this.nodes) {
+      const clonedNode = new Node<TNewNodeData, TNewEdgeTypeDataMap>(
+        node.id,
+        node.type,
+        structuredClone(node.data) as unknown as TNewNodeData
+      );
+      newNodes.set(id, clonedNode);
+    }
+
+    for (const [id, node] of this.nodes) {
+      const clonedNode = newNodes.get(id)!;
+      for (const edge of node.getEdges()) {
+        const clonedFromNode = newNodes.get(edge.from.id)!;
+        const clonedToNode = newNodes.get(edge.to.id)!;
+        const clonedEdge = {
+          from: clonedFromNode,
+          to: clonedToNode,
+          type: edge.type,
+          data: structuredClone(edge.data),
+        } as unknown as Edge<TNewNodeData, TNewEdgeTypeDataMap>;
+        clonedNode.addEdge(clonedEdge);
+      }
+    }
+
+    return new Graph(Array.from(newNodes.values()));
   }
 }
 
