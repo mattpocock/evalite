@@ -1,54 +1,49 @@
 import { embed } from "ai";
 import { Graph, Node } from "../graph.js";
 import type { Transformer } from "./transformer.js";
-import type { EmbeddingModelV2 } from "@ai-sdk/provider";
+import type { EmbeddingModel } from "ai";
 
 export function embedExtractor<
-  TInput extends { content: string },
-  Field extends keyof TInput & string,
+  TInput,
+  TKey extends keyof TInput,
+  TEdgeTypeDataMap extends Record<string, any> = {},
 >({
   model,
   field,
   filter,
 }: {
-  model: EmbeddingModelV2<string>;
-  field: Field;
-  filter?: (node: Node<TInput>) => boolean;
-}): Transformer<TInput, TInput & { [K in `${Field}Embedding`]?: number[] }> {
-  return async (graph: Graph<TInput>) => {
-    const nodes: Node<TInput & { [K in `${Field}Embedding`]?: number[] }>[] =
-      [];
+  model: EmbeddingModel<any>;
+  field: TKey;
+  filter?: (node: Node<TInput, TEdgeTypeDataMap>) => boolean;
+}): Transformer<
+  TInput,
+  TInput & { embedding: number[] },
+  TEdgeTypeDataMap,
+  TEdgeTypeDataMap
+> {
+  return async (graph: Graph<TInput, TEdgeTypeDataMap>) => {
+    const nodes = Array.from(graph.getNodes().values());
 
-    for (const node of graph.getNodes().values()) {
-      if (filter && !filter(node)) {
-        nodes.push(
-          new Node(node.id, node.type, {
-            ...node.data,
-          })
-        );
-        continue;
-      }
-      const value = node.data[field];
+    for (const node of nodes) {
+      if (filter && !filter(node)) continue;
+      if (node.data[field] == null) continue;
 
-      if (typeof value !== "string") {
-        throw new Error(
-          `Field "${field}" must be a string to be embedded. Found type: ${typeof value}`
-        );
-      }
+      const value = String(node.data[field]);
 
       const { embedding } = await embed({
         model,
         value,
       });
 
-      const newData = {
+      node.data = {
         ...node.data,
-        [`${field}Embedding`]: embedding,
-      } as TInput & { [K in `${Field}Embedding`]: number[] };
-
-      nodes.push(new Node(node.id, node.type, newData));
+        embedding,
+      };
     }
 
-    return new Graph(nodes);
+    return graph as unknown as Graph<
+      TInput & { embedding: number[] },
+      TEdgeTypeDataMap
+    >;
   };
 }

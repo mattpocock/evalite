@@ -1,17 +1,28 @@
-import { Edge, Graph, Node } from "../graph.js";
+import { Graph, Node, type Edge } from "../graph.js";
 import type { Transformer } from "./transformer.js";
 
 export type ChunkerFn = (content: string) => string[];
 
-export function chunkExtractor<TInput extends { content: string }>({
+export function chunkExtractor<
+  TInput extends { content: string },
+  TInputEdgeTypeDataMap extends Record<string, any> = {},
+>({
   chunker,
   filter,
 }: {
   chunker: ChunkerFn;
-  filter?: (node: Node<TInput>) => boolean;
-}): Transformer<TInput, { content: string } & Partial<TInput>> {
-  return async (graph: Graph<TInput>) => {
-    const newGraph = new Graph<{ content: string } & Partial<TInput>>();
+  filter?: (node: Node<TInput, TInputEdgeTypeDataMap>) => boolean;
+}): Transformer<
+  TInput,
+  { content: string } & Partial<TInput>,
+  TInputEdgeTypeDataMap,
+  TInputEdgeTypeDataMap & { chunk: undefined; parent: undefined }
+> {
+  return async (graph: Graph<TInput, TInputEdgeTypeDataMap>) => {
+    const newGraph = new Graph<
+      { content: string } & Partial<TInput>,
+      TInputEdgeTypeDataMap & { chunk: undefined; parent: undefined }
+    >();
 
     for (const node of graph.getNodes().values()) {
       if (filter && !filter(node)) {
@@ -20,15 +31,23 @@ export function chunkExtractor<TInput extends { content: string }>({
       }
 
       const chunks = chunker(node.data.content);
-      newGraph.addNode(new Node(node.id, node.type, node.data));
+      newGraph.addNode(
+        new Node<
+          { content: string } & Partial<TInput>,
+          TInputEdgeTypeDataMap & { chunk: undefined; parent: undefined }
+        >(node.id, node.type, node.data)
+      );
 
       for (const chunk of chunks) {
-        const newNode = new Node(crypto.randomUUID(), "chunk", {
+        const newNode = new Node<
+          { content: string } & Partial<TInput>,
+          TInputEdgeTypeDataMap & { chunk: undefined; parent: undefined }
+        >(crypto.randomUUID(), "chunk", {
           content: chunk,
         } as { content: string } & Partial<TInput>);
         newGraph.addNode(newNode);
-        newGraph.addEdge(node.id, newNode.id, "chunk" as const);
-        newGraph.addEdge(newNode.id, node.id, "parent" as const);
+        newGraph.addEdge(node.id, newNode.id, "chunk", undefined as any);
+        newGraph.addEdge(newNode.id, node.id, "parent", undefined as any);
       }
     }
 

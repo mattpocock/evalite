@@ -35,23 +35,26 @@ const extractSummaryPrompt = promptBuilder({
   task: ["content"],
 });
 
-export function summaryExtractor<TInput extends { content: string }>({
+export function summaryExtractor<
+  TInput extends { content: string },
+  TEdgeTypeDataMap extends Record<string, any> = {},
+>({
   model,
   filter,
 }: {
   model: LanguageModel;
-  filter?: (node: Node<TInput>) => boolean;
-}): Transformer<TInput, TInput & { summary?: string }> {
-  return async (graph: Graph<TInput>) => {
-    const nodes: Node<TInput & { summary?: string }>[] = [];
+  filter?: (node: Node<TInput, TEdgeTypeDataMap>) => boolean;
+}): Transformer<
+  TInput,
+  TInput & { summary?: string },
+  TEdgeTypeDataMap,
+  TEdgeTypeDataMap
+> {
+  return async (graph: Graph<TInput, TEdgeTypeDataMap>) => {
+    const nodes = Array.from(graph.getNodes().values());
 
-    for (const node of graph.getNodes().values()) {
+    for (const node of nodes) {
       if (filter && !filter(node)) {
-        nodes.push(
-          new Node(node.id, node.type, {
-            ...node.data,
-          })
-        );
         continue;
       }
       const result = await generateObject({
@@ -62,14 +65,15 @@ export function summaryExtractor<TInput extends { content: string }>({
         }),
       });
 
-      nodes.push(
-        new Node(node.id, node.type, {
-          ...node.data,
-          summary: result.object.summary,
-        })
-      );
+      node.data = {
+        ...node.data,
+        summary: result.object.summary,
+      };
     }
 
-    return new Graph(nodes);
+    return graph as unknown as Graph<
+      TInput & { summary?: string },
+      TEdgeTypeDataMap
+    >;
   };
 }

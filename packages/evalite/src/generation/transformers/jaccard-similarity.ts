@@ -1,16 +1,27 @@
 import type { Transformer } from "./transformer.js";
 import { Graph, Node } from "../graph.js";
 
-export function jaccardSimilarity<TInput, TKey extends keyof TInput & string>({
+export function jaccardSimilarity<
+  TInput,
+  TKey extends keyof TInput & string,
+  TInputEdgeTypeDataMap extends Record<string, any> = {},
+>({
   property,
   filter,
   threshold = 0.5,
 }: {
   property: TKey;
-  filter?: (node: Node<TInput>) => boolean;
+  filter?: (node: Node<TInput, TInputEdgeTypeDataMap>) => boolean;
   threshold?: number;
-}): Transformer<TInput, TInput> {
-  return async (graph: Graph<TInput>) => {
+}): Transformer<
+  TInput,
+  TInput,
+  TInputEdgeTypeDataMap,
+  TInputEdgeTypeDataMap & {
+    [K in `${Uppercase<TKey>}_JACCARD_SIMILARITY`]: { score: number };
+  }
+> {
+  return async (graph: Graph<TInput, TInputEdgeTypeDataMap>) => {
     const nodes = Array.from(graph.getNodes().values());
 
     for (let i = 0; i < nodes.length; i++) {
@@ -47,11 +58,23 @@ export function jaccardSimilarity<TInput, TKey extends keyof TInput & string>({
           union.size === 0 ? 0 : intersection.size / union.size;
 
         if (similarity > threshold) {
-          graph.addEdge(nodeA.id, nodeB.id, "similarity");
+          (graph as any).addEdge(
+            nodeA.id,
+            nodeB.id,
+            `${property.toUpperCase()}_JACCARD_SIMILARITY`,
+            {
+              score: similarity,
+            }
+          );
         }
       }
     }
 
-    return graph;
+    return graph as unknown as Graph<
+      TInput,
+      TInputEdgeTypeDataMap & {
+        [K in `${Uppercase<TKey>}_JACCARD_SIMILARITY`]: { score: number };
+      }
+    >;
   };
 }

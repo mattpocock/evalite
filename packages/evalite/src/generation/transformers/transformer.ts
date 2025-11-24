@@ -1,27 +1,53 @@
 import type { Graph } from "../graph.js";
 
-export type Transformer<TInput = {}, TOutput = {}> = (
-  graph: Graph<TInput>
-) => PromiseLike<Graph<TOutput>>;
+export type Transformer<
+  TInputNodeData = {},
+  TOutputNodeData = {},
+  TInputEdgeTypeDataMap extends Record<string, any> = {},
+  TOutputEdgeTypeDataMap extends Record<string, any> = {},
+> = (
+  graph: Graph<TInputNodeData, TInputEdgeTypeDataMap>
+) => PromiseLike<Graph<TOutputNodeData, TOutputEdgeTypeDataMap>>;
 
-export type TransformerPipeline<TCurrent> = {
-  pipe<TNext>(
-    transformer: Transformer<TCurrent, TNext>
-  ): TransformerPipeline<TNext>;
-  build(): Promise<Graph<TCurrent>>;
+export type TransformerPipeline<
+  TCurrentNodeData,
+  TCurrentEdgeTypeDataMap extends Record<string, any>,
+> = {
+  pipe<TNextNodeData, TNextEdgeTypeDataMap extends Record<string, any>>(
+    transformer: Transformer<
+      TCurrentNodeData,
+      TNextNodeData,
+      TCurrentEdgeTypeDataMap,
+      TNextEdgeTypeDataMap
+    >
+  ): TransformerPipeline<TNextNodeData, TNextEdgeTypeDataMap>;
+  build(): Promise<Graph<TCurrentNodeData, TCurrentEdgeTypeDataMap>>;
 };
 
-export function transform<TInput>(
-  graph: Graph<TInput>
-): TransformerPipeline<TInput> {
-  const createPipeline = <TCurrent>(
-    currentGraph: PromiseLike<Graph<TCurrent>>
-  ): TransformerPipeline<TCurrent> => ({
-    pipe<TNext>(transformer: Transformer<TCurrent, TNext>) {
+export function transform<
+  TInputNodeData,
+  TInputEdgeTypeDataMap extends Record<string, any> = {},
+>(
+  graph: Graph<TInputNodeData, TInputEdgeTypeDataMap>
+): TransformerPipeline<TInputNodeData, TInputEdgeTypeDataMap> {
+  const createPipeline = <
+    TCurrentNodeData,
+    TCurrentEdgeTypeDataMap extends Record<string, any>,
+  >(
+    currentGraph: PromiseLike<Graph<TCurrentNodeData, TCurrentEdgeTypeDataMap>>
+  ): TransformerPipeline<TCurrentNodeData, TCurrentEdgeTypeDataMap> => ({
+    pipe<TNextNodeData, TNextEdgeTypeDataMap extends Record<string, any>>(
+      transformer: Transformer<
+        TCurrentNodeData,
+        TNextNodeData,
+        TCurrentEdgeTypeDataMap,
+        TNextEdgeTypeDataMap
+      >
+    ) {
       const nextGraph = Promise.resolve(currentGraph).then((resolvedGraph) =>
         transformer(resolvedGraph)
       );
-      return createPipeline<TNext>(nextGraph);
+      return createPipeline<TNextNodeData, TNextEdgeTypeDataMap>(nextGraph);
     },
     build() {
       return Promise.resolve(currentGraph);

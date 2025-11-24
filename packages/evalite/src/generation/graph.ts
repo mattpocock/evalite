@@ -1,13 +1,28 @@
-export class Graph<T> {
-  private nodes: Map<string, Node<T>> = new Map();
+export type Edge<
+  TNodeData,
+  TEdgeTypeDataMap extends Record<string, any> = {},
+> = {
+  [K in keyof TEdgeTypeDataMap]: {
+    type: K;
+    data: TEdgeTypeDataMap[K];
+    from: Node<TNodeData, TEdgeTypeDataMap>;
+    to: Node<TNodeData, TEdgeTypeDataMap>;
+  };
+}[keyof TEdgeTypeDataMap];
 
-  constructor(nodes?: Node<T>[]) {
+export class Graph<
+  TNodeData,
+  TEdgeTypeDataMap extends Record<string, any> = {},
+> {
+  private nodes: Map<string, Node<TNodeData, TEdgeTypeDataMap>> = new Map();
+
+  constructor(nodes?: Node<TNodeData, TEdgeTypeDataMap>[]) {
     if (nodes) {
       nodes.forEach((node) => this.addNode(node));
     }
   }
 
-  addNode(node: Node<T>) {
+  addNode(node: Node<TNodeData, TEdgeTypeDataMap>) {
     this.nodes.set(node.id, node);
   }
 
@@ -19,31 +34,45 @@ export class Graph<T> {
     return this.nodes;
   }
 
-  addEdge(node1: string, node2: string, type: string) {
+  addEdge<K extends keyof TEdgeTypeDataMap>(
+    node1: string,
+    node2: string,
+    type: K,
+    data: TEdgeTypeDataMap[K]
+  ) {
     const node1Node = this.nodes.get(node1);
     const node2Node = this.nodes.get(node2);
     if (!node1Node || !node2Node) {
       throw new Error("One or more nodes not found");
     }
-    node1Node.addEdge(new Edge(node1Node, node2Node, type));
+    const edge = {
+      from: node1Node,
+      to: node2Node,
+      type,
+      data,
+    } as Edge<TNodeData, TEdgeTypeDataMap>;
+    node1Node.addEdge(edge);
   }
 }
 
-export class Node<T> {
-  data: T;
+export class Node<
+  TNodeData,
+  TEdgeTypeDataMap extends Record<string, any> = {},
+> {
+  data: TNodeData;
   readonly type: "document" | "chunk";
-  private edges: Map<string, Edge<T>> = new Map();
+  private edges: Map<string, Edge<TNodeData, TEdgeTypeDataMap>> = new Map();
 
   constructor(
     readonly id: string,
     type: "document" | "chunk",
-    data: T
+    data: TNodeData
   ) {
     this.type = type;
     this.data = data;
   }
 
-  addEdge(edge: Edge<T>) {
+  addEdge(edge: Edge<TNodeData, TEdgeTypeDataMap>) {
     this.edges.set(edge.to.id, edge);
   }
 
@@ -52,18 +81,16 @@ export class Node<T> {
   }
 }
 
-export class Edge<T> {
-  constructor(
-    readonly from: Node<T>,
-    readonly to: Node<T>,
-    readonly type: string
-  ) {}
+export function graph<
+  TNodeData,
+  TEdgeTypeDataMap extends Record<string, any> = {},
+>(nodes?: Node<TNodeData, TEdgeTypeDataMap>[]) {
+  return new Graph<TNodeData, TEdgeTypeDataMap>(nodes);
 }
 
-export function graph<T>(nodes?: Node<T>[]) {
-  return new Graph<T>(nodes);
-}
-
-export function node<T>(type: "document" | "chunk", data: T) {
-  return new Node<T>(crypto.randomUUID(), type, data);
+export function node<
+  TNodeData,
+  TEdgeTypeDataMap extends Record<string, any> = {},
+>(type: "document" | "chunk", data: TNodeData) {
+  return new Node<TNodeData, TEdgeTypeDataMap>(crypto.randomUUID(), type, data);
 }

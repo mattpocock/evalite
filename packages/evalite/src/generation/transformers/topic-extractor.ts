@@ -41,23 +41,26 @@ const extractTopicPrompt = promptBuilder({
   task: ["content"],
 });
 
-export function topicExtractor<TInput extends { content: string }>({
+export function topicExtractor<
+  TInput extends { content: string },
+  TEdgeTypeDataMap extends Record<string, any> = {},
+>({
   model,
   filter,
 }: {
   model: LanguageModel;
-  filter?: (node: Node<TInput>) => boolean;
-}): Transformer<TInput, TInput & { topics?: string[] }> {
-  return async (graph: Graph<TInput>) => {
-    const nodes: Node<TInput & { topics?: string[] }>[] = [];
+  filter?: (node: Node<TInput, TEdgeTypeDataMap>) => boolean;
+}): Transformer<
+  TInput,
+  TInput & { topics?: string[] },
+  TEdgeTypeDataMap,
+  TEdgeTypeDataMap
+> {
+  return async (graph: Graph<TInput, TEdgeTypeDataMap>) => {
+    const nodes = Array.from(graph.getNodes().values());
 
-    for (const node of graph.getNodes().values()) {
+    for (const node of nodes) {
       if (filter && !filter(node)) {
-        nodes.push(
-          new Node(node.id, node.type, {
-            ...node.data,
-          })
-        );
         continue;
       }
       const result = await generateObject({
@@ -68,16 +71,15 @@ export function topicExtractor<TInput extends { content: string }>({
         }),
       });
 
-      nodes.push(
-        new Node(node.id, node.type, {
-          ...node.data,
-          topics: result.object.topics.map((topic) =>
-            topic.trim().toLowerCase()
-          ),
-        })
-      );
+      node.data = {
+        ...node.data,
+        topics: result.object.topics.map((topic) => topic.trim().toLowerCase()),
+      };
     }
 
-    return new Graph(nodes);
+    return graph as unknown as Graph<
+      TInput & { topics?: string[] },
+      TEdgeTypeDataMap
+    >;
   };
 }
