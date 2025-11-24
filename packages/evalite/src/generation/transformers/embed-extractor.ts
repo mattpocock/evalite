@@ -17,7 +17,7 @@ export function embedExtractor<
   filter?: (node: Node<TInput, TEdgeTypeDataMap>) => boolean;
 }): Transformer<
   TInput,
-  TInput & { embedding: number[] },
+  TInput & { [K in TKey as `${string & K}Embedding`]: number[] },
   TEdgeTypeDataMap,
   TEdgeTypeDataMap
 > {
@@ -37,12 +37,12 @@ export function embedExtractor<
 
       node.data = {
         ...node.data,
-        embedding,
-      };
+        [`${String(field)}Embedding`]: embedding,
+      } as any;
     }
 
     return graph as unknown as Graph<
-      TInput & { embedding: number[] },
+      TInput & { [K in TKey as `${string & K}Embedding`]: number[] },
       TEdgeTypeDataMap
     >;
   };

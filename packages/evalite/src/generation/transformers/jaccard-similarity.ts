@@ -18,7 +18,7 @@ export function jaccardSimilarity<
   TInput,
   TInputEdgeTypeDataMap,
   TInputEdgeTypeDataMap & {
-    [K in `${Uppercase<TKey>}_JACCARD_SIMILARITY`]: { score: number };
+    [K in `${TKey}JaccardSimilarity`]: { score: number };
   }
 > {
   return async (graph: Graph<TInput, TInputEdgeTypeDataMap>) => {
@@ -61,7 +61,7 @@ export function jaccardSimilarity<
           (graph as any).addEdge(
             nodeA.id,
             nodeB.id,
-            `${property.toUpperCase()}_JACCARD_SIMILARITY`,
+            `${property}JaccardSimilarity`,
             {
               score: similarity,
             }
@@ -73,7 +73,7 @@ export function jaccardSimilarity<
     return graph as unknown as Graph<
       TInput,
       TInputEdgeTypeDataMap & {
-        [K in `${Uppercase<TKey>}_JACCARD_SIMILARITY`]: { score: number };
+        [K in `${TKey}JaccardSimilarity`]: { score: number };
       }
     >;
   };

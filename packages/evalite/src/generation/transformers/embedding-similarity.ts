@@ -19,7 +19,7 @@ export function embeddingSimilarity<
   TInput,
   TInputEdgeTypeDataMap,
   TInputEdgeTypeDataMap & {
-    [K in `${Uppercase<TKey>}_EMBEDDING_SIMILARITY`]: { score: number };
+    [K in `${TKey}Similarity`]: { score: number };
   }
 > {
   return async (graph: Graph<TInput, TInputEdgeTypeDataMap>) => {
@@ -48,23 +48,13 @@ export function embeddingSimilarity<
         const similarity = cosineSimilarity(valueA, valueB);
 
         if (similarity > threshold) {
-          (graph as any).addEdge(
-            nodeA.id,
-            nodeB.id,
-            `${property.toUpperCase()}_EMBEDDING_SIMILARITY`,
-            {
-              score: similarity,
-            }
-          );
+          (graph as any).addEdge(nodeA.id, nodeB.id, `${property}Similarity`, {
+            score: similarity,
+          });
         }
       }
     }
 
-    return graph as unknown as Graph<
-      TInput,
-      TInputEdgeTypeDataMap & {
-        [K in `${Uppercase<TKey>}_EMBEDDING_SIMILARITY`]: { score: number };
-      }
-    >;
+    return graph;
   };
 }
