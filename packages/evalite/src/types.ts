@@ -188,6 +188,7 @@ export declare namespace Evalite {
     variantName: string | undefined;
     variantGroup: string | undefined;
     trialIndex: number | undefined;
+    scoreThreshold: number | undefined;
   }
 
   export type EvalStatus = "success" | "fail" | "running";
@@ -211,6 +212,7 @@ export declare namespace Evalite {
     variantName: string | undefined;
     variantGroup: string | undefined;
     trialIndex: number | undefined;
+    scoreThreshold: number | undefined;
     /**
      * Technically, input and expected are known at the start
      * of the suite. But because they may be files, they
@@ -313,6 +315,20 @@ export declare namespace Evalite {
      * ```
      */
     trialCount?: number;
+    /**
+     * Minimum average score threshold (0-100) for this eval.
+     * If the average score falls below this threshold, the process will exit with code 1.
+     * Overrides the global scoreThreshold when set.
+     * @example
+     * ```ts
+     * evalite("My Eval", {
+     *   data: [...],
+     *   task: ...,
+     *   scoreThreshold: 80 // This eval requires 80%
+     * })
+     * ```
+     */
+    scoreThreshold?: number;
   };
 
   export type ScorerOpts<TInput, TOutput, TExpected> = {

@@ -236,6 +236,12 @@ function registerEvalite<TInput, TOutput, TExpected>(
     : evalName;
 
   return describeFn(fullEvalName, async () => {
+    const configTrialCount = inject("trialCount");
+    const trialCount = opts.trialCount ?? configTrialCount ?? 1;
+
+    const configScoreThreshold = inject("scoreThreshold");
+    const scoreThreshold = opts.scoreThreshold ?? configScoreThreshold;
+
     const datasetResult = await datasetPromise;
 
     if (!datasetResult.success) {
@@ -251,6 +257,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
               variantName: vitestOpts.variantName,
               variantGroup: vitestOpts.variantGroup,
               trialIndex: undefined,
+              scoreThreshold: scoreThreshold,
               duration: 0,
               expected: null,
               input: null,
@@ -275,10 +282,6 @@ function registerEvalite<TInput, TOutput, TExpected>(
     const filteredDataset = hasOnlyFlag
       ? dataset.filter((d) => d.only === true)
       : dataset;
-
-    // Get trialCount from opts or config (opts wins)
-    const configTrialCount = inject("trialCount");
-    const trialCount = opts.trialCount ?? configTrialCount ?? 1;
 
     // Expand dataset with trials
     const expandedDataset: Array<{
@@ -329,6 +332,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
               variantGroup: vitestOpts.variantGroup,
               status: "running",
               trialIndex: data.trialIndex,
+              scoreThreshold: scoreThreshold,
             },
           })
         );
@@ -433,6 +437,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
                 variantName: vitestOpts.variantName,
                 variantGroup: vitestOpts.variantGroup,
                 trialIndex: data.trialIndex,
+                scoreThreshold: scoreThreshold,
               },
             })
           );
@@ -469,6 +474,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
                 variantName: vitestOpts.variantName,
                 variantGroup: vitestOpts.variantGroup,
                 trialIndex: data.trialIndex,
+                scoreThreshold: scoreThreshold,
               },
             })
           );
