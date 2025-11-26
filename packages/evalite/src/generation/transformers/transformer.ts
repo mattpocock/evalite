@@ -1,4 +1,4 @@
-import type { Graph, Node } from "../graph.js";
+import type { Graph } from "../graph.js";
 
 export type Transformer<
   TInput extends Graph<any, any> = Graph<{}, {}>,
@@ -11,66 +11,6 @@ export type TransformerPipeline<TGraph extends Graph<any, any>> = {
   ): TransformerPipeline<TNext>;
   build(): Promise<TGraph>;
 };
-
-type FilterFn<T> = (node: Node<T, Record<string, unknown>>) => boolean;
-
-export function transformer<
-  TOptions,
-  TInputConstraint,
-  TDataAdditions = {},
-  TEdgeAdditions extends Record<string, any> = {},
->(
-  handler: (
-    options: TOptions,
-    data: {
-      graph: Graph<TInputConstraint & TDataAdditions, TEdgeAdditions>;
-      nodes: Node<TInputConstraint & TDataAdditions, TEdgeAdditions>[];
-    }
-  ) => PromiseLike<void>
-): <TInput extends TInputConstraint, TEdgeMap extends Record<string, any> = {}>(
-  options: TOptions & { filter?: FilterFn<TInputConstraint> }
-) => Transformer<
-  Graph<TInput, TEdgeMap>,
-  Graph<TInput & TDataAdditions, TEdgeMap & TEdgeAdditions>
-> {
-  return <
-    TInput extends TInputConstraint,
-    TEdgeMap extends Record<string, any>,
-  >(
-    options: TOptions & { filter?: FilterFn<TInputConstraint> }
-  ): Transformer<
-    Graph<TInput, TEdgeMap>,
-    Graph<TInput & TDataAdditions, TEdgeMap & TEdgeAdditions>
-  > => {
-    return async (
-      graph: Graph<TInput, TEdgeMap>
-    ): Promise<Graph<TInput & TDataAdditions, TEdgeMap & TEdgeAdditions>> => {
-      const clonedGraph = graph.clone() as unknown as Graph<
-        TInputConstraint & TDataAdditions,
-        TEdgeAdditions
-      >;
-
-      const { filter, ...restOptions } = options;
-      const allNodes = Array.from(clonedGraph.getNodes().values());
-      const filteredNodes = filter
-        ? allNodes.filter((n) =>
-            filter(
-              n as unknown as Node<TInputConstraint, Record<string, unknown>>
-            )
-          )
-        : allNodes;
-
-      await handler(restOptions as TOptions, {
-        graph: clonedGraph,
-        nodes: filteredNodes,
-      });
-      return clonedGraph as Graph<
-        TInput & TDataAdditions,
-        TEdgeMap & TEdgeAdditions
-      >;
-    };
-  };
-}
 
 export function transform<TGraph extends Graph<any, any>>(
   graph: TGraph

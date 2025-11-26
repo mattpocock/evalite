@@ -1,5 +1,6 @@
-import { transformer } from "./transformer.js";
 import { generateObject, jsonSchema, type LanguageModel } from "ai";
+import { type Graph, type Node } from "../graph.js";
+import type { Transformer } from "./transformer.js";
 import { promptBuilder } from "../../scorers/prompt-builder.js";
 
 const SummarySchema = jsonSchema<{
@@ -34,18 +35,31 @@ const extractSummaryPrompt = promptBuilder({
   task: ["content"],
 });
 
-export const summaryExtractor = transformer<
-  { model: LanguageModel },
-  { content: string },
-  { summary?: string }
->(async ({ model }, { nodes }) => {
-  for (const node of nodes) {
-    const result = await generateObject({
-      model,
-      schema: SummarySchema,
-      prompt: extractSummaryPrompt({ content: node.data.content }),
-    });
+export function summaryExtractor<
+  TInput extends { content: string },
+  TEdges extends Record<string, any> = {},
+>(options: {
+  model: LanguageModel;
+  filter?: (node: Node<TInput, TEdges>) => boolean;
+}): Transformer<
+  Graph<TInput, TEdges>,
+  Graph<TInput & { summary?: string }, TEdges>
+> {
+  return async (graph) => {
+    const cloned = graph.clone<TInput & { summary?: string }, TEdges>();
+    const nodes = Array.from(cloned.getNodes().values());
+    const filtered = options.filter ? nodes.filter(options.filter) : nodes;
 
-    node.data = { ...node.data, summary: result.object.summary };
-  }
-});
+    for (const node of filtered) {
+      const result = await generateObject({
+        model: options.model,
+        schema: SummarySchema,
+        prompt: extractSummaryPrompt({ content: node.data.content }),
+      });
+
+      node.data = { ...node.data, summary: result.object.summary };
+    }
+
+    return cloned;
+  };
+}

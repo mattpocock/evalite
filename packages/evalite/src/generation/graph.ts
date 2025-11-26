@@ -2,6 +2,17 @@ export type NoData = {};
 export type GraphNodeData<G> = G extends Graph<infer N, any> ? N : never;
 export type GraphEdgeMap<G> = G extends Graph<any, infer E> ? E : never;
 
+export type AddEdgeTypes<
+  TBase extends Record<string, any>,
+  TNew extends Record<string, any>,
+> = {
+  [K in keyof TBase | keyof TNew]: K extends keyof TNew
+    ? TNew[K]
+    : K extends keyof TBase
+      ? TBase[K]
+      : never;
+};
+
 export type Edge<
   TNodeData,
   TEdgeTypeDataMap extends Record<string, any> = {},
@@ -44,14 +55,7 @@ export class Graph<
     node2: string,
     type: K,
     data: TEdgeTypeDataMap[K]
-  ): void;
-  addEdge<K extends string, D>(
-    node1: string,
-    node2: string,
-    type: K,
-    data: D
-  ): void;
-  addEdge(node1: string, node2: string, type: string, data: unknown) {
+  ): void {
     const node1Node = this.nodes.get(node1);
     const node2Node = this.nodes.get(node2);
     if (!node1Node || !node2Node) {
@@ -67,7 +71,7 @@ export class Graph<
   }
 
   clone<
-    TNewNodeData = TNodeData,
+    TNewNodeData extends TNodeData = TNodeData,
     TNewEdgeTypeDataMap extends Record<string, any> = TEdgeTypeDataMap,
   >(): Graph<TNewNodeData, TNewEdgeTypeDataMap> {
     const newNodes = new Map<string, Node<TNewNodeData, TNewEdgeTypeDataMap>>();
