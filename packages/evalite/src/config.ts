@@ -1,6 +1,6 @@
+import path from "node:path";
 import { createJiti } from "jiti";
 import { access } from "fs/promises";
-import path from "path";
 import type { Evalite } from "./types.js";
 
 /**
@@ -17,7 +17,8 @@ import type { Evalite } from "./types.js";
  *   storage: () => createSqliteStorage("./custom.db"),
  *   server: { port: 3001 },
  *   scoreThreshold: 80,
- *   hideTable: true
+ *   hideTable: true,
+ *   watchFiles: ["src/**\/*.ts", "prompts/**\/*"],
  * })
  * ```
  */

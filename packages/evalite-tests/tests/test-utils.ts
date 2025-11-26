@@ -69,6 +69,7 @@ export const loadFixture = async (
        * Enable cache for AI SDK model outputs.
        */
       cacheEnabled?: boolean;
+      watchFiles?: string[];
     }) => {
       const result = await runEvalite({
         ...opts,

@@ -1,0 +1,126 @@
+---
+title: CLI
+---
+
+## Watch Mode
+
+You can run Evalite in watch mode by running `evalite watch`:
+
+```bash
+evalite watch
+```
+
+This will watch for changes to your `.eval.ts` files (and any additional files configured in `evalite.config.ts`) and re-run the evals when they change.
+
+> [!IMPORTANT]
+>
+> I strongly recommend implementing a caching layer in your LLM calls when using watch mode. This will keep your evals running fast and avoid burning through your API credits.
+
+### Watching Additional Files
+
+By default, `evalite watch` only triggers reruns when your `*.eval.ts` files change.
+
+If your evals depend on other files that Vitest can't automatically detect (e.g., prompt templates, external data files, or CLI build outputs), you can configure extra watch globs in `evalite.config.ts`:
+
+```ts
+// evalite.config.ts
+import { defineConfig } from "evalite/config";
+
+export default defineConfig({
+  watchFiles: [
+    "src/**/*.ts", // helper / model code
+    "prompts/**/*", // prompt templates
+    "data/**/*.json", // test data
+  ],
+});
+```
+
+For monorepos, you can watch files across multiple packages:
+
+```ts
+// evalite.config.ts at repo root
+import { defineConfig } from "evalite/config";
+
+export default defineConfig({
+  watchFiles: ["apps/web/src/**/*.ts", "apps/web/prompts/**/*"],
+});
+```
+
+These globs are passed through to Vitest's [`forceRerunTriggers`](https://vitest.dev/config/#forcereruntriggers) option, so any change to a matching file will trigger a full eval rerun.
+
+> [!NOTE]
+> Globs are resolved relative to the directory where you run evalite (the Evalite cwd).
+> If the files you want to watch live outside that directory, run `evalite` from the project root or pass `cwd` in the Node API so that those paths fall under the same root.
+
+### Hiding the Table Output
+
+When debugging with `console.log`, the detailed table output can make it harder to see your logs. You can hide it with `--hideTable`:
+
+```bash
+evalite watch --hideTable
+```
+
+This keeps the score summary but removes the detailed results table from the CLI output.
+
+## Serve Mode
+
+You can run evals once and serve the UI without re-running on file changes:
+
+```bash
+evalite serve
+```
+
+This runs your evals once and keeps the UI server running at `http://localhost:3006`. Unlike watch mode, tests won't re-run when files change.
+
+Since evals can take a while to run, this can be a useful alternative to watch mode.
+
+To re-run evals after making changes, restart `evalite serve`.
+
+## Running Specific Files
+
+You can run specific files by passing them as arguments:
+
+```bash
+evalite my-eval.eval.ts
+```
+
+This also works for `watch` and `serve` modes:
+
+```bash
+evalite watch my-eval.eval.ts
+evalite serve my-eval.eval.ts
+```
+
+## Threshold
+
+You can tell Evalite that your evals must pass a specific score by passing `--threshold`:
+
+```bash
+evalite --threshold=50 # Score must be greater than or equal to 50
+
+evalite watch --threshold=70 # Also works in watch mode
+```
+
+This is useful for running on CI. If the score threshold is not met, it will fail the process.
+
+## Export Command
+
+Export eval results as a static HTML bundle:
+
+```bash
+evalite export
+```
+
+This exports the latest run to `./evalite-export` by default.
+
+### Options
+
+- `--output` - Custom output directory
+- `--runId` - Export specific run ID
+- `--basePath` - Base path for non-root hosting (must start with `/`)
+
+```bash
+evalite export --basePath=/evals-123 --output=./my-export
+```
+
+See the [CI/CD guide](/guides/ci) for full documentation on exporting and viewing static UI bundles.
