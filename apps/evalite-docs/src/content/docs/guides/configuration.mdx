@@ -36,7 +36,7 @@ export default defineConfig({
 - **`setupFiles`**: Array of file paths to run before tests (e.g., for loading environment variables).
 - **`cache`**: Enable or disable caching of AI SDK model outputs. Default is true. See [Vercel AI SDK](/tips/vercel-ai-sdk#caching) for details.
 - **`viteConfig`**: Pass through Vite/Vitest configuration options. This allows you to import and use your existing vite.config.ts explicitly.
-- **`watchFiles`**: Extra file globs that trigger eval reruns in watch mode (globs are resolved relative to the directory where you run Evalite). See [Watching Additional Files](/guides/cli#watching-additional-files).
+- **`forceRerunTriggers`**: Extra file globs that trigger eval reruns in watch mode. This maps onto Vitest's `test.forceRerunTriggers` option (globs resolved relative to the directory where you run Evalite). See [Watching Additional Files](/api/cli#watching-additional-files).
 
 ## Important Configuration Options
 

@@ -18,7 +18,7 @@ import type { Evalite } from "./types.js";
  *   server: { port: 3001 },
  *   scoreThreshold: 80,
  *   hideTable: true,
- *   watchFiles: ["src/**\/*.ts", "prompts/**\/*"],
+ *   forceRerunTriggers: ["src/**\/*.ts", "prompts/**\/*"],
  * })
  * ```
  */

@@ -174,7 +174,7 @@ const exportResultsToJSON = async (opts: {
  * @param opts.mode - Execution mode: "watch-for-file-changes", "run-once-and-exit", "run-once-and-serve", or "run-once"
  * @param opts.scoreThreshold - Optional score threshold (0-100) to fail the process if scores are below
  * @param opts.outputPath - Optional path to write test results in JSON format after completion
- * @param opts.watchFiles - Optional extra file globs that trigger reruns in watch mode (overrides evalite.config.ts if provided)
+ * @param opts.forceRerunTriggers - Optional extra file globs that trigger reruns in watch mode (overrides evalite.config.ts if provided)
  *
  * @example
  * ```typescript
@@ -195,7 +195,7 @@ const exportResultsToJSON = async (opts: {
  * // Watch mode with extra file triggers
  * await runEvalite({
  *   mode: "watch-for-file-changes",
- *   watchFiles: ["src/**.ts", "prompts/**"]
+ *   forceRerunTriggers: ["src/**\/*.ts", "prompts/**\/*"]
  * });
  *
  * // Run specific eval file with custom working directory
@@ -221,9 +221,9 @@ export const runEvalite = async (opts: {
   cacheDebug?: boolean;
   /**
    * Extra file globs that should trigger reruns in watch mode.
-   * Overrides `watchFiles` from evalite.config.ts if provided.
+   * Overrides `forceRerunTriggers` from evalite.config.ts if provided.
    */
-  watchFiles?: string[];
+  forceRerunTriggers?: string[];
 }) => {
   const cwd = opts.cwd ?? process.cwd();
   const filesLocation = path.join(cwd, FILES_LOCATION);
@@ -271,10 +271,12 @@ export const runEvalite = async (opts: {
   const setupFiles = ["evalite/env-setup-file", ...(config?.setupFiles || [])];
 
   // Evalite-level "extra watch files":
-  // Node API (opts.watchFiles) takes precedence over evalite.config.ts.
-  // If opts.watchFiles is defined (even []), it wins.
-  const watchFiles =
-    opts.watchFiles !== undefined ? opts.watchFiles : config?.watchFiles;
+  // Node API (opts.forceRerunTriggers) takes precedence over evalite.config.ts.
+  // If opts.forceRerunTriggers is defined (even []), it wins.
+  const extraForceRerunTriggers =
+    opts.forceRerunTriggers !== undefined
+      ? opts.forceRerunTriggers
+      : config?.forceRerunTriggers;
 
   const filters = opts.path ? [opts.path] : undefined;
   process.env.EVALITE_REPORT_TRACES = "true";

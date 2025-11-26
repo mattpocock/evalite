@@ -15,6 +15,7 @@ runEvalite(opts: {
   outputPath?: string;
   hideTable?: boolean;
   storage?: Evalite.Storage;
+  forceRerunTriggers?: string[];
 }): Promise<void>
 ```
 
@@ -139,6 +140,23 @@ await runEvalite({
 ```
 
 See [Storage](/api/storage) for more details.
+
+### `opts.forceRerunTriggers`
+
+**Type:** `string[]` (optional)
+
+Extra file globs that trigger eval reruns in watch mode. This overrides any `forceRerunTriggers` setting in `evalite.config.ts`.
+
+```typescript
+await runEvalite({
+  mode: "watch-for-file-changes",
+  forceRerunTriggers: ["src/**/*.ts", "prompts/**/*", "data/**/*.json"],
+});
+```
+
+This is useful when your evals depend on files that aren't automatically detected as dependencies (e.g., prompt templates, external data files).
+
+> **Tip:** `forceRerunTriggers` globs are evaluated relative to the `cwd` you pass (or `process.cwd()` if unspecified).
 
 ## Usage Examples
 

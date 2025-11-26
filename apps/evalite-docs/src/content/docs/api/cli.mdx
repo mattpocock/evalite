@@ -74,6 +74,29 @@ evalite watch path/to/eval.eval.ts
 
 **Note:** `--outputPath` is not supported in watch mode.
 
+#### Watching Additional Files
+
+By default, `evalite watch` only triggers reruns when your `*.eval.ts` files change.
+
+If your evals depend on other files that Vitest can't automatically detect (e.g., prompt templates, external data files, or CLI build outputs), you can configure extra watch globs in `evalite.config.ts`:
+
+```ts
+// evalite.config.ts
+import { defineConfig } from "evalite/config";
+
+export default defineConfig({
+  forceRerunTriggers: [
+    "src/**/*.ts", // helper / model code
+    "prompts/**/*", // prompt templates
+    "data/**/*.json", // test data
+  ],
+});
+```
+
+These globs are passed through to Vitest's [`forceRerunTriggers`](https://vitest.dev/config/#forcereruntriggers) option, so any change to a matching file will trigger a full eval rerun.
+
+> **Note:** Globs are resolved relative to the directory where you run evalite (the Evalite cwd).
+
 **Examples:**
 
 ```bash
