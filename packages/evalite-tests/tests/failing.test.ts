@@ -112,3 +112,32 @@ it("Should handle module-level errors", async () => {
   expect(fixture.getOutput()).toContain("Module level error");
   expect(exit).toHaveBeenCalledWith(1);
 });
+
+it("Should fail overall when one eval file throws but another passes (issue 357)", async () => {
+  await using fixture = await loadFixture("issue-357");
+
+  const exit = vitest.fn();
+  using _ = overrideExit(exit);
+
+  await fixture.run({
+    mode: "run-once-and-exit",
+    scoreThreshold: 70,
+  });
+
+  const output = fixture.getOutput();
+
+  console.log(output);
+
+  // Verify both files are mentioned
+  expect(output).toContain("failing.eval.ts");
+  expect(output).toContain("passing.eval.ts");
+
+  // Verify error is shown
+  expect(output).toContain("Module level error");
+
+  // Verify threshold info is shown
+  expect(output).toContain("Threshold");
+
+  // THIS IS THE BUG: exit code should be 1, but may currently be 0
+  expect(exit).toHaveBeenCalledWith(1);
+});
