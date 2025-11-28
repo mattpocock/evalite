@@ -141,3 +141,45 @@ it("Should fail overall when one eval file throws but another passes (issue 357)
   // THIS IS THE BUG: exit code should be 1, but may currently be 0
   expect(exit).toHaveBeenCalledWith(1);
 });
+
+it("Should NOT crash when table content exceeds terminal width (issue 358)", async () => {
+  await using fixture = await loadFixture("issue-358");
+
+  const exit = vitest.fn();
+  using _ = overrideExit(exit);
+
+  // Set narrow terminal width to trigger the bug
+  const originalColumns = process.stdout.columns;
+  Object.defineProperty(process.stdout, "columns", {
+    value: 80,
+    writable: true,
+    configurable: true,
+  });
+
+  try {
+    // BUG: Currently throws "Subject parameter value width cannot be greater than the container width"
+    // Once fixed, this should complete successfully without throwing
+    await fixture.run({
+      mode: "run-once-and-exit",
+    });
+
+    const output = fixture.getOutput();
+
+    // Verify tests passed (100% score)
+    expect(output).toContain("100%");
+    expect(output).toContain("issue-358.eval.ts");
+
+    // Should display the table without crashing
+    expect(output).toMatch(/Email From|Email Subject|Classification/);
+
+    // Should exit cleanly
+    expect(exit).not.toHaveBeenCalled();
+  } finally {
+    // Restore original columns value
+    Object.defineProperty(process.stdout, "columns", {
+      value: originalColumns,
+      writable: true,
+      configurable: true,
+    });
+  }
+});
