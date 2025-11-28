@@ -1,4 +1,4 @@
-import { GithubIcon } from "lucide-react";
+import { BookOpenIcon, GithubIcon } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
 import {
   Breadcrumb,
@@ -49,6 +49,19 @@ export const InnerPageLayout = ({
               </a>
             </TooltipTrigger>
             <TooltipContent>Feedback is a gift!</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <a
+                href="https://v1.evalite.dev"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 justify-center rounded-md text-sm font-medium transition-colors h-9 px-3"
+              >
+                <BookOpenIcon className="size-4" />
+              </a>
+            </TooltipTrigger>
+            <TooltipContent>View Documentation</TooltipContent>
           </Tooltip>
           <ThemeToggle />
         </div>
