@@ -219,6 +219,11 @@ export default class EvaliteReporter implements Reporter {
       (test) => test.result().state === "failed"
     ).length;
 
+    // Count module-level errors
+    const moduleErrorsCount = modules.flatMap((module) =>
+      module.errors()
+    ).length;
+
     // Get scores from runner's collected results
     const scores = this.runner.getAllScores();
 
@@ -226,13 +231,17 @@ export default class EvaliteReporter implements Reporter {
       scores.length === 0 ? null : average(scores, (score) => score.score ?? 0);
 
     this.runner.handleTestSummary({
-      failedTasksCount: failedTestsCount,
+      failedTasksCount: failedTestsCount + moduleErrorsCount,
       averageScore,
     });
 
     this.ctx.logger.log("");
 
-    renderScoreDisplay(this.ctx.logger, failedTestsCount, averageScore);
+    renderScoreDisplay(
+      this.ctx.logger,
+      failedTestsCount + moduleErrorsCount,
+      averageScore
+    );
 
     if (typeof this.opts.scoreThreshold === "number") {
       renderThreshold(this.ctx.logger, this.opts.scoreThreshold, averageScore);
