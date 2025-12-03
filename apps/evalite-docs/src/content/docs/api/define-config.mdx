@@ -18,6 +18,9 @@ defineConfig(config: {
   maxConcurrency?: number;
   trialCount?: number;
   setupFiles?: string[];
+  cache?: boolean;
+  viteConfig?: ViteUserConfig;
+  forceRerunTriggers?: string[];
 }): Evalite.Config
 ```
 
@@ -167,6 +170,57 @@ export default defineConfig({
 
 **Note:** `.env` files are loaded automatically via `dotenv/config` - no need to configure them here.
 
+### `cache`
+
+**Type:** `boolean`
+
+**Default:** `true`
+
+Enable or disable caching of AI SDK model outputs. See [Vercel AI SDK caching](/tips/vercel-ai-sdk#caching) for details.
+
+```typescript
+export default defineConfig({
+  cache: false, // Disable cache entirely
+});
+```
+
+### `viteConfig`
+
+**Type:** `ViteUserConfig`
+
+Pass-through Vite/Vitest configuration options. This allows you to import and use your existing `vite.config.ts` explicitly.
+
+```typescript
+import { defineConfig } from "evalite/config";
+import viteConfig from "./vite.config.ts";
+
+export default defineConfig({
+  viteConfig: viteConfig,
+});
+```
+
+**Note:** `testTimeout`, `maxConcurrency`, and `setupFiles` must be configured at the root level of `evalite.config.ts`, not in `viteConfig.test`.
+
+### `forceRerunTriggers`
+
+**Type:** `string[]`
+
+**Default:** `[]`
+
+Extra file globs that trigger eval reruns in watch mode. This maps onto Vitest's [`forceRerunTriggers`](https://vitest.dev/config/#forcereruntriggers) option.
+
+```typescript
+export default defineConfig({
+  forceRerunTriggers: [
+    "src/**/*.ts", // helper / model code
+    "prompts/**/*", // prompt templates
+    "data/**/*.json", // test data
+  ],
+});
+```
+
+Useful when your evals depend on files that Vitest can't automatically detect as dependencies (e.g., prompt templates, external data files).
+
 ## Complete Example
 
 ```typescript
@@ -196,6 +250,12 @@ export default defineConfig({
 
   // Setup
   setupFiles: ["./test-setup.ts"],
+
+  // Caching
+  cache: true,
+
+  // Watch mode triggers
+  forceRerunTriggers: ["src/**/*.ts", "prompts/**/*"],
 });
 ```
 

@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
-import { Writable } from "stream";
+import type { Writable } from "stream";
+import { configDefaults } from "vitest/config";
 import { createVitest, registerConsoleShortcuts } from "vitest/node";
 import getPort from "get-port";
 import { FILES_LOCATION } from "./backend-only-constants.js";
@@ -173,6 +174,7 @@ const exportResultsToJSON = async (opts: {
  * @param opts.mode - Execution mode: "watch-for-file-changes", "run-once-and-exit", "run-once-and-serve", or "run-once"
  * @param opts.scoreThreshold - Optional score threshold (0-100) to fail the process if scores are below
  * @param opts.outputPath - Optional path to write test results in JSON format after completion
+ * @param opts.forceRerunTriggers - Optional extra file globs that trigger reruns in watch mode (overrides evalite.config.ts if provided)
  *
  * @example
  * ```typescript
@@ -188,6 +190,12 @@ const exportResultsToJSON = async (opts: {
  * // Watch mode for development
  * await runEvalite({
  *   mode: "watch-for-file-changes"
+ * });
+ *
+ * // Watch mode with extra file triggers
+ * await runEvalite({
+ *   mode: "watch-for-file-changes",
+ *   forceRerunTriggers: ["src/**\/*.ts", "prompts/**\/*"]
  * });
  *
  * // Run specific eval file with custom working directory
@@ -211,6 +219,11 @@ export const runEvalite = async (opts: {
   disableServer?: boolean;
   cacheEnabled?: boolean;
   cacheDebug?: boolean;
+  /**
+   * Extra file globs that should trigger reruns in watch mode.
+   * Overrides `forceRerunTriggers` from evalite.config.ts if provided.
+   */
+  forceRerunTriggers?: string[];
 }) => {
   const cwd = opts.cwd ?? process.cwd();
   const filesLocation = path.join(cwd, FILES_LOCATION);
@@ -257,6 +270,14 @@ export const runEvalite = async (opts: {
   // 2. Add setupFiles from evalite.config.ts
   const setupFiles = ["evalite/env-setup-file", ...(config?.setupFiles || [])];
 
+  // Evalite-level "extra watch files":
+  // Node API (opts.forceRerunTriggers) takes precedence over evalite.config.ts.
+  // If opts.forceRerunTriggers is defined (even []), it wins.
+  const forceRerunTriggers =
+    (opts.forceRerunTriggers !== undefined
+      ? opts.forceRerunTriggers
+      : config?.forceRerunTriggers) ?? configDefaults.forceRerunTriggers;
+
   const filters = opts.path ? [opts.path] : undefined;
   process.env.EVALITE_REPORT_TRACES = "true";
 
@@ -282,7 +303,7 @@ export const runEvalite = async (opts: {
     }
   }
 
-  let exitCode: number | undefined = undefined;
+  let exitCode: number | undefined;
 
   // Merge user's viteConfig with evalite defaults
   const mergedViteConfig: ViteUserConfig = {
@@ -322,6 +343,7 @@ export const runEvalite = async (opts: {
           hideTable: hideTable,
         }),
       ],
+      forceRerunTriggers: forceRerunTriggers,
       root: cwd,
       include: ["**/*.eval.?(m)ts"],
       watch: opts.mode === "watch-for-file-changes",

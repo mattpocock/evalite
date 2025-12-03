@@ -1,11 +1,12 @@
 import { randomUUID } from "crypto";
+import type { Evalite } from "evalite";
+import { DB_LOCATION } from "evalite/backend-only-constants";
+import { createInMemoryStorage } from "evalite/in-memory-storage";
+import { runEvalite } from "evalite/runner";
 import { cpSync, rmSync } from "fs";
 import path from "path";
 import { Writable } from "stream";
 import stripAnsi from "strip-ansi";
-import type { Evalite } from "evalite";
-import { runEvalite } from "evalite/runner";
-import { createInMemoryStorage } from "evalite/in-memory-storage";
 import type { Vitest } from "vitest/node";
 
 const FIXTURES_DIR = path.join(import.meta.dirname, "./fixtures");
@@ -29,7 +30,7 @@ export const loadFixture = async (
 
   const captured = captureStdout();
 
-  let vitestInstance: Vitest | undefined = undefined;
+  let vitestInstance: Vitest | undefined;
 
   return {
     dir: dirPath,
@@ -69,6 +70,7 @@ export const loadFixture = async (
        * Enable cache for AI SDK model outputs.
        */
       cacheEnabled?: boolean;
+      forceRerunTriggers?: string[];
     }) => {
       const result = await runEvalite({
         ...opts,

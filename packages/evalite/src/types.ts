@@ -154,6 +154,29 @@ export declare namespace Evalite {
         | "testNamePattern"
       >;
     };
+
+    /**
+     * Extra file globs that should trigger eval reruns in watch mode.
+     *
+     * This maps directly onto Vitest's `test.forceRerunTriggers` option
+     * (glob patterns, relative to the project root / Evalite cwd).
+     *
+     * This is useful when your evals depend on files that Vitest can't
+     * automatically detect as dependencies (e.g., prompt templates,
+     * external data files, or CLI build outputs).
+     *
+     * @example
+     * ```ts
+     * export default defineConfig({
+     *   forceRerunTriggers: [
+     *     "src/**\/*.ts",        // model / helper code
+     *     "prompts/**\/*",       // prompt templates
+     *     "data/**\/*.json",     // test data
+     *   ]
+     * })
+     * ```
+     */
+    forceRerunTriggers?: string[];
   }
 
   export type RunType = "full" | "partial";
