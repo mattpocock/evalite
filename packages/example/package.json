@@ -7,7 +7,7 @@
     "./dist/*"
   ],
   "scripts": {
-    "dev": "evalite watch"
+    "dev": "evalite export"
   },
   "dependencies": {
     "unstorage": "^1.17.1",
@@ -17,7 +17,6 @@
     "@ai-sdk/provider": "^2.0.0",
     "dotenv": "^16.4.5",
     "zod": "^3.25.76",
-    "autoevals": "^0.0.131",
     "vitest": "^4.0.0"
   }
 }

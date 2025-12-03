@@ -1,14 +1,13 @@
-import { runEvalite } from "./run-evalite.js";
-import { buildApplication, buildCommand, buildRouteMap } from "@stricli/core";
 import {
   buildInstallCommand,
   buildUninstallCommand,
 } from "@stricli/auto-complete";
+import { buildApplication, buildCommand, buildRouteMap } from "@stricli/core";
 import { createRequire } from "node:module";
-import { exportStaticUI } from "./export-static.js";
-import { createSqliteStorage } from "./storage/sqlite.js";
-import path from "node:path";
-import { DB_LOCATION } from "./backend-only-constants.js";
+import { runEvalite } from "./run-evalite.js";
+import { exportCommand } from "./export-static.js";
+import { loadEvaliteConfig } from "./config.js";
+import { createInMemoryStorage } from "./storage/in-memory.js";
 
 const packageJson = createRequire(import.meta.url)(
   "../package.json"
@@ -19,6 +18,7 @@ type ProgramOpts = {
   threshold: number | undefined;
   outputPath: string | undefined;
   hideTable: boolean | undefined;
+  noCache: boolean | undefined;
 };
 
 const commonParameters = {
@@ -46,6 +46,11 @@ const commonParameters = {
       brief: "Hides the detailed table output in the CLI.",
       optional: true,
     },
+    noCache: {
+      kind: "boolean",
+      brief: "Disables caching of AI SDK model outputs.",
+      optional: true,
+    },
   },
 } as const;
 
@@ -53,6 +58,7 @@ type Flags = {
   threshold: number | undefined;
   outputPath: string | undefined;
   hideTable: boolean | undefined;
+  noCache: boolean | undefined;
 };
 
 export const createProgram = (commands: {
@@ -73,6 +79,7 @@ export const createProgram = (commands: {
         threshold: flags.threshold,
         outputPath: flags.outputPath,
         hideTable: flags.hideTable,
+        noCache: flags.noCache,
       });
     },
     docs: {
@@ -88,6 +95,7 @@ export const createProgram = (commands: {
         threshold: flags.threshold,
         outputPath: flags.outputPath,
         hideTable: flags.hideTable,
+        noCache: flags.noCache,
       });
     },
     docs: {
@@ -108,6 +116,7 @@ export const createProgram = (commands: {
         threshold: flags.threshold,
         outputPath: flags.outputPath,
         hideTable: flags.hideTable,
+        noCache: flags.noCache,
       });
     },
     docs: {
@@ -194,6 +203,7 @@ export const program = createProgram({
       mode: "watch-for-file-changes",
       outputPath: path.outputPath,
       hideTable: path.hideTable,
+      cacheEnabled: path.noCache ? false : undefined,
     });
   },
   runOnceAtPath: (path) => {
@@ -203,6 +213,7 @@ export const program = createProgram({
       cwd: undefined,
       mode: "run-once-and-exit",
       outputPath: path.outputPath,
+      cacheEnabled: path.noCache ? false : undefined,
     });
   },
   serve: (path) => {
@@ -212,22 +223,24 @@ export const program = createProgram({
       cwd: undefined,
       mode: "run-once-and-serve",
       outputPath: path.outputPath,
+      cacheEnabled: path.noCache ? false : undefined,
     });
   },
   export: async (opts) => {
     const cwd = process.cwd();
-    const dbPath = path.join(cwd, DB_LOCATION);
-    const storage = await createSqliteStorage(dbPath);
 
-    try {
-      await exportStaticUI({
-        storage,
-        outputPath: opts.output ?? "./evalite-export",
-        runId: opts.runId,
-        basePath: opts.basePath,
-      });
-    } finally {
-      await storage.close();
-    }
+    // Load config and determine storage (same logic as run-evalite.ts)
+    const config = await loadEvaliteConfig(cwd);
+    await using storage = config?.storage
+      ? await config.storage()
+      : createInMemoryStorage();
+
+    await exportCommand({
+      cwd,
+      storage,
+      outputPath: opts.output ?? "./evalite-export",
+      runId: opts.runId,
+      basePath: opts.basePath,
+    });
   },
 });

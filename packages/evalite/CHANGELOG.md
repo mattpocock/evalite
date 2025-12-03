@@ -1,5 +1,164 @@
 # evalite
 
+## 1.0.0-beta.15
+
+### Patch Changes
+
+- 27401f7: Fixed a bug where evalite export would hang until closed.
+
+## 1.0.0-beta.14
+
+### Patch Changes
+
+- f2a8460: A further fix for the strange env-setup-file.ts error.
+
+## 1.0.0-beta.13
+
+### Patch Changes
+
+- 04bee19: Fixed confusing message when running Evalite regarding env-setup-file.
+
+## 1.0.0-beta.12
+
+### Patch Changes
+
+- ac7c109: Fix types for viteConfig
+
+## 1.0.0-beta.11
+
+### Patch Changes
+
+- c2e07c7: Various UI improvements to bring the data table further up the page.
+
+## 1.0.0-beta.10
+
+### Patch Changes
+
+- 3e0a32e: Added variant to the table displayed in the CLI
+
+## 1.0.0-beta.9
+
+### Patch Changes
+
+- 895b1dd: Display errors when resolving evalite.config.ts instead of silently ignoring them.
+
+## 1.0.0-beta.8
+
+### Patch Changes
+
+- df561c2: Made visual improvements to the UI, balancing colours and improving JSON output.
+
+## 1.0.0-beta.7
+
+### Patch Changes
+
+- 359039c: Added the /scorers/deterministic export to allow users to use scorers without needing the AI SDK.
+- 4252ccc: Added 'ai' as an optional peer dependency
+
+## 1.0.0-beta.6
+
+### Patch Changes
+
+- eb5f4db: Fixed a bug where during evalite export, the summary score would be incorrectly calculated.
+
+## 1.0.0-beta.5
+
+### Major Changes
+
+- 4fd065e: Removed `traceAISDKModel` in favor of `wrapAISDKModel` which includes both caching and tracing.
+
+### Minor Changes
+
+- 4fd065e: Added cache config & --no-cache CLI flag. Config cache via evalite.config.ts or disable with --no-cache flag.
+
+### Patch Changes
+
+- 4fd065e: Added cache debug mode via debugCache in runEvalite to debug cache hits/misses.
+- 4fd065e: Server will now attempt to find another port if 3006 is unavailable.
+- a7b0dfc: Added a theme switcher for light/dark mode to Evalite's UI
+
+## 1.0.0-beta.4
+
+### Patch Changes
+
+- a963b00: Fixed a bug where when basePath was provided during exports, JavaScript and CSS assets had an extraneous leading slash.
+- 659f3ba: Fixed a bug where export would not export anything if a run failed.
+
+## 1.0.0-beta.3
+
+### Patch Changes
+
+- ffbe739: Improved the error message that happens when Evalite encounters an unknown error.
+
+## 1.0.0-beta.2
+
+### Patch Changes
+
+- f221e0b: Add .skip() to .each()
+
+## 1.0.0-beta.1
+
+### Major Changes
+
+- b64d1bb: Dropped compatibility with autoevals, and implemented our own built-in library of scorers.
+
+### Patch Changes
+
+- 6033c8c: Added Levenshtein distance scorer for fuzzy string matching
+
+## 1.0.0-beta.0
+
+### Major Changes
+
+- 8c9fe90: Export command now uses the storage specified in the config and auto-runs if empty.
+- 8c9fe90: Changed default storage to in-memory. SQLite still available via config.
+- ba3d876: Removed implicit reading of vitest.config.ts/vite.config.ts files. Users must now explicitly pass Vite config via evalite.config.ts using the new `viteConfig` option. This change makes configuration more explicit and less confusing.
+
+  **Migration Guide:**
+
+  Before:
+
+  ```ts
+  // vitest.config.ts was automatically read
+  export default defineConfig({
+    test: {
+      testTimeout: 60000,
+    },
+  });
+  ```
+
+  After:
+
+  ```ts
+  // evalite.config.ts
+  import { defineConfig } from "evalite/config";
+  import viteConfig from "./vite.config.ts";
+
+  export default defineConfig({
+    viteConfig: viteConfig,
+    // Note: testTimeout, maxConcurrency, and setupFiles
+    // must be at root level, not in viteConfig.test
+    testTimeout: 60000,
+    setupFiles: ["./setup.ts"],
+  });
+  ```
+
+- e8a43c2: Moved storage API from evals -> suites, results -> evals. This will likely cause issues for existing SQLite databases when released, so will need migration.
+
+### Minor Changes
+
+- 9f0a2aa: Removed streaming text support from tasks. Process streams before returning from task() (e.g., await result.text for AI SDK).
+- fb39ab9: Support .env files by default via dotenv/config. Environment variables from .env files are now automatically loaded without any configuration needed. Users no longer need to manually add `setupFiles: ["dotenv/config"]` to their evalite.config.ts.
+
+### Patch Changes
+
+- a9a8883: Made scorer `name` field optional. When using pre-built scorers, name and description are now automatically extracted from the scorer's return value.
+- 9263870: Added rerun button to UI in watch and serve modes
+- a5a0c56: Added `only` option to variants in `evalite.each()` to selectively run specific variants.
+- 8f9495c: Made it so passing UI messages (from AI SDK) directly into Evalite spawns a custom UI.
+- bdc5115: UI now renders simple arrays of objects and flat objects as markdown tables instead of JSON trees for better readability
+- 288523b: Made better-sqlite3 an optional peer dependency
+
 ## 0.19.0
 
 ### Minor Changes

@@ -1,16 +1,18 @@
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
-import { Writable } from "stream";
+import type { Writable } from "stream";
+import { configDefaults } from "vitest/config";
 import { createVitest, registerConsoleShortcuts } from "vitest/node";
-import { createInMemoryStorage } from "./storage/in-memory.js";
-import { computeAverageScores } from "./storage/utils.js";
-import { DB_LOCATION, FILES_LOCATION } from "./backend-only-constants.js";
+import getPort from "get-port";
+import { FILES_LOCATION } from "./backend-only-constants.js";
+import { loadEvaliteConfig } from "./config.js";
 import { DEFAULT_SERVER_PORT } from "./constants.js";
 import EvaliteReporter from "./reporter.js";
 import { createServer } from "./server.js";
+import { createInMemoryStorage } from "./storage/in-memory.js";
+import { computeAverageScores } from "./storage/utils.js";
 import type { Evalite } from "./types.js";
-import { createSqliteStorage } from "./storage/sqlite.js";
-import { loadEvaliteConfig } from "./config.js";
+import type { ViteUserConfig } from "vitest/config";
 
 declare module "vitest" {
   export interface ProvidedContext {
@@ -21,6 +23,19 @@ declare module "vitest" {
      * non-serializable functions (like storage factory).
      */
     trialCount: number | undefined;
+    /**
+     * Port number where the evalite server is running.
+     * Used by cache and other features that need to communicate with the server.
+     */
+    serverPort: number;
+    /**
+     * Whether to log cache operations to the console.
+     */
+    cacheDebug: boolean;
+    /**
+     * Whether to enable cache for AI SDK model outputs.
+     */
+    cacheEnabled: boolean;
   }
 }
 
@@ -41,82 +56,76 @@ const exportResultsToJSON = async (opts: {
     throw new Error("No completed run found to export");
   }
 
-  const allEvals = await opts.storage.evals.getMany({
+  const allSuites = await opts.storage.suites.getMany({
     runIds: [latestFullRun.id],
     statuses: ["fail", "success"],
   });
 
-  const evalResults = await opts.storage.results.getMany({
-    evalIds: allEvals.map((e) => e.id),
+  const evals = await opts.storage.evals.getMany({
+    suiteIds: allSuites.map((e) => e.id),
   });
 
   const allScores = await opts.storage.scores.getMany({
-    resultIds: evalResults.map((r) => r.id),
+    evalIds: evals.map((r) => r.id),
   });
 
   const allTraces = await opts.storage.traces.getMany({
-    resultIds: evalResults.map((r) => r.id),
+    evalIds: evals.map((r) => r.id),
   });
 
-  const resultsAverageScores = computeAverageScores(allScores);
+  const evalsAverageScores = computeAverageScores(allScores);
 
-  // Group results by eval and transform to camelCase
+  // Group evals by suite and transform to camelCase
   const outputData: Evalite.Exported.Output = {
     run: {
       id: latestFullRun.id,
       runType: latestFullRun.runType,
       createdAt: latestFullRun.created_at,
     },
-    evals: allEvals.map((evaluation: any) => {
-      const resultsForEval = evalResults.filter(
-        (r: any) => r.eval_id === evaluation.id
-      );
+    suites: allSuites.map((suite) => {
+      const evalsForSuite = evals.filter((r) => r.suite_id === suite.id);
 
-      const scoresForEval = allScores.filter((s: any) =>
-        resultsForEval.some((r: any) => r.id === s.result_id)
+      const scoresForEval = allScores.filter((s) =>
+        evalsForSuite.some((r) => r.id === s.eval_id)
       );
 
       const evalAvgScore =
         scoresForEval.length > 0
-          ? scoresForEval.reduce((sum: number, s: any) => sum + s.score, 0) /
+          ? scoresForEval.reduce((sum: number, s) => sum + s.score, 0) /
             scoresForEval.length
           : 0;
 
       return {
-        id: evaluation.id,
-        name: evaluation.name,
-        filepath: evaluation.filepath,
-        duration: evaluation.duration,
-        status: evaluation.status,
-        variantName: evaluation.variant_name,
-        variantGroup: evaluation.variant_group,
-        createdAt: evaluation.created_at,
+        id: suite.id,
+        name: suite.name,
+        filepath: suite.filepath,
+        duration: suite.duration,
+        status: suite.status,
+        variantName: suite.variant_name,
+        variantGroup: suite.variant_group,
+        createdAt: suite.created_at,
         averageScore: evalAvgScore,
-        results: resultsForEval.map((result: any) => {
-          const resultAvgScore = resultsAverageScores.find(
-            (r: any) => r.result_id === result.id
+        evals: evalsForSuite.map((_eval) => {
+          const _evalAvgScore = evalsAverageScores.find(
+            (r) => r.eval_id === _eval.id
           );
 
-          const scoresForResult = allScores.filter(
-            (s: any) => s.result_id === result.id
-          );
+          const scoresForEval = allScores.filter((s) => s.eval_id === _eval.id);
 
-          const tracesForResult = allTraces.filter(
-            (t: any) => t.result_id === result.id
-          );
+          const tracesForEval = allTraces.filter((t) => t.eval_id === _eval.id);
 
           return {
-            id: result.id,
-            duration: result.duration,
-            input: result.input,
-            output: result.output,
-            expected: result.expected,
-            status: result.status,
-            colOrder: result.col_order,
-            renderedColumns: result.rendered_columns,
-            createdAt: result.created_at,
-            averageScore: resultAvgScore?.average ?? 0,
-            scores: scoresForResult.map((score: any) => ({
+            id: _eval.id,
+            duration: _eval.duration,
+            input: _eval.input,
+            output: _eval.output,
+            expected: _eval.expected,
+            status: _eval.status,
+            colOrder: _eval.col_order,
+            renderedColumns: _eval.rendered_columns,
+            createdAt: _eval.created_at,
+            averageScore: _evalAvgScore?.average ?? 0,
+            scores: scoresForEval.map((score) => ({
               id: score.id,
               name: score.name,
               score: score.score,
@@ -124,7 +133,7 @@ const exportResultsToJSON = async (opts: {
               metadata: score.metadata,
               createdAt: score.created_at,
             })),
-            traces: tracesForResult.map((trace: any) => ({
+            traces: tracesForEval.map((trace) => ({
               id: trace.id,
               input: trace.input,
               output: trace.output,
@@ -162,9 +171,10 @@ const exportResultsToJSON = async (opts: {
  * @param opts.path - Optional path filter to run specific eval files (defaults to undefined, which runs all evals)
  * @param opts.cwd - Working directory (defaults to process.cwd())
  * @param opts.testOutputWritable - Optional writable stream for test output
- * @param opts.mode - Execution mode: "watch-for-file-changes", "run-once-and-exit", or "run-once-and-serve"
+ * @param opts.mode - Execution mode: "watch-for-file-changes", "run-once-and-exit", "run-once-and-serve", or "run-once"
  * @param opts.scoreThreshold - Optional score threshold (0-100) to fail the process if scores are below
  * @param opts.outputPath - Optional path to write test results in JSON format after completion
+ * @param opts.forceRerunTriggers - Optional extra file globs that trigger reruns in watch mode (overrides evalite.config.ts if provided)
  *
  * @example
  * ```typescript
@@ -182,6 +192,12 @@ const exportResultsToJSON = async (opts: {
  *   mode: "watch-for-file-changes"
  * });
  *
+ * // Watch mode with extra file triggers
+ * await runEvalite({
+ *   mode: "watch-for-file-changes",
+ *   forceRerunTriggers: ["src/**\/*.ts", "prompts/**\/*"]
+ * });
+ *
  * // Run specific eval file with custom working directory
  * await runEvalite({
  *   path: "tests/my-eval.eval.ts",
@@ -194,13 +210,20 @@ export const runEvalite = async (opts: {
   path?: string | undefined;
   cwd?: string | undefined;
   testOutputWritable?: Writable;
-  mode: "watch-for-file-changes" | "run-once-and-exit" | "run-once-and-serve";
+  mode: Evalite.RunMode;
   scoreThreshold?: number;
   outputPath?: string;
   hideTable?: boolean;
   storage?: Evalite.Storage;
   configDebugMode?: boolean;
   disableServer?: boolean;
+  cacheEnabled?: boolean;
+  cacheDebug?: boolean;
+  /**
+   * Extra file globs that should trigger reruns in watch mode.
+   * Overrides `forceRerunTriggers` from evalite.config.ts if provided.
+   */
+  forceRerunTriggers?: string[];
 }) => {
   const cwd = opts.cwd ?? process.cwd();
   const filesLocation = path.join(cwd, FILES_LOCATION);
@@ -208,6 +231,18 @@ export const runEvalite = async (opts: {
 
   // Load config file if present
   const config = await loadEvaliteConfig(cwd);
+
+  // Validate viteConfig doesn't contain forbidden properties
+  if (config?.viteConfig?.test) {
+    const forbiddenProps = ["testTimeout", "maxConcurrency", "setupFiles"];
+    for (const prop of forbiddenProps) {
+      if (prop in config.viteConfig.test) {
+        throw new Error(
+          `Invalid configuration: '${prop}' must be configured at the root level of evalite.config.ts, not in viteConfig.test. Please move it to the root level.`
+        );
+      }
+    }
+  }
 
   // Merge options: opts (highest priority) > config > defaults
   let storage = opts.storage;
@@ -218,8 +253,7 @@ export const runEvalite = async (opts: {
   }
 
   if (!storage) {
-    const dbLocation = path.join(cwd, DB_LOCATION);
-    storage = await createSqliteStorage(dbLocation);
+    storage = createInMemoryStorage();
   }
 
   const scoreThreshold = opts.scoreThreshold ?? config?.scoreThreshold;
@@ -227,34 +261,70 @@ export const runEvalite = async (opts: {
   const serverPort = config?.server?.port ?? DEFAULT_SERVER_PORT;
   const testTimeout = config?.testTimeout;
   const maxConcurrency = config?.maxConcurrency;
-  const setupFiles = config?.setupFiles;
+
+  // Determine cache enabled: opts > config > default (true)
+  const cacheEnabled = opts.cacheEnabled ?? config?.cache ?? true;
+
+  // Merge setupFiles:
+  // 1. Always include env-setup-file first to load .env files
+  // 2. Add setupFiles from evalite.config.ts
+  const setupFiles = ["evalite/env-setup-file", ...(config?.setupFiles || [])];
+
+  // Evalite-level "extra watch files":
+  // Node API (opts.forceRerunTriggers) takes precedence over evalite.config.ts.
+  // If opts.forceRerunTriggers is defined (even []), it wins.
+  const forceRerunTriggers =
+    (opts.forceRerunTriggers !== undefined
+      ? opts.forceRerunTriggers
+      : config?.forceRerunTriggers) ?? configDefaults.forceRerunTriggers;
 
   const filters = opts.path ? [opts.path] : undefined;
   process.env.EVALITE_REPORT_TRACES = "true";
 
   let server: ReturnType<typeof createServer> | undefined = undefined;
+  let actualServerPort = serverPort;
 
-  if (
-    !opts.disableServer &&
-    (opts.mode === "watch-for-file-changes" ||
-      opts.mode === "run-once-and-serve")
-  ) {
+  if (!opts.disableServer) {
+    // Try to get the configured port, or find an available one
+    actualServerPort = await getPort({
+      port: [serverPort, serverPort + 1, serverPort + 2, serverPort + 3],
+    });
+
     server = createServer({
       storage: storage,
     });
-    server.start(serverPort);
+
+    server.start(actualServerPort);
+
+    if (actualServerPort !== serverPort) {
+      console.log(
+        `Port ${serverPort} unavailable, using port ${actualServerPort}`
+      );
+    }
   }
 
-  let exitCode: number | undefined = undefined;
+  let exitCode: number | undefined;
+
+  // Merge user's viteConfig with evalite defaults
+  const mergedViteConfig: ViteUserConfig = {
+    ...config?.viteConfig,
+    test: {
+      ...config?.viteConfig?.test,
+      // Evalite-controlled values that override user config
+      testTimeout: testTimeout ?? 30_000,
+      maxConcurrency: maxConcurrency,
+      setupFiles: setupFiles,
+      sequence: {
+        ...config?.viteConfig?.test?.sequence,
+        concurrent: config?.viteConfig?.test?.sequence?.concurrent ?? true,
+      },
+    },
+  };
 
   const vitest = await createVitest(
     "test",
     {
-      // Everything passed here cannot be
-      // overridden by the user
-      root: cwd,
-      include: ["**/*.eval.?(m)ts"],
-      watch: opts.mode === "watch-for-file-changes",
+      ...mergedViteConfig.test,
       reporters: [
         new EvaliteReporter({
           logNewState: (newState) => {
@@ -273,56 +343,16 @@ export const runEvalite = async (opts: {
           hideTable: hideTable,
         }),
       ],
+      forceRerunTriggers: forceRerunTriggers,
+      root: cwd,
+      include: ["**/*.eval.?(m)ts"],
+      watch: opts.mode === "watch-for-file-changes",
       mode: "test",
       browser: undefined,
+      config: false,
     },
     {
-      plugins: [
-        {
-          name: "evalite-config-plugin",
-          // Everything inside this config CAN be overridden by user's vite.config.ts
-          // EXCEPT when evalite.config.ts explicitly sets values - those override vite.config.ts
-
-          // When we moved to Vitest v4, I found a strange type error where
-          // `config` was not being inferred correctly. In the TS playground,
-          // this code works fine, so it may be some kind of package resolution issue.
-          // Since this code is fully tested, I feel OK with an 'any' for now.
-          config(config: any) {
-            config.test ??= {};
-            // If evalite.config.ts specifies these values, override user's vite.config.ts
-            // Otherwise use vite.config.ts value or fallback to default
-            if (testTimeout !== undefined) {
-              config.test.testTimeout = testTimeout;
-            } else {
-              config.test.testTimeout ??= 30_000;
-            }
-
-            if (maxConcurrency !== undefined) {
-              config.test.maxConcurrency = maxConcurrency;
-            }
-            // Note: no fallback for maxConcurrency - let Vitest use its own default
-
-            if (setupFiles !== undefined) {
-              config.test.setupFiles = setupFiles;
-            }
-            // Note: no fallback for setupFiles - let Vitest use its own default
-
-            config.test.sequence ??= {};
-            config.test.sequence.concurrent ??= true;
-          },
-          // See comment about any on config() above
-          configResolved(config: any) {
-            if (opts.configDebugMode) {
-              const debugMessage = `[Evalite Config Debug] testTimeout: ${config.test?.testTimeout}, maxConcurrency: ${config.test?.maxConcurrency}\n`;
-              if (opts.testOutputWritable) {
-                opts.testOutputWritable.write(debugMessage);
-              } else {
-                process.stdout.write(debugMessage);
-              }
-            }
-          },
-        },
-      ],
+      ...mergedViteConfig,
     },
     {
       stdout: opts.testOutputWritable || process.stdout,
@@ -330,23 +360,50 @@ export const runEvalite = async (opts: {
     }
   );
 
+  if (opts.configDebugMode) {
+    const debugMessage = `[Evalite Config Debug] testTimeout: ${mergedViteConfig.test?.testTimeout}, maxConcurrency: ${mergedViteConfig.test?.maxConcurrency}\n`;
+    if (opts.testOutputWritable) {
+      opts.testOutputWritable.write(debugMessage);
+    } else {
+      process.stdout.write(debugMessage);
+    }
+  }
+
   vitest.provide("cwd", cwd);
   vitest.provide("trialCount", config?.trialCount);
+  vitest.provide("serverPort", actualServerPort);
+  vitest.provide("cacheDebug", opts.cacheDebug ?? false);
+  vitest.provide("cacheEnabled", cacheEnabled);
 
   await vitest.start(filters);
 
-  const dispose = registerConsoleShortcuts(
+  const disposeConsoleShortcuts = registerConsoleShortcuts(
     vitest,
     process.stdin,
     process.stdout
   );
 
+  const rerun = async () => {
+    await vitest.cancelCurrentRun("keyboard-input");
+    const testFiles = vitest.state.getFilepaths();
+    const specs = testFiles.flatMap((filepath) =>
+      vitest.getModuleSpecifications(filepath)
+    );
+    await vitest.rerunTestSpecifications(specs, true);
+  };
+
+  if (server) {
+    server.setRerunFn(rerun);
+  }
+
   const shouldKeepRunning =
     vitest.shouldKeepServer() || opts.mode === "run-once-and-serve";
 
   if (!shouldKeepRunning) {
-    dispose();
+    disposeConsoleShortcuts();
     await vitest.close();
+
+    await server?.stop();
 
     if (opts.outputPath) {
       await exportResultsToJSON({
@@ -356,15 +413,10 @@ export const runEvalite = async (opts: {
       });
     }
 
-    if (typeof exitCode === "number") {
+    if (typeof exitCode === "number" && opts.mode === "run-once-and-exit") {
       process.exit(exitCode);
     }
   }
 
-  return vitest;
+  return { vitest };
 };
-
-/**
- * @deprecated Use `runEvalite` instead. This export will be removed in a future version.
- */
-export const runVitest = runEvalite;

@@ -1,6 +1,6 @@
-import path from "node:path";
 import { getTestName } from "@vitest/runner/utils";
 import { parseStacktrace } from "@vitest/utils/source-map";
+import path from "node:path";
 import c from "tinyrainbow";
 import type { RunnerTestFile, TestAnnotation, UserConsoleLog } from "vitest";
 import type {
@@ -9,8 +9,6 @@ import type {
   SerializedError,
   TestCase,
   TestModule,
-  TestRunEndReason,
-  TestSuite,
   Vitest,
 } from "vitest/node";
 import { EvaliteRunner } from "./reporter/EvaliteRunner.js";
@@ -39,7 +37,7 @@ export interface EvaliteReporterOptions {
   storage: Evalite.Storage;
   scoreThreshold: number | undefined;
   modifyExitCode: (exitCode: number) => void;
-  mode: "watch-for-file-changes" | "run-once-and-exit" | "run-once-and-serve";
+  mode: Evalite.RunMode;
   hideTable?: boolean;
 }
 
@@ -183,7 +181,7 @@ export default class EvaliteReporter implements Reporter {
     write("\n");
   }
 
-  onWatcherRerun(files: string[], trigger?: string): void {
+  onWatcherRerun(files: string[]): void {
     this.runner.sendEvent({
       type: "RUN_BEGUN",
       filepaths: files,
@@ -193,8 +191,7 @@ export default class EvaliteReporter implements Reporter {
 
   onTestRunEnd = async (
     testModules: ReadonlyArray<TestModule>,
-    unhandledErrors: ReadonlyArray<SerializedError>,
-    reason: TestRunEndReason
+    unhandledErrors: ReadonlyArray<SerializedError>
   ) => {
     this.runner.sendEvent({
       type: "RUN_ENDED",
@@ -222,6 +219,11 @@ export default class EvaliteReporter implements Reporter {
       (test) => test.result().state === "failed"
     ).length;
 
+    // Count module-level errors
+    const moduleErrorsCount = modules.flatMap((module) =>
+      module.errors()
+    ).length;
+
     // Get scores from runner's collected results
     const scores = this.runner.getAllScores();
 
@@ -229,13 +231,17 @@ export default class EvaliteReporter implements Reporter {
       scores.length === 0 ? null : average(scores, (score) => score.score ?? 0);
 
     this.runner.handleTestSummary({
-      failedTasksCount: failedTestsCount,
+      failedTasksCount: failedTestsCount + moduleErrorsCount,
       averageScore,
     });
 
     this.ctx.logger.log("");
 
-    renderScoreDisplay(this.ctx.logger, failedTestsCount, averageScore);
+    renderScoreDisplay(
+      this.ctx.logger,
+      failedTestsCount + moduleErrorsCount,
+      averageScore
+    );
 
     if (typeof this.opts.scoreThreshold === "number") {
       renderThreshold(this.ctx.logger, this.opts.scoreThreshold, averageScore);
@@ -264,11 +270,11 @@ export default class EvaliteReporter implements Reporter {
     }
   }
 
-  onTestSuiteReady(testSuite: TestSuite): void {
+  onTestSuiteReady(): void {
     return;
   }
 
-  onTestSuiteResult(testSuite: TestSuite): void {
+  onTestSuiteResult(): void {
     return;
   }
 
@@ -280,15 +286,15 @@ export default class EvaliteReporter implements Reporter {
       return;
     }
 
-    if (data.type === "RESULT_STARTED") {
+    if (data.type === "EVAL_STARTED") {
       this.runner.sendEvent({
-        type: "RESULT_STARTED",
-        initialResult: data.initialResult,
+        type: "EVAL_STARTED",
+        initialEval: data.initialEval,
       });
-    } else if (data.type === "RESULT_SUBMITTED") {
+    } else if (data.type === "EVAL_SUBMITTED") {
       this.runner.sendEvent({
-        type: "RESULT_SUBMITTED",
-        result: data.result,
+        type: "EVAL_SUBMITTED",
+        eval: data.eval,
       });
     }
   }
@@ -300,7 +306,7 @@ export default class EvaliteReporter implements Reporter {
     if (errors.length > 0) {
       renderTask({
         logger: this.ctx.logger,
-        result: {
+        eval: {
           filePath: path.relative(this.ctx.config.root, mod.moduleId),
           status: "fail",
           scores: [],
@@ -320,7 +326,7 @@ export default class EvaliteReporter implements Reporter {
 
     renderTask({
       logger: this.ctx.logger,
-      result: {
+      eval: {
         filePath: path.relative(this.ctx.config.root, mod.moduleId),
         status: "running",
         scores: [],
@@ -331,21 +337,21 @@ export default class EvaliteReporter implements Reporter {
   }
 
   onTestCaseResult(test: TestCase): void {
-    // Check if we received a RESULT_SUBMITTED annotation
+    // Check if we received a EVAL_SUBMITTED annotation
     const hasResultSubmitted = test.annotations().some((annotation) => {
       const data = deserializeAnnotation(annotation.message);
-      return data?.type === "RESULT_SUBMITTED";
+      return data?.type === "EVAL_SUBMITTED";
     });
 
-    // If we already got a RESULT_SUBMITTED, nothing to do
+    // If we already got a EVAL_SUBMITTED, nothing to do
     if (hasResultSubmitted) {
       return;
     }
 
-    // Check if we have a RESULT_STARTED annotation
+    // Check if we have a EVAL_STARTED annotation
     const resultStartedAnnotation = test.annotations().find((annotation) => {
       const data = deserializeAnnotation(annotation.message);
-      return data?.type === "RESULT_STARTED";
+      return data?.type === "EVAL_STARTED";
     });
 
     if (!resultStartedAnnotation) {
@@ -355,24 +361,25 @@ export default class EvaliteReporter implements Reporter {
 
     // Test finished but never submitted a result - likely timeout
     const data = deserializeAnnotation(resultStartedAnnotation.message);
-    if (data && data.type === "RESULT_STARTED") {
+    if (data && data.type === "EVAL_STARTED") {
       this.runner.sendEvent({
-        type: "RESULT_SUBMITTED",
-        result: {
-          evalName: data.initialResult.evalName,
-          filepath: data.initialResult.filepath,
-          order: data.initialResult.order,
+        type: "EVAL_SUBMITTED",
+        eval: {
+          suiteName: data.initialEval.suiteName,
+          filepath: data.initialEval.filepath,
+          order: data.initialEval.order,
           duration: 0,
           expected: "",
           input: "",
           output: null,
           scores: [],
           traces: [],
+          taskCacheHits: [],
           status: "fail",
           renderedColumns: [],
-          variantName: data.initialResult.variantName,
-          variantGroup: data.initialResult.variantGroup,
-          trialIndex: data.initialResult.trialIndex,
+          variantName: data.initialEval.variantName,
+          variantGroup: data.initialEval.variantGroup,
+          trialIndex: data.initialEval.trialIndex,
         },
       });
     }
@@ -398,7 +405,7 @@ export default class EvaliteReporter implements Reporter {
 
     renderTask({
       logger: this.ctx.logger,
-      result: {
+      eval: {
         filePath: path.relative(this.ctx.config.root, mod.moduleId),
         status: hasFailed ? "fail" : "success",
         numberOfEvals: tests.length,

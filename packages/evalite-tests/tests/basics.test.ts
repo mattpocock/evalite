@@ -1,5 +1,5 @@
 import { assert, expect, it } from "vitest";
-import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
+import { getSuitesAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Should report the basics correctly", async () => {
   await using fixture = await loadFixture("basics");
@@ -22,17 +22,17 @@ it("Should save the basic information in a db", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
 
   expect(evals).toMatchObject({
     Basics: [
       {
         name: "Basics",
-        results: [
+        evals: [
           {
             scores: [
               {
-                name: "Levenshtein",
+                name: "Pass",
                 score: 1,
               },
             ],
@@ -51,7 +51,7 @@ it.skip("Should capture the duration as being more than 0", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
 
   assert(typeof evals.Basics?.[0]?.duration === "number", "Duration exists");
   expect(evals.Basics?.[0]?.duration).toBeGreaterThan(0);
@@ -78,7 +78,7 @@ it("Should capture the filepath of the eval", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
 
   expect(evals.Basics?.[0]?.filepath).toContain("basics.eval.ts");
 });

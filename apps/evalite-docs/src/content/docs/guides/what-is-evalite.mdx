@@ -1,0 +1,70 @@
+---
+title: What Is Evalite?
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+Evalite runs your evals on a local dev server. It lets you scale up to thousands of evals with ease, and a gorgeous TypeScript DX. If you don't know what evals are, [see below](#what-are-evals).
+
+For folks coming from frontend testing, Evalite is like Jest or Vitest, but for apps that use AI.
+
+Here are the headlines:
+
+- Lets you write evals in `.eval.ts` files.
+- Runs a local server on `localhost:3006`
+- Lets you write scorers for your evals to score your system's performance
+- Can run on CI, producing a static HTML bundle for viewing in CI artifacts
+- Based on Vitest, so you can use all the same tools (mocks, lifecycle hooks) you're used to
+
+## What Are Evals?
+
+Most AI-powered apps have behaviors that are probabilistic. They sometimes work, and sometimes don't. Evals are a way to throw a TON of data at your system and see how it performs.
+
+So **evals are to AI-powered apps what tests are to regular apps**. They're a way to check that your app is working well enough to ship.
+
+But AI-powered apps are different - so evals are different too. Normal tests give you a pass or fail metric. **Evals give you a score from 0-100** based on how well your app is performing.
+
+Instead of `.test.ts` files, Evalite uses `.eval.ts` files. They look like this:
+
+```ts
+// my-eval.eval.ts
+
+import { evalite } from "evalite";
+import { exactMatch } from "evalite/scorers";
+
+evalite("My Eval", {
+  // 1. A set of data to test
+  data: [{ input: "Hello", expected: "Hello World!" }],
+  // 2. The task to perform, usually to call a LLM.
+  task: async (input) => {
+    return input + " World!";
+  },
+  // 3. Optionally, some scorers to score the eval
+  scorers: [
+    // For instance, exactMatch checks if the output
+    // matches the expected value exactly
+    {
+      scorer: ({ output, expected }) =>
+        exactMatch({ actual: output, expected }),
+    },
+  ],
+});
+```
+
+In the code above, we have:
+
+- `data`: A dataset to test
+- `task`: The task to perform
+- `scorers`: Methods to score the eval
+
+These are the core elements of an eval.
+
+## Why Does Evalite Exist?
+
+There are plenty of eval runners out there. But most of them are also bundled with a cloud service.
+
+Coming from a frontend testing background, this felt pretty strange to me. I wanted to be able to run evals locally, and not have to worry about vendor lock-in.
+
+So Evalite is **local-only**. It runs on your machine, and you stay in complete control of your data.
+
+This means no friction, no sign-off, and no vendor lock-in. Just you, your code, and your evals.

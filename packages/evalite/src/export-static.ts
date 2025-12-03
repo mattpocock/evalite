@@ -1,9 +1,10 @@
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
+import { runEvalite } from "./run-evalite.js";
+import { computeAverageScores } from "./storage/utils.js";
 import type { Evalite } from "./types.js";
 import { average, EvaliteFile } from "./utils.js";
-import { computeAverageScores } from "./storage/utils.js";
 
 /**
  * Sanitizes an eval name for use in filenames
@@ -22,23 +23,27 @@ const rewriteHtmlPaths = (html: string, pathPrefix: string): string => {
 };
 
 /**
- * Rewrites asset paths in JS content with basePath prefix
+ * Rewrites asset paths in JS and CSS content with basePath prefix
  */
-const rewriteJsPaths = (js: string, pathPrefix: string): string => {
-  return js
-    .replace(/"assets\//g, `"${pathPrefix}/assets/`)
-    .replace(/'assets\//g, `'${pathPrefix}/assets/`);
+const rewriteJsAndCSSPaths = (jsOrCSS: string, pathPrefix: string): string => {
+  const pathPrefixWithoutLeadingSlash = pathPrefix.startsWith("/")
+    ? pathPrefix.slice(1)
+    : pathPrefix;
+
+  return jsOrCSS
+    .replace(/"assets\//g, `"${pathPrefixWithoutLeadingSlash}/assets/`)
+    .replace(/'assets\//g, `'${pathPrefixWithoutLeadingSlash}/assets/`);
 };
 
 /**
- * Get the previous completed eval by name and created_at time
+ * Get the previous completed suite by name and created_at time
  */
-const getPreviousCompletedEval = async (
+const getPreviousCompletedSuite = async (
   storage: Evalite.Storage,
   name: string,
   createdAt: string
-): Promise<Evalite.Storage.Entities.Eval | undefined> => {
-  const evals = await storage.evals.getMany({
+): Promise<Evalite.Storage.Entities.Suite | undefined> => {
+  const suites = await storage.suites.getMany({
     name,
     createdBefore: createdAt,
     statuses: ["success", "fail"],
@@ -46,7 +51,7 @@ const getPreviousCompletedEval = async (
     orderBy: "created_at",
     orderDirection: "desc",
   });
-  return evals[0];
+  return suites[0];
 };
 
 /**
@@ -55,33 +60,33 @@ const getPreviousCompletedEval = async (
 const getHistoricalEvalsWithScoresByName = async (
   storage: Evalite.Storage,
   name: string
-): Promise<(Evalite.Storage.Entities.Eval & { average_score: number })[]> => {
-  const evals = await storage.evals.getMany({
+): Promise<(Evalite.Storage.Entities.Suite & { average_score: number })[]> => {
+  const suites = await storage.suites.getMany({
     name,
     statuses: ["success", "fail"],
     orderBy: "created_at",
     orderDirection: "asc",
   });
 
-  // Get results and scores for all evals
-  const allResults = await storage.results.getMany({
-    evalIds: evals.map((e) => e.id),
+  // Get evals and scores for all suites
+  const allEvals = await storage.evals.getMany({
+    suiteIds: suites.map((s) => s.id),
   });
   const allScores = await storage.scores.getMany({
-    resultIds: allResults.map((r) => r.id),
+    evalIds: allEvals.map((r) => r.id),
   });
 
   // Calculate average scores for each eval
-  return evals.map((evaluation) => {
-    const evalResults = allResults.filter((r) => r.eval_id === evaluation.id);
-    const evalScores = allScores.filter((s) =>
-      evalResults.some((r) => r.id === s.result_id)
+  return suites.map((suite) => {
+    const evals = allEvals.filter((e) => e.suite_id === suite.id);
+    const scores = allScores.filter((s) =>
+      evals.some((e) => e.id === s.eval_id)
     );
     const average_score =
-      evalScores.length > 0
-        ? evalScores.reduce((sum, s) => sum + s.score, 0) / evalScores.length
+      scores.length > 0
+        ? scores.reduce((sum, s) => sum + s.score, 0) / scores.length
         : 0;
-    return { ...evaluation, average_score };
+    return { ...suite, average_score };
   });
 };
 
@@ -154,6 +159,42 @@ export interface ExportStaticOptions {
   basePath?: string;
 }
 
+export const exportCommand = async (opts: {
+  outputPath?: string;
+  runId?: number;
+  basePath?: string;
+  cwd: string;
+  storage: Evalite.Storage;
+}) => {
+  // Check if storage has any runs
+  const existingRuns = await opts.storage.runs.getMany({ limit: 1 });
+  const isEmpty = existingRuns.length === 0;
+
+  // Error if runId specified but storage is empty
+  if (opts.runId && isEmpty) {
+    throw new Error(
+      "Cannot export with runId when storage is empty. Run evaluations first or omit runId to auto-run."
+    );
+  }
+
+  // Auto-run if storage is empty
+  if (isEmpty) {
+    console.log("Storage is empty. Running evaluations first...");
+    await runEvalite({
+      cwd: opts.cwd,
+      mode: "run-once",
+      storage: opts.storage,
+    });
+  }
+
+  await exportStaticUI({
+    storage: opts.storage,
+    outputPath: opts.outputPath ?? "./evalite-export",
+    runId: opts.runId,
+    basePath: opts.basePath,
+  });
+};
+
 /**
  * Exports the Evalite UI as a static bundle with pre-computed JSON files
  */
@@ -187,20 +228,20 @@ export const exportStaticUI = async (
   await fs.mkdir(filesDir, { recursive: true });
 
   // Get all data for this run
-  const evals = await storage.evals.getMany({
+  const suites = await storage.suites.getMany({
     runIds: [run.id],
     statuses: ["success", "fail"],
   });
-  console.log(`Found ${evals.length} evaluations`);
+  console.log(`Found ${suites.length} suites`);
 
-  const allResults = await storage.results.getMany({
-    evalIds: evals.map((e) => e.id),
+  const allEvals = await storage.evals.getMany({
+    suiteIds: suites.map((s) => s.id),
   });
   const allScores = await storage.scores.getMany({
-    resultIds: allResults.map((r) => r.id),
+    evalIds: allEvals.map((e) => e.id),
   });
   const allTraces = await storage.traces.getMany({
-    resultIds: allResults.map((r) => r.id),
+    evalIds: allEvals.map((e) => e.id),
   });
   const averageScores = computeAverageScores(allScores);
 
@@ -232,6 +273,8 @@ export const exportStaticUI = async (
   // Generate server-state.json
   const serverState: Evalite.ServerState = {
     type: "idle",
+    cacheHitsByEval: {},
+    cacheHitsByScorer: {},
   };
   await fs.writeFile(
     path.join(dataDir, "server-state.json"),
@@ -240,56 +283,57 @@ export const exportStaticUI = async (
 
   // Generate menu-items.json (mirrors /api/menu-items endpoint)
   const evalsWithPrevEvals = await Promise.all(
-    evals.map(async (e) => ({
+    suites.map(async (e) => ({
       ...e,
-      prevEval: await getPreviousCompletedEval(storage, e.name, e.created_at),
+      prevEval: await getPreviousCompletedSuite(storage, e.name, e.created_at),
     }))
   );
 
   const menuItems = evalsWithPrevEvals
-    .map((e) => {
-      const evalResults = allResults.filter((r) => r.eval_id === e.id);
+    .map((evalItem) => {
+      const evals = allEvals.filter((e) => e.suite_id === evalItem.id);
+
       const evalScores = allScores.filter((s) =>
-        evalResults.some((r) => r.id === s.result_id)
+        evals.some((e) => e.id === s.eval_id)
       );
       const score =
         evalScores.length > 0
           ? evalScores.reduce((sum, s) => sum + s.score, 0) / evalScores.length
           : 0;
 
-      const prevEvalResults = e.prevEval
-        ? allResults.filter((r) => r.eval_id === e.prevEval!.id)
+      const prevSuiteEvals = evalItem.prevEval
+        ? allEvals.filter((r) => r.suite_id === evalItem.prevEval!.id)
         : [];
-      const prevEvalScores = allScores.filter((s) =>
-        prevEvalResults.some((r) => r.id === s.result_id)
+      const prevSuiteScores = allScores.filter((s) =>
+        prevSuiteEvals.some((r) => r.id === s.eval_id)
       );
-      const prevScore = e.prevEval
-        ? prevEvalScores.length > 0
-          ? prevEvalScores.reduce((sum, s) => sum + s.score, 0) /
-            prevEvalScores.length
+      const prevScore = evalItem.prevEval
+        ? prevSuiteScores.length > 0
+          ? prevSuiteScores.reduce((sum, s) => sum + s.score, 0) /
+            prevSuiteScores.length
           : 0
         : undefined;
 
       const hasScores = evalScores.length > 0;
 
       return {
-        filepath: e.filepath,
-        name: e.name,
+        filepath: evalItem.filepath,
+        name: evalItem.name,
         score,
         prevScore,
-        evalStatus: e.status,
-        variantName: e.variant_name,
-        variantGroup: e.variant_group,
+        suiteStatus: evalItem.status,
+        variantName: evalItem.variant_name,
+        variantGroup: evalItem.variant_group,
         hasScores,
-      } satisfies Evalite.SDK.GetMenuItemsResultEval;
+      } satisfies Evalite.SDK.GetMenuItemsResultSuite;
     })
     .sort((a, b) => a.name.localeCompare(b.name));
 
   const menuItemsData: Evalite.SDK.GetMenuItemsResult = {
-    evals: menuItems,
+    suites: menuItems,
     score: average(menuItems, (e) => e.score),
     prevScore: average(menuItems, (e) => e.prevScore ?? e.score),
-    evalStatus: menuItems.some((e) => e.evalStatus === "fail")
+    runStatus: menuItems.some((e) => e.suiteStatus === "fail")
       ? "fail"
       : "success",
   };
@@ -302,24 +346,24 @@ export const exportStaticUI = async (
   // Generate per-eval JSON files (mirrors /api/eval endpoint)
   const availableEvals: string[] = [];
 
-  for (const evaluation of evals) {
+  for (const evaluation of suites) {
     const sanitizedName = sanitizeFilename(evaluation.name);
     availableEvals.push(sanitizedName);
 
-    const prevEvaluation = await getPreviousCompletedEval(
+    const prevEvaluation = await getPreviousCompletedSuite(
       storage,
       evaluation.name,
       evaluation.created_at
     );
 
-    const results = await storage.results.getMany({
-      evalIds: [evaluation.id, prevEvaluation?.id].filter(
+    const evals = await storage.evals.getMany({
+      suiteIds: [evaluation.id, prevEvaluation?.id].filter(
         (i) => typeof i === "number"
       ),
     });
 
     const scores = await storage.scores.getMany({
-      resultIds: results.map((r) => r.id),
+      evalIds: evals.map((r) => r.id),
     });
 
     const history = await getHistoricalEvalsWithScoresByName(
@@ -327,15 +371,15 @@ export const exportStaticUI = async (
       evaluation.name
     );
 
-    const evalData: Evalite.SDK.GetEvalByNameResult = {
+    const evalData: Evalite.SDK.GetSuiteByNameResult = {
       history: history.map((h) => ({
         score: h.average_score,
         date: h.created_at,
       })),
-      evaluation: {
+      suite: {
         ...evaluation,
-        results: results
-          .filter((r) => r.eval_id === evaluation.id)
+        evals: evals
+          .filter((r) => r.suite_id === evaluation.id)
           .map((r) => ({
             ...r,
             input: transformEvaliteFilePaths(r.input, getUniqueFilename),
@@ -345,14 +389,14 @@ export const exportStaticUI = async (
               r.rendered_columns,
               getUniqueFilename
             ),
-            scores: scores.filter((s) => s.result_id === r.id),
+            scores: scores.filter((s) => s.eval_id === r.id),
           })),
       },
-      prevEvaluation: prevEvaluation
+      prevSuite: prevEvaluation
         ? {
             ...prevEvaluation,
-            results: results
-              .filter((r) => r.eval_id === prevEvaluation.id)
+            evals: evals
+              .filter((r) => r.suite_id === prevEvaluation.id)
               .map((r) => ({
                 ...r,
                 input: transformEvaliteFilePaths(r.input, getUniqueFilename),
@@ -365,45 +409,44 @@ export const exportStaticUI = async (
                   r.rendered_columns,
                   getUniqueFilename
                 ),
-                scores: scores.filter((s) => s.result_id === r.id),
+                scores: scores.filter((s) => s.eval_id === r.id),
               })),
           }
         : undefined,
     };
 
     await fs.writeFile(
-      path.join(dataDir, `eval-${sanitizedName}.json`),
+      path.join(dataDir, `suite-${sanitizedName}.json`),
       JSON.stringify(evalData, null, 2)
     );
 
     // Generate per-result JSON files (mirrors /api/eval/result endpoint)
-    const evalResults = allResults.filter((r) => r.eval_id === evaluation.id);
+    const evalsForSuite = allEvals.filter((r) => r.suite_id === evaluation.id);
 
-    for (let index = 0; index < evalResults.length; index++) {
-      const thisResult = evalResults[index]!;
+    for (let index = 0; index < evalsForSuite.length; index++) {
+      const thisEval = evalsForSuite[index]!;
 
-      const prevEvaluationResults = allResults.filter(
-        (r) => r.eval_id === prevEvaluation?.id
+      const prevEval = allEvals.filter(
+        (e) => e.suite_id === prevEvaluation?.id
       );
 
-      const result: Evalite.SDK.GetResultResult["result"] = {
-        ...thisResult,
-        input: transformEvaliteFilePaths(thisResult.input, getUniqueFilename),
-        output: transformEvaliteFilePaths(thisResult.output, getUniqueFilename),
+      const _eval: Evalite.SDK.GetEvalResult["eval"] = {
+        ...thisEval,
+        input: transformEvaliteFilePaths(thisEval.input, getUniqueFilename),
+        output: transformEvaliteFilePaths(thisEval.output, getUniqueFilename),
         expected: transformEvaliteFilePaths(
-          thisResult.expected,
+          thisEval.expected,
           getUniqueFilename
         ),
         rendered_columns: transformEvaliteFilePaths(
-          thisResult.rendered_columns,
+          thisEval.rendered_columns,
           getUniqueFilename
         ),
         score:
-          averageScores.find((s) => s.result_id === thisResult.id)?.average ??
-          0,
-        scores: allScores.filter((s) => s.result_id === thisResult.id),
+          averageScores.find((s) => s.eval_id === thisEval.id)?.average ?? 0,
+        scores: allScores.filter((s) => s.eval_id === thisEval.id),
         traces: allTraces
-          .filter((t) => t.result_id === thisResult.id)
+          .filter((t) => t.eval_id === thisEval.id)
           .map((t) => ({
             ...t,
             input: transformEvaliteFilePaths(t.input, getUniqueFilename),
@@ -411,50 +454,48 @@ export const exportStaticUI = async (
           })),
       };
 
-      const prevResultInDb = prevEvaluationResults[index];
+      const prevEvalInDb = prevEval[index];
 
-      const prevResult: Evalite.SDK.GetResultResult["prevResult"] =
-        prevResultInDb
+      const resolvedPrevEval: Evalite.SDK.GetEvalResult["prevEval"] =
+        prevEvalInDb
           ? {
-              ...prevResultInDb,
+              ...prevEvalInDb,
               input: transformEvaliteFilePaths(
-                prevResultInDb.input,
+                prevEvalInDb.input,
                 getUniqueFilename
               ),
               output: transformEvaliteFilePaths(
-                prevResultInDb.output,
+                prevEvalInDb.output,
                 getUniqueFilename
               ),
               expected: transformEvaliteFilePaths(
-                prevResultInDb.expected,
+                prevEvalInDb.expected,
                 getUniqueFilename
               ),
               rendered_columns: transformEvaliteFilePaths(
-                prevResultInDb.rendered_columns,
+                prevEvalInDb.rendered_columns,
                 getUniqueFilename
               ),
               score:
-                averageScores.find((s) => s.result_id === prevResultInDb.id)
+                averageScores.find((s) => s.eval_id === prevEvalInDb.id)
                   ?.average ?? 0,
-              scores: allScores.filter(
-                (s) => s.result_id === prevResultInDb.id
-              ),
+              scores: allScores.filter((s) => s.eval_id === prevEvalInDb.id),
             }
           : undefined;
 
-      const resultData: Evalite.SDK.GetResultResult = {
-        result,
-        prevResult,
-        evaluation,
+      const evalData: Evalite.SDK.GetEvalResult = {
+        eval: _eval,
+        prevEval: resolvedPrevEval,
+        suite: evaluation,
       };
 
       await fs.writeFile(
-        path.join(dataDir, `result-${sanitizedName}-${index}.json`),
-        JSON.stringify(resultData, null, 2)
+        path.join(dataDir, `eval-${sanitizedName}-${index}.json`),
+        JSON.stringify(evalData, null, 2)
       );
     }
 
-    console.log(`  ✓ ${evaluation.name} (${evalResults.length} results)`);
+    console.log(`  ✓ ${evaluation.name} (${evalsForSuite.length} results)`);
   }
 
   // Copy all referenced files to output
@@ -505,20 +546,22 @@ export const exportStaticUI = async (
   if (basePath !== "/") {
     const assetsDir = path.join(outputPath, "assets");
     const assetFiles = await fs.readdir(assetsDir);
-    const jsFiles = assetFiles.filter((file) => file.endsWith(".js"));
+    const files = assetFiles.filter(
+      (file) => file.endsWith(".js") || file.endsWith(".css")
+    );
 
-    for (const jsFile of jsFiles) {
-      const jsPath = path.join(assetsDir, jsFile);
-      const jsContent = await fs.readFile(jsPath, "utf-8");
-      const rewrittenJs = rewriteJsPaths(jsContent, pathPrefix);
-      await fs.writeFile(jsPath, rewrittenJs);
+    for (const file of files) {
+      const filePath = path.join(assetsDir, file);
+      const fileContent = await fs.readFile(filePath, "utf-8");
+      const rewrittenFile = rewriteJsAndCSSPaths(fileContent, pathPrefix);
+      await fs.writeFile(filePath, rewrittenFile);
     }
   }
 
   console.log(`\n✓ Export complete: ${outputPath}`);
   console.log(`  Run: ${run.id} (${run.runType})`);
-  console.log(`  Evals: ${evals.length}`);
-  console.log(`  Results: ${allResults.length}`);
+  console.log(`  Evals: ${suites.length}`);
+  console.log(`  Results: ${allEvals.length}`);
   console.log(
     `\nTo view: npx serve ${outputPath} or open index.html in a browser`
   );

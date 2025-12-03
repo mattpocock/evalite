@@ -6,9 +6,7 @@ evalite("Columns", {
       {
         input: {
           first: "abc",
-        },
-        expected: {
-          last: 123,
+          expected: 123,
         },
       },
     ];
@@ -19,7 +17,7 @@ evalite("Columns", {
     };
   },
   scorers: [],
-  columns: async ({ input, output, expected }) => {
+  columns: async ({ input, output }) => {
     return [
       {
         label: "Input First",
@@ -27,7 +25,7 @@ evalite("Columns", {
       },
       {
         label: "Expected Last",
-        value: expected?.last,
+        value: input.expected,
       },
       {
         label: "Output Last",

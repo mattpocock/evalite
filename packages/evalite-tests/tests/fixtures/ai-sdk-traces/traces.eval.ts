@@ -1,8 +1,7 @@
 import { generateText } from "ai";
 import { MockLanguageModelV2 } from "ai/test";
-import { traceAISDKModel } from "evalite/ai-sdk";
+import { wrapAISDKModel } from "evalite/ai-sdk";
 import { evalite } from "evalite";
-import { Levenshtein } from "autoevals";
 
 const model = new MockLanguageModelV2({
   doGenerate: async (options) => ({
@@ -25,7 +24,7 @@ const model = new MockLanguageModelV2({
   }),
 });
 
-const tracedModel = traceAISDKModel(model);
+const tracedModel = wrapAISDKModel(model);
 
 evalite("AI SDK Traces", {
   data: () => {
@@ -44,5 +43,10 @@ evalite("AI SDK Traces", {
     });
     return result.text;
   },
-  scorers: [Levenshtein],
+  scorers: [
+    {
+      name: "Pass",
+      scorer: () => ({ score: 1 }),
+    },
+  ],
 });

@@ -1,0 +1,203 @@
+---
+title: CLI
+---
+
+The `evalite` command-line interface for running evaluations.
+
+## Commands
+
+### `evalite` (default)
+
+Alias for `evalite run`. Runs evals once and exits.
+
+```bash
+evalite
+```
+
+### `evalite run`
+
+Run evals once and exit. Default command when no subcommand specified.
+
+```bash
+evalite run
+evalite run path/to/eval.eval.ts
+```
+
+**Positional Arguments:**
+
+- `[path]` (optional) - Path filter to run specific eval files. If not provided, runs all `.eval.ts` files.
+
+**Flags:**
+
+- `--threshold <number>` - Fails the process if the score is below threshold. Specified as 0-100. Default is 100.
+- `--outputPath <path>` - Path to write test results in JSON format after evaluation completes.
+- `--hideTable` - Hides the detailed table output in the CLI.
+- `--no-cache` - Disables caching of AI SDK model outputs. See [Vercel AI SDK caching](/tips/vercel-ai-sdk#caching).
+
+**Examples:**
+
+```bash
+# Run all evals
+evalite run
+
+# Run specific eval file
+evalite run example.eval.ts
+
+# Fail if score drops below 80%
+evalite run --threshold 80
+
+# Export results to JSON
+evalite run --outputPath results.json
+
+# Hide detailed table
+evalite run --hideTable
+```
+
+### `evalite watch`
+
+Watch evals for file changes and re-run automatically. Starts the UI server at `http://localhost:3006`.
+
+```bash
+evalite watch
+evalite watch path/to/eval.eval.ts
+```
+
+**Positional Arguments:**
+
+- `[path]` (optional) - Path filter to watch specific eval files.
+
+**Flags:**
+
+- `--threshold <number>` - Fails the process if the score is below threshold. Specified as 0-100. Default is 100.
+- `--hideTable` - Hides the detailed table output in the CLI.
+- `--no-cache` - Disables caching of AI SDK model outputs. See [Vercel AI SDK caching](/tips/vercel-ai-sdk#caching).
+
+**Note:** `--outputPath` is not supported in watch mode.
+
+#### Watching Additional Files
+
+By default, `evalite watch` only triggers reruns when your `*.eval.ts` files change.
+
+If your evals depend on other files that Vitest can't automatically detect (e.g., prompt templates, external data files, or CLI build outputs), you can configure extra watch globs in `evalite.config.ts`:
+
+```ts
+// evalite.config.ts
+import { defineConfig } from "evalite/config";
+
+export default defineConfig({
+  forceRerunTriggers: [
+    "src/**/*.ts", // helper / model code
+    "prompts/**/*", // prompt templates
+    "data/**/*.json", // test data
+  ],
+});
+```
+
+These globs are passed through to Vitest's [`forceRerunTriggers`](https://vitest.dev/config/#forcereruntriggers) option, so any change to a matching file will trigger a full eval rerun.
+
+> **Note:** Globs are resolved relative to the directory where you run evalite (the Evalite cwd).
+
+**Examples:**
+
+```bash
+# Watch all evals
+evalite watch
+
+# Watch specific eval
+evalite watch example.eval.ts
+
+# Watch with hidden table (useful for debugging with console.log)
+evalite watch --hideTable
+```
+
+### `evalite serve`
+
+Run evals once and serve the UI without watching for changes. Useful when evals take a long time to run.
+
+```bash
+evalite serve
+evalite serve path/to/eval.eval.ts
+```
+
+**Positional Arguments:**
+
+- `[path]` (optional) - Path filter to run specific eval files.
+
+**Flags:**
+
+- `--threshold <number>` - Fails the process if the score is below threshold. Specified as 0-100. Default is 100.
+- `--outputPath <path>` - Path to write test results in JSON format after evaluation completes.
+- `--hideTable` - Hides the detailed table output in the CLI.
+- `--no-cache` - Disables caching of AI SDK model outputs. See [Vercel AI SDK caching](/tips/vercel-ai-sdk#caching).
+
+**Examples:**
+
+```bash
+# Run once and serve UI
+evalite serve
+
+# Serve specific eval results
+evalite serve example.eval.ts
+```
+
+### `evalite export`
+
+Export static UI bundle for CI artifacts. Exports a standalone HTML bundle that can be viewed offline or uploaded as a CI artifact.
+
+```bash
+evalite export
+```
+
+**Flags:**
+
+- `--output <path>` - Output directory for static export. Default: `./evalite-export`
+- `--runId <number>` - Specific run ID to export. Default: latest run
+
+**Examples:**
+
+```bash
+# Export latest run to default directory
+evalite export
+
+# Export to custom directory
+evalite export --output ./my-export
+
+# Export specific run
+evalite export --runId 123
+
+# Export and specify both options
+evalite export --output ./artifacts --runId 42
+```
+
+**Note:** If no runs exist in storage, `evalite export` will automatically run evaluations first.
+
+## Global Flags
+
+All commands support these flags:
+
+- `--help` - Show help for the command
+- `--version` - Show version information
+
+## Configuration
+
+CLI behavior can be configured via [evalite.config.ts](/api/define-config):
+
+```typescript
+// evalite.config.ts
+import { defineConfig } from "evalite/config";
+
+export default defineConfig({
+  scoreThreshold: 80, // Default threshold for all runs
+  hideTable: true, // Hide table by default
+  server: {
+    port: 3006, // UI server port
+  },
+});
+```
+
+## See Also
+
+- [runEvalite()](/api/run-evalite) - Run evals programmatically from Node.js
+- [defineConfig()](/api/define-config) - Configure Evalite behavior
+- [Watch Mode](/tips/watch-mode) - Tips for using watch mode effectively
+- [CI/CD](/tips/run-evals-on-ci-cd) - Running evals in continuous integration

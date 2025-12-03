@@ -1,21 +1,34 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { zodValidator } from "@tanstack/zod-adapter";
+import { z } from "zod";
 import { getMenuItemsQueryOptions } from "~/data/queries";
+
+const searchSchema = z.object({
+  q: z.coerce.string().optional(),
+});
 
 export const Route = createFileRoute("/$")({
   component: IndexRoute,
-  loader: async ({ context }) => {
+  validateSearch: zodValidator(searchSchema),
+  loaderDeps: ({ search }) => ({
+    q: search.q,
+  }),
+  loader: async ({ context, deps }) => {
     const { queryClient } = context;
-    const { evals: currentEvals } = await queryClient.ensureQueryData(
+    const { suites: currentSuites } = await queryClient.ensureQueryData(
       getMenuItemsQueryOptions
     );
 
-    const firstName = currentEvals[0]?.name;
+    const firstName = currentSuites[0]?.name;
 
     if (firstName) {
       return redirect({
-        to: "/eval/$name",
+        to: "/suite/$name",
         params: {
           name: firstName,
+        },
+        search: {
+          q: deps.q,
         },
       });
     }

@@ -1,20 +1,46 @@
+import type { UIMessage } from "ai";
 import { evalite } from "evalite";
-import { setTimeout } from "timers/promises";
 
 evalite("Long", {
   data: async () => [
     {
-      input: `What's the capital of France?`,
-      expected: `Paris`,
-    },
-    {
-      input: `What's the capital of Germany?`,
+      input: [
+        {
+          id: "1",
+          parts: [
+            {
+              type: "text",
+              text: "What is the capital of France?",
+            },
+          ],
+          role: "user",
+        },
+        {
+          id: "2",
+          parts: [
+            {
+              type: "text",
+              text: "Paris is the capital of France and has many museums.",
+            },
+          ],
+          role: "assistant",
+        },
+        {
+          id: "3",
+          parts: [
+            {
+              type: "text",
+              text: "What is the capital of Germany?",
+            },
+          ],
+          role: "user",
+        },
+      ] satisfies UIMessage[],
       expected: `Berlin`,
     },
   ],
   task: async (input) => {
-    await setTimeout(2000);
-    return "Paris";
+    return "Berlin";
   },
   scorers: [],
 });

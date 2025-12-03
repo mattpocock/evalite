@@ -5,17 +5,26 @@ import { mkdir } from "fs/promises";
 import path from "path";
 import Database from "better-sqlite3";
 
+const tableNames = {
+  runs: "runs",
+  suites: "suites",
+  evals: "evals",
+  scores: "scores",
+  traces: "traces",
+  cache: "cache",
+};
+
 const createDatabase = (url: string): BetterSqlite3.Database => {
   const db: BetterSqlite3.Database = new Database(url);
   db.pragma("journal_mode = WAL");
   db.exec(`
-    CREATE TABLE IF NOT EXISTS runs (
+    CREATE TABLE IF NOT EXISTS ${tableNames.runs} (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       runType TEXT NOT NULL, -- full, partial
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
-    CREATE TABLE IF NOT EXISTS evals (
+    CREATE TABLE IF NOT EXISTS ${tableNames.suites} (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       run_id INTEGER NOT NULL,
       name TEXT NOT NULL,
@@ -25,32 +34,32 @@ const createDatabase = (url: string): BetterSqlite3.Database => {
       FOREIGN KEY (run_id) REFERENCES runs(id)
     );
 
-    CREATE TABLE IF NOT EXISTS results (
+    CREATE TABLE IF NOT EXISTS ${tableNames.evals} (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      eval_id INTEGER NOT NULL,
+      suite_id INTEGER NOT NULL,
       duration INTEGER NOT NULL,
       input TEXT NOT NULL, -- JSON
       output TEXT NOT NULL, -- JSON
       expected TEXT, -- JSON
       col_order INTEGER NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (eval_id) REFERENCES evals(id)
+      FOREIGN KEY (suite_id) REFERENCES suites(id)
     );
 
-    CREATE TABLE IF NOT EXISTS scores (
+    CREATE TABLE IF NOT EXISTS ${tableNames.scores} (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      result_id INTEGER NOT NULL,
+      eval_id INTEGER NOT NULL,
       name TEXT NOT NULL,
       score FLOAT NOT NULL,
       description TEXT,
       metadata TEXT, -- JSON
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (result_id) REFERENCES results(id)
+      FOREIGN KEY (eval_id) REFERENCES evals(id)
     );
 
-    CREATE TABLE IF NOT EXISTS traces (
+    CREATE TABLE IF NOT EXISTS ${tableNames.traces} (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      result_id INTEGER NOT NULL,
+      eval_id INTEGER NOT NULL,
       input TEXT NOT NULL, -- JSON
       output TEXT NOT NULL, -- JSON
       start_time INTEGER NOT NULL,
@@ -58,51 +67,64 @@ const createDatabase = (url: string): BetterSqlite3.Database => {
       prompt_tokens INTEGER,
       completion_tokens INTEGER,
       col_order INTEGER NOT NULL,
-      FOREIGN KEY (result_id) REFERENCES results(id)
+      FOREIGN KEY (eval_id) REFERENCES evals(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS ${tableNames.cache} (
+      key_hash TEXT PRIMARY KEY,
+      value TEXT NOT NULL, -- JSON
+      duration REAL NOT NULL,
+      created_at INTEGER NOT NULL
     );
   `);
 
   // Add status key to evals table
   try {
     db.exec(
-      `ALTER TABLE evals ADD COLUMN status TEXT NOT NULL DEFAULT 'success';`
+      `ALTER TABLE ${tableNames.suites} ADD COLUMN status TEXT NOT NULL DEFAULT 'success';`
     );
-  } catch (e) {}
+  } catch {}
 
-  // Add status key to results table
+  // Add status key to evals table
   try {
     db.exec(
-      `ALTER TABLE results ADD COLUMN status TEXT NOT NULL DEFAULT 'success';`
+      `ALTER TABLE ${tableNames.evals} ADD COLUMN status TEXT NOT NULL DEFAULT 'success';`
     );
-  } catch (e) {}
+  } catch {}
 
-  // Add rendered_columns key to results table
+  // Add rendered_columns key to evals table
   try {
-    db.exec(`ALTER TABLE results ADD COLUMN rendered_columns TEXT`);
-  } catch (e) {}
+    db.exec(`ALTER TABLE ${tableNames.evals} ADD COLUMN rendered_columns TEXT`);
+  } catch {}
 
   // Rename prompt_tokens/completion_tokens to input_tokens/output_tokens and add total_tokens
   try {
     db.exec(`
-      ALTER TABLE traces RENAME COLUMN prompt_tokens TO input_tokens;
-      ALTER TABLE traces RENAME COLUMN completion_tokens TO output_tokens;
-      ALTER TABLE traces ADD COLUMN total_tokens INTEGER;
+      ALTER TABLE ${tableNames.traces} RENAME COLUMN prompt_tokens TO input_tokens;
+      ALTER TABLE ${tableNames.traces} RENAME COLUMN completion_tokens TO output_tokens;
+      ALTER TABLE ${tableNames.traces} ADD COLUMN total_tokens INTEGER;
     `);
-  } catch (e) {}
+  } catch {}
 
-  // Add variant_name and variant_group columns to evals table
+  // Add variant_name and variant_group columns to suites table
   try {
-    db.exec(`ALTER TABLE evals ADD COLUMN variant_name TEXT`);
-  } catch (e) {}
+    db.exec(`ALTER TABLE ${tableNames.suites} ADD COLUMN variant_name TEXT`);
+  } catch {}
 
   try {
-    db.exec(`ALTER TABLE evals ADD COLUMN variant_group TEXT`);
-  } catch (e) {}
+    db.exec(`ALTER TABLE ${tableNames.suites} ADD COLUMN variant_group TEXT`);
+  } catch {}
 
-  // Add trial_index column to results table
+  // Add trial_index column to evals table
   try {
-    db.exec(`ALTER TABLE results ADD COLUMN trial_index INTEGER`);
-  } catch (e) {}
+    db.exec(`ALTER TABLE ${tableNames.evals} ADD COLUMN trial_index INTEGER`);
+  } catch {}
+
+  // Clean up expired cache entries (older than 1 day)
+  const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+  db.prepare(`DELETE FROM ${tableNames.cache} WHERE created_at < ?`).run(
+    oneDayAgo
+  );
 
   return db;
 };
@@ -114,7 +136,7 @@ export class SqliteStorage implements Evalite.Storage {
     this.db = db;
   }
 
-  private createEval({
+  private createSuite({
     runId,
     name,
     filepath,
@@ -126,10 +148,10 @@ export class SqliteStorage implements Evalite.Storage {
     filepath: string;
     variantName?: string;
     variantGroup?: string;
-  }): Evalite.Storage.Entities.Eval {
-    const evaluationId = this.db
+  }): Evalite.Storage.Entities.Suite {
+    const suiteId = this.db
       .prepare(
-        `INSERT INTO evals (run_id, name, filepath, duration, status, variant_name, variant_group)
+        `INSERT INTO ${tableNames.suites} (run_id, name, filepath, duration, status, variant_name, variant_group)
          VALUES (@runId, @name, @filepath, @duration, @status, @variantName, @variantGroup)`
       )
       .run({
@@ -145,9 +167,9 @@ export class SqliteStorage implements Evalite.Storage {
     return this.db
       .prepare<
         { id: number | bigint },
-        Evalite.Storage.Entities.Eval
-      >(`SELECT * FROM evals WHERE id = @id`)
-      .get({ id: evaluationId })!;
+        Evalite.Storage.Entities.Suite
+      >(`SELECT * FROM ${tableNames.suites} WHERE id = @id`)
+      .get({ id: suiteId })!;
   }
 
   private createRun({
@@ -156,19 +178,19 @@ export class SqliteStorage implements Evalite.Storage {
     runType: Evalite.RunType;
   }): Evalite.Storage.Entities.Run {
     const id = this.db
-      .prepare(`INSERT INTO runs (runType) VALUES (@runType)`)
+      .prepare(`INSERT INTO ${tableNames.runs} (runType) VALUES (@runType)`)
       .run({ runType }).lastInsertRowid;
 
     return this.db
       .prepare<
         { id: number | bigint },
         Evalite.Storage.Entities.Run
-      >(`SELECT * FROM runs WHERE id = @id`)
+      >(`SELECT * FROM ${tableNames.runs} WHERE id = @id`)
       .get({ id })!;
   }
 
-  private insertResult({
-    evalId,
+  private insertEval({
+    suiteId,
     order,
     input,
     expected,
@@ -178,7 +200,7 @@ export class SqliteStorage implements Evalite.Storage {
     renderedColumns,
     trialIndex,
   }: {
-    evalId: number | bigint;
+    suiteId: number | bigint;
     order: number;
     input: unknown;
     expected: unknown;
@@ -187,14 +209,14 @@ export class SqliteStorage implements Evalite.Storage {
     status: string;
     renderedColumns: unknown;
     trialIndex?: number;
-  }): Evalite.Storage.Entities.Result {
+  }): Evalite.Storage.Entities.Eval {
     const id = this.db
       .prepare(
-        `INSERT INTO results (eval_id, col_order, input, expected, output, duration, status, rendered_columns, trial_index)
-         VALUES (@eval_id, @col_order, @input, @expected, @output, @duration, @status, @rendered_columns, @trial_index)`
+        `INSERT INTO ${tableNames.evals} (suite_id, col_order, input, expected, output, duration, status, rendered_columns, trial_index)
+         VALUES (@suite_id, @col_order, @input, @expected, @output, @duration, @status, @rendered_columns, @trial_index)`
       )
       .run({
-        eval_id: evalId,
+        suite_id: suiteId,
         col_order: order,
         input: JSON.stringify(input),
         expected: JSON.stringify(expected),
@@ -209,15 +231,15 @@ export class SqliteStorage implements Evalite.Storage {
       this.db
         .prepare<
           { id: number | bigint },
-          Evalite.Storage.Entities.Result
-        >(`SELECT * FROM results WHERE id = @id`)
+          Evalite.Storage.Entities.Eval
+        >(`SELECT * FROM ${tableNames.evals} WHERE id = @id`)
         .get({ id })!,
       ["input", "output", "expected", "rendered_columns"]
     );
   }
 
-  private updateResult({
-    resultId,
+  private updateEval({
+    evalId,
     output,
     duration,
     status,
@@ -226,7 +248,7 @@ export class SqliteStorage implements Evalite.Storage {
     expected,
     trialIndex,
   }: {
-    resultId: number | bigint;
+    evalId: number | bigint;
     output: unknown;
     duration: number;
     input: unknown;
@@ -234,10 +256,10 @@ export class SqliteStorage implements Evalite.Storage {
     status: string;
     renderedColumns: unknown;
     trialIndex?: number;
-  }): Evalite.Storage.Entities.Result {
+  }): Evalite.Storage.Entities.Eval {
     this.db
       .prepare(
-        `UPDATE results
+        `UPDATE ${tableNames.evals}
        SET
         output = @output,
         duration = @duration,
@@ -249,7 +271,7 @@ export class SqliteStorage implements Evalite.Storage {
        WHERE id = @id`
       )
       .run({
-        id: resultId,
+        id: evalId,
         output: JSON.stringify(output),
         duration,
         status,
@@ -263,33 +285,33 @@ export class SqliteStorage implements Evalite.Storage {
       this.db
         .prepare<
           { id: number | bigint },
-          Evalite.Storage.Entities.Result
-        >(`SELECT * FROM results WHERE id = @id`)
-        .get({ id: resultId })!,
+          Evalite.Storage.Entities.Eval
+        >(`SELECT * FROM ${tableNames.evals} WHERE id = @id`)
+        .get({ id: evalId })!,
       ["input", "output", "expected", "rendered_columns"]
     );
   }
 
   private insertScore({
-    resultId,
+    evalId,
     description,
     name,
     score,
     metadata,
   }: {
-    resultId: number | bigint;
+    evalId: number | bigint;
     description: string | undefined;
     name: string;
     score: number;
     metadata: unknown;
   }): Evalite.Storage.Entities.Score {
-    const id = this.db
+    const scoreId = this.db
       .prepare(
-        `INSERT INTO scores (result_id, name, score, metadata, description)
-     VALUES (@result_id, @name, @score, @metadata, @description)`
+        `INSERT INTO ${tableNames.scores} (eval_id, name, score, metadata, description)
+     VALUES (@eval_id, @name, @score, @metadata, @description)`
       )
       .run({
-        result_id: resultId,
+        eval_id: evalId,
         description,
         name,
         score,
@@ -301,14 +323,14 @@ export class SqliteStorage implements Evalite.Storage {
         .prepare<
           { id: number | bigint },
           Evalite.Storage.Entities.Score
-        >(`SELECT * FROM scores WHERE id = @id`)
-        .get({ id })!,
+        >(`SELECT * FROM ${tableNames.scores} WHERE id = @id`)
+        .get({ id: scoreId })!,
       ["metadata"]
     );
   }
 
   private insertTrace({
-    resultId,
+    evalId,
     input,
     output,
     start,
@@ -318,7 +340,7 @@ export class SqliteStorage implements Evalite.Storage {
     totalTokens,
     order,
   }: {
-    resultId: number | bigint;
+    evalId: number | bigint;
     input: unknown;
     output: unknown;
     start: number;
@@ -328,13 +350,13 @@ export class SqliteStorage implements Evalite.Storage {
     totalTokens: number | undefined;
     order: number;
   }): Evalite.Storage.Entities.Trace {
-    const id = this.db
+    const traceId = this.db
       .prepare(
-        `INSERT INTO traces (result_id, input, output, start_time, end_time, input_tokens, output_tokens, total_tokens, col_order)
-     VALUES (@result_id, @input, @output, @start_time, @end_time, @input_tokens, @output_tokens, @total_tokens, @col_order)`
+        `INSERT INTO ${tableNames.traces} (eval_id, input, output, start_time, end_time, input_tokens, output_tokens, total_tokens, col_order)
+     VALUES (@eval_id, @input, @output, @start_time, @end_time, @input_tokens, @output_tokens, @total_tokens, @col_order)`
       )
       .run({
-        result_id: resultId,
+        eval_id: evalId,
         input: JSON.stringify(input),
         output: JSON.stringify(output),
         start_time: Math.round(start),
@@ -350,36 +372,36 @@ export class SqliteStorage implements Evalite.Storage {
         .prepare<
           { id: number | bigint },
           Evalite.Storage.Entities.Trace
-        >(`SELECT * FROM traces WHERE id = @id`)
-        .get({ id })!,
+        >(`SELECT * FROM ${tableNames.traces} WHERE id = @id`)
+        .get({ id: traceId })!,
       ["input", "output"]
     );
   }
 
-  private updateEvalStatusAndDuration({
-    evalId,
+  private updateSuiteStatus({
+    suiteId,
     status,
   }: {
-    evalId: number | bigint;
-    status: Evalite.Storage.Entities.EvalStatus;
-  }): Evalite.Storage.Entities.Eval {
+    suiteId: number | bigint;
+    status: Evalite.Storage.Entities.SuiteStatus;
+  }): Evalite.Storage.Entities.Suite {
     this.db
       .prepare(
-        `UPDATE evals
+        `UPDATE ${tableNames.suites}
        SET status = @status
        WHERE id = @id`
       )
       .run({
-        id: evalId,
+        id: suiteId,
         status,
       });
 
     return this.db
       .prepare<
         { id: number | bigint },
-        Evalite.Storage.Entities.Eval
-      >(`SELECT * FROM evals WHERE id = @id`)
-      .get({ id: evalId })!;
+        Evalite.Storage.Entities.Suite
+      >(`SELECT * FROM ${tableNames.suites} WHERE id = @id`)
+      .get({ id: suiteId })!;
   }
 
   /**
@@ -400,7 +422,7 @@ export class SqliteStorage implements Evalite.Storage {
     getMany: async (
       opts?: Evalite.Storage.Runs.GetManyOpts
     ): Promise<Evalite.Storage.Entities.Run[]> => {
-      let query = `SELECT * FROM runs WHERE 1=1`;
+      let query = `SELECT * FROM ${tableNames.runs} WHERE 1=1`;
       const params: {
         ids?: number[];
         runType?: Evalite.RunType;
@@ -445,33 +467,33 @@ export class SqliteStorage implements Evalite.Storage {
     },
   };
 
-  evals = {
+  suites = {
     create: async (
-      opts: Evalite.Storage.Evals.CreateOpts
-    ): Promise<Evalite.Storage.Entities.Eval> => {
-      return this.createEval({
+      opts: Evalite.Storage.Suites.CreateOpts
+    ): Promise<Evalite.Storage.Entities.Suite> => {
+      return this.createSuite({
         ...opts,
       });
     },
 
     update: async (
-      opts: Evalite.Storage.Evals.UpdateOpts
-    ): Promise<Evalite.Storage.Entities.Eval> => {
-      return this.updateEvalStatusAndDuration({
-        evalId: opts.id,
+      opts: Evalite.Storage.Suites.UpdateOpts
+    ): Promise<Evalite.Storage.Entities.Suite> => {
+      return this.updateSuiteStatus({
+        suiteId: opts.id,
         status: opts.status,
       });
     },
 
     getMany: async (
-      opts?: Evalite.Storage.Evals.GetManyOpts
-    ): Promise<Evalite.Storage.Entities.Eval[]> => {
-      let query = `SELECT * FROM evals WHERE 1=1`;
+      opts?: Evalite.Storage.Suites.GetManyOpts
+    ): Promise<Evalite.Storage.Entities.Suite[]> => {
+      let query = `SELECT * FROM ${tableNames.suites} WHERE 1=1`;
       const params: {
         ids?: number[];
         runIds?: number[];
         name?: string;
-        statuses?: Evalite.Storage.Entities.EvalStatus[];
+        statuses?: Evalite.Storage.Entities.SuiteStatus[];
         createdAt?: string;
         createdAfter?: string;
         createdBefore?: string;
@@ -516,17 +538,17 @@ export class SqliteStorage implements Evalite.Storage {
       }
 
       return this.db
-        .prepare<typeof params, Evalite.Storage.Entities.Eval>(query)
+        .prepare<typeof params, Evalite.Storage.Entities.Suite>(query)
         .all(params);
     },
   };
 
-  results = {
+  evals = {
     create: async (
-      opts: Evalite.Storage.Results.CreateOpts
-    ): Promise<Evalite.Storage.Entities.Result> => {
-      return this.insertResult({
-        evalId: opts.evalId,
+      opts: Evalite.Storage.Evals.CreateOpts
+    ): Promise<Evalite.Storage.Entities.Eval> => {
+      return this.insertEval({
+        suiteId: opts.suiteId,
         order: opts.order,
         input: opts.input,
         expected: opts.expected,
@@ -539,29 +561,29 @@ export class SqliteStorage implements Evalite.Storage {
     },
 
     update: async (
-      opts: Evalite.Storage.Results.UpdateOpts
-    ): Promise<Evalite.Storage.Entities.Result> => {
-      return this.updateResult({
-        resultId: opts.id,
+      opts: Evalite.Storage.Evals.UpdateOpts
+    ): Promise<Evalite.Storage.Entities.Eval> => {
+      return this.updateEval({
+        evalId: opts.id,
         ...opts,
       });
     },
 
     getMany: async (
-      opts?: Evalite.Storage.Results.GetManyOpts
-    ): Promise<Evalite.Storage.Entities.Result[]> => {
-      let query = `SELECT * FROM results WHERE 1=1`;
+      opts?: Evalite.Storage.Evals.GetManyOpts
+    ): Promise<Evalite.Storage.Entities.Eval[]> => {
+      let query = `SELECT * FROM ${tableNames.evals} WHERE 1=1`;
       const params: {
         order?: number;
-        statuses?: Evalite.ResultStatus[];
+        statuses?: Evalite.EvalStatus[];
       } = {};
 
       if (opts?.ids && opts.ids.length > 0) {
         query += ` AND id IN (${opts.ids.join(",")})`;
       }
 
-      if (opts?.evalIds && opts.evalIds.length > 0) {
-        query += ` AND eval_id IN (${opts.evalIds.join(",")})`;
+      if (opts?.suiteIds && opts.suiteIds.length > 0) {
+        query += ` AND suite_id IN (${opts.suiteIds.join(",")})`;
       }
 
       if (opts?.order !== undefined) {
@@ -576,7 +598,7 @@ export class SqliteStorage implements Evalite.Storage {
       query += ` ORDER BY col_order ASC`;
 
       const results = this.db
-        .prepare<typeof params, Evalite.Storage.Entities.Result>(query)
+        .prepare<typeof params, Evalite.Storage.Entities.Eval>(query)
         .all(params);
 
       return jsonParseFieldsArray(results, [
@@ -593,7 +615,7 @@ export class SqliteStorage implements Evalite.Storage {
       opts: Evalite.Storage.Scores.CreateOpts
     ): Promise<Evalite.Storage.Entities.Score> => {
       return this.insertScore({
-        resultId: opts.resultId,
+        evalId: opts.evalId,
         name: opts.name,
         score: opts.score,
         description: opts.description ?? undefined,
@@ -604,14 +626,14 @@ export class SqliteStorage implements Evalite.Storage {
     getMany: async (
       opts?: Evalite.Storage.Scores.GetManyOpts
     ): Promise<Evalite.Storage.Entities.Score[]> => {
-      let query = `SELECT * FROM scores WHERE 1=1`;
+      let query = `SELECT * FROM ${tableNames.scores} WHERE 1=1`;
 
       if (opts?.ids && opts.ids.length > 0) {
         query += ` AND id IN (${opts.ids.join(",")})`;
       }
 
-      if (opts?.resultIds && opts.resultIds.length > 0) {
-        query += ` AND result_id IN (${opts.resultIds.join(",")})`;
+      if (opts?.evalIds && opts.evalIds.length > 0) {
+        query += ` AND eval_id IN (${opts.evalIds.join(",")})`;
       }
 
       const scores = this.db
@@ -627,7 +649,7 @@ export class SqliteStorage implements Evalite.Storage {
       opts: Evalite.Storage.Traces.CreateOpts
     ): Promise<Evalite.Storage.Entities.Trace> => {
       return this.insertTrace({
-        resultId: opts.resultId,
+        evalId: opts.evalId,
         input: opts.input,
         output: opts.output,
         start: opts.start,
@@ -642,14 +664,14 @@ export class SqliteStorage implements Evalite.Storage {
     getMany: async (
       opts?: Evalite.Storage.Traces.GetManyOpts
     ): Promise<Evalite.Storage.Entities.Trace[]> => {
-      let query = `SELECT * FROM traces WHERE 1=1`;
+      let query = `SELECT * FROM ${tableNames.traces} WHERE 1=1`;
 
       if (opts?.ids && opts.ids.length > 0) {
         query += ` AND id IN (${opts.ids.join(",")})`;
       }
 
-      if (opts?.resultIds && opts.resultIds.length > 0) {
-        query += ` AND result_id IN (${opts.resultIds.join(",")})`;
+      if (opts?.evalIds && opts.evalIds.length > 0) {
+        query += ` AND eval_id IN (${opts.evalIds.join(",")})`;
       }
 
       query += ` ORDER BY col_order ASC`;
@@ -659,6 +681,55 @@ export class SqliteStorage implements Evalite.Storage {
         .all({});
 
       return jsonParseFieldsArray(traces, ["input", "output"]);
+    },
+  };
+
+  cache = {
+    get: async (
+      keyHash: string
+    ): Promise<{ value: unknown; duration: number } | null> => {
+      const result = this.db
+        .prepare<
+          { keyHash: string },
+          { value: string; duration: number }
+        >(`SELECT value, duration FROM ${tableNames.cache} WHERE key_hash = @keyHash`)
+        .get({ keyHash });
+
+      if (!result) {
+        return null;
+      }
+
+      return {
+        value: JSON.parse(result.value),
+        duration: result.duration,
+      };
+    },
+
+    set: async (
+      keyHash: string,
+      data: { value: unknown; duration: number }
+    ): Promise<void> => {
+      this.db
+        .prepare(
+          `INSERT OR REPLACE INTO ${tableNames.cache} (key_hash, value, duration, created_at)
+           VALUES (@keyHash, @value, @duration, @createdAt)`
+        )
+        .run({
+          keyHash,
+          value: JSON.stringify(data.value),
+          duration: data.duration,
+          createdAt: Date.now(),
+        });
+    },
+
+    delete: async (keyHash: string): Promise<void> => {
+      this.db
+        .prepare(`DELETE FROM ${tableNames.cache} WHERE key_hash = @keyHash`)
+        .run({ keyHash });
+    },
+
+    clear: async (): Promise<void> => {
+      this.db.prepare(`DELETE FROM ${tableNames.cache}`).run();
     },
   };
 

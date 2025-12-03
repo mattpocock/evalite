@@ -34,6 +34,9 @@ export default defineConfig({
 - **`server.port`**: Port for the Evalite UI server. Default is 3006.
 - **`trialCount`**: Number of times to run each test case. Default is 1. Useful for measuring variance in non-deterministic evaluations.
 - **`setupFiles`**: Array of file paths to run before tests (e.g., for loading environment variables).
+- **`cache`**: Enable or disable caching of AI SDK model outputs. Default is true. See [Vercel AI SDK](/tips/vercel-ai-sdk#caching) for details.
+- **`viteConfig`**: Pass through Vite/Vitest configuration options. This allows you to import and use your existing vite.config.ts explicitly.
+- **`forceRerunTriggers`**: Extra file globs that trigger eval reruns in watch mode. This maps onto Vitest's `test.forceRerunTriggers` option (globs resolved relative to the directory where you run Evalite). See [Watching Additional Files](/api/cli#watching-additional-files).
 
 ## Important Configuration Options
 
@@ -69,35 +72,71 @@ export default defineConfig({
 });
 ```
 
-### Running Evals Multiple Times
+## Passing Vitest Configuration
 
-Run each test case multiple times to measure variance in non-deterministic evaluations.
-
-Configure globally in `evalite.config.ts`:
+You can pass your existing Vitest configuration to Evalite using the `viteConfig` option.
 
 ```ts
 // evalite.config.ts
+import viteConfig from "./vite.config.ts";
 import { defineConfig } from "evalite/config";
 
 export default defineConfig({
-  trialCount: 3, // Run each test case 3 times
+  viteConfig: viteConfig,
 });
 ```
 
-Or override per-eval in the `evalite()` call:
+This allows you to reuse your existing Vitest configuration file and plugins if needed.
 
-```ts
-evalite("Non-deterministic eval", {
-  data: () => [{ input: "Alice", expected: "Alice" }],
-  task: async (input) => {
-    // Non-deterministic task
-    return getRandomGreeting(input);
-  },
-  scorers: [
-    /* ... */
-  ],
-  trialCount: 5, // Override config: run 5 times
-});
+## TypeScript Path Aliases
+
+If you're using TypeScript path aliases in your `tsconfig.json`, Evalite can't read them by default.
+
+For example, in a Next.js app, you might have:
+
+```json
+// tsconfig.json
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./*"]
+    }
+  }
+}
 ```
 
-Note: Per-eval `trialCount` overrides `evalite.config.ts` if both are present.
+You'll need to configure Evalite to resolve these paths - by passing the `viteConfig` option.
+
+<Steps>
+
+1. Install `vite-tsconfig-paths`:
+
+   ```bash
+   pnpm add -D vite-tsconfig-paths
+   ```
+
+2. Create a `vite.config.ts` file:
+
+   ```ts
+   // vite.config.ts
+   import { defineConfig } from "vite";
+   import tsconfigPaths from "vite-tsconfig-paths";
+
+   export default defineConfig({
+     plugins: [tsconfigPaths()],
+   });
+   ```
+
+3. Pass this config to Evalite:
+
+   ```ts
+   // evalite.config.ts
+   import viteConfig from "./vite.config.ts";
+   import { defineConfig } from "evalite/config";
+
+   export default defineConfig({
+     viteConfig,
+   });
+   ```
+
+</Steps>
