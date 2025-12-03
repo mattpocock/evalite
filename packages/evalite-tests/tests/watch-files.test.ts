@@ -1,6 +1,5 @@
 import { expect, it } from "vitest";
-import { configDefaults } from "vitest/config";
-import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
+import { getSuitesAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("forceRerunTriggers in evalite.config.ts should configure Vitest forceRerunTriggers", async () => {
   await using fixture = await loadFixture("config-watchfiles");
@@ -15,16 +14,11 @@ it("forceRerunTriggers in evalite.config.ts should configure Vitest forceRerunTr
   expect(forceRerunTriggers).toContain("src/**/*.ts");
   expect(forceRerunTriggers).toContain("data/**/*.json");
 
-  // Verify Vitest defaults are preserved (use configDefaults to stay resilient to Vitest changes)
-  for (const pattern of configDefaults.forceRerunTriggers) {
-    expect(forceRerunTriggers).toContain(pattern);
-  }
-
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+  const suites = await getSuitesAsRecordViaStorage(fixture.storage);
 
   // Should complete successfully
-  expect(evals["WatchFiles Config Test"]).toHaveLength(1);
-  expect(evals["WatchFiles Config Test"]?.[0]?.status).toBe("success");
+  expect(suites["WatchFiles Config Test"]).toHaveLength(1);
+  expect(suites["WatchFiles Config Test"]?.[0]?.status).toBe("success");
 });
 
 it("forceRerunTriggers passed to runEvalite should override evalite.config.ts", async () => {
@@ -44,11 +38,6 @@ it("forceRerunTriggers passed to runEvalite should override evalite.config.ts", 
   // Should NOT contain the config file values since we overrode them
   expect(forceRerunTriggers).not.toContain("src/**/*.ts");
   expect(forceRerunTriggers).not.toContain("data/**/*.json");
-
-  // Should still include Vitest defaults
-  for (const pattern of configDefaults.forceRerunTriggers) {
-    expect(forceRerunTriggers).toContain(pattern);
-  }
 });
 
 it("empty forceRerunTriggers array should not add any extra triggers", async () => {
@@ -65,9 +54,4 @@ it("empty forceRerunTriggers array should not add any extra triggers", async () 
   // Should NOT contain the config file values since we overrode with empty array
   expect(forceRerunTriggers).not.toContain("src/**/*.ts");
   expect(forceRerunTriggers).not.toContain("data/**/*.json");
-
-  // Should still include Vitest defaults (this verifies we didn't break anything)
-  for (const pattern of configDefaults.forceRerunTriggers) {
-    expect(forceRerunTriggers).toContain(pattern);
-  }
 });

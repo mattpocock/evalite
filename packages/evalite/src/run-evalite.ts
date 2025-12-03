@@ -273,10 +273,10 @@ export const runEvalite = async (opts: {
   // Evalite-level "extra watch files":
   // Node API (opts.forceRerunTriggers) takes precedence over evalite.config.ts.
   // If opts.forceRerunTriggers is defined (even []), it wins.
-  const extraForceRerunTriggers =
-    opts.forceRerunTriggers !== undefined
+  const forceRerunTriggers =
+    (opts.forceRerunTriggers !== undefined
       ? opts.forceRerunTriggers
-      : config?.forceRerunTriggers;
+      : config?.forceRerunTriggers) ?? configDefaults.forceRerunTriggers;
 
   const filters = opts.path ? [opts.path] : undefined;
   process.env.EVALITE_REPORT_TRACES = "true";
@@ -343,6 +343,7 @@ export const runEvalite = async (opts: {
           hideTable: hideTable,
         }),
       ],
+      forceRerunTriggers: forceRerunTriggers,
       root: cwd,
       include: ["**/*.eval.?(m)ts"],
       watch: opts.mode === "watch-for-file-changes",
