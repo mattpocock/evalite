@@ -24,6 +24,11 @@ declare module "vitest" {
      */
     trialCount: number | undefined;
     /**
+     * Global score threshold (0-100).
+     * Per-eval thresholds override this when set.
+     */
+    scoreThreshold: number | undefined;
+    /**
      * Port number where the evalite server is running.
      * Used by cache and other features that need to communicate with the server.
      */
@@ -371,6 +376,7 @@ export const runEvalite = async (opts: {
 
   vitest.provide("cwd", cwd);
   vitest.provide("trialCount", config?.trialCount);
+  vitest.provide("scoreThreshold", scoreThreshold);
   vitest.provide("serverPort", actualServerPort);
   vitest.provide("cacheDebug", opts.cacheDebug ?? false);
   vitest.provide("cacheEnabled", cacheEnabled);

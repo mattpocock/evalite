@@ -8,6 +8,12 @@ export interface EvaliteRunnerOptions {
   scoreThreshold: number | undefined;
 }
 
+export interface FailedThresholdInfo {
+  suiteName: string;
+  score: number | null;
+  threshold: number;
+}
+
 export class EvaliteRunner {
   private opts: EvaliteRunnerOptions;
   private state: Evalite.ServerState = {
@@ -16,6 +22,7 @@ export class EvaliteRunner {
     cacheHitsByScorer: {},
   };
   private didLastRunFailThreshold: "yes" | "no" | "unknown" = "unknown";
+  private failedThresholds: FailedThresholdInfo[] = [];
   private collectedResults: Map<string, Evalite.Eval> = new Map();
   private eventQueue: Promise<void> = Promise.resolve();
 
@@ -29,6 +36,10 @@ export class EvaliteRunner {
 
   getDidLastRunFailThreshold(): "yes" | "no" | "unknown" {
     return this.didLastRunFailThreshold;
+  }
+
+  getFailedThresholds(): FailedThresholdInfo[] {
+    return this.failedThresholds;
   }
 
   getAllScores(): Evalite.Score[] {
@@ -49,6 +60,46 @@ export class EvaliteRunner {
       .flatMap((_eval) => _eval.scores);
   }
 
+  getSuiteResults(): Array<{
+    suiteName: string;
+    averageScore: number | null;
+    threshold: number | undefined;
+  }> {
+    const suiteMap = new Map<
+      string,
+      { scores: number[]; threshold: number | undefined }
+    >();
+
+    for (const _eval of this.collectedResults.values()) {
+      const existing = suiteMap.get(_eval.suiteName);
+      const evalScores = _eval.scores.map((s) => s.score ?? 0);
+
+      if (existing) {
+        existing.scores.push(...evalScores);
+        if (
+          existing.threshold === undefined &&
+          _eval.scoreThreshold !== undefined
+        ) {
+          existing.threshold = _eval.scoreThreshold;
+        }
+      } else {
+        suiteMap.set(_eval.suiteName, {
+          scores: evalScores,
+          threshold: _eval.scoreThreshold,
+        });
+      }
+    }
+
+    return Array.from(suiteMap.entries()).map(([suiteName, data]) => ({
+      suiteName,
+      averageScore:
+        data.scores.length === 0
+          ? null
+          : data.scores.reduce((a, b) => a + b, 0) / data.scores.length,
+      threshold: data.threshold,
+    }));
+  }
+
   handleTestSummary(data: {
     failedTasksCount: number;
     averageScore: number | null;
@@ -58,16 +109,44 @@ export class EvaliteRunner {
       this.opts.modifyExitCode(1);
     }
 
-    // Handle threshold checking
-    if (typeof this.opts.scoreThreshold === "number") {
-      if (
-        data.averageScore === null ||
-        data.averageScore * 100 < this.opts.scoreThreshold
-      ) {
+    const suiteResults = this.getSuiteResults();
+    const globalThreshold = this.opts.scoreThreshold;
+
+    const hasAnyThreshold =
+      typeof globalThreshold === "number" ||
+      suiteResults.some((s) => typeof s.threshold === "number");
+
+    this.failedThresholds = [];
+
+    if (hasAnyThreshold) {
+      let anyFailed = false;
+      let anyPassed = false;
+
+      for (const suite of suiteResults) {
+        const threshold = suite.threshold ?? globalThreshold;
+
+        if (typeof threshold === "number") {
+          const passed =
+            suite.averageScore !== null &&
+            suite.averageScore * 100 >= threshold;
+
+          if (passed) {
+            anyPassed = true;
+          } else {
+            anyFailed = true;
+            this.failedThresholds.push({
+              suiteName: suite.suiteName,
+              score: suite.averageScore,
+              threshold: threshold,
+            });
+          }
+        }
+      }
+
+      if (anyFailed) {
         this.opts.modifyExitCode(1);
         this.didLastRunFailThreshold = "yes";
-      } else {
-        // Only set exit code to 0 if there are no failed tasks
+      } else if (anyPassed) {
         if (data.failedTasksCount === 0) {
           this.opts.modifyExitCode(0);
         }
