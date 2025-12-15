@@ -1,6 +1,7 @@
 import type { Evalite } from "./types.js";
 import type { Experiment, Span } from "braintrust";
-import { init, _internalGetGlobalState } from "braintrust";
+import { init } from "braintrust";
+import { InMemoryStorage } from "./storage/in-memory.js";
 
 interface BraintrustStorageOptions {
   /**
@@ -22,20 +23,6 @@ interface BraintrustStorageOptions {
 }
 
 /**
- * In-memory entity storage for local queries.
- * Braintrust doesn't provide direct query APIs during logging,
- * so we maintain a local cache of entities.
- */
-interface EntityStore {
-  runs: Map<number, Evalite.Storage.Entities.Run>;
-  suites: Map<number, Evalite.Storage.Entities.Suite>;
-  evals: Map<number, Evalite.Storage.Entities.Eval>;
-  scores: Map<number, Evalite.Storage.Entities.Score>;
-  traces: Map<number, Evalite.Storage.Entities.Trace>;
-  cache: Map<string, { value: unknown; duration: number; created_at: number }>;
-}
-
-/**
  * Map Evalite entity IDs to Braintrust Span objects
  */
 interface SpanMap {
@@ -47,26 +34,12 @@ export class BraintrustStorage implements Evalite.Storage {
   private experiment: Experiment | null = null;
   private experimentUrl: string | null = null;
   private options: BraintrustStorageOptions;
-  private entityStore: EntityStore;
+  private localStorage: InMemoryStorage;
   private spanMap: SpanMap;
-  private nextId = {
-    run: 1,
-    suite: 1,
-    eval: 1,
-    score: 1,
-    trace: 1,
-  };
 
   private constructor(options: BraintrustStorageOptions) {
     this.options = options;
-    this.entityStore = {
-      runs: new Map(),
-      suites: new Map(),
-      evals: new Map(),
-      scores: new Map(),
-      traces: new Map(),
-      cache: new Map(),
-    };
+    this.localStorage = InMemoryStorage.create();
     this.spanMap = {
       evals: new Map(),
       traces: new Map(),
@@ -121,59 +94,13 @@ export class BraintrustStorage implements Evalite.Storage {
     ): Promise<Evalite.Storage.Entities.Run> => {
       // Initialize Braintrust experiment when first run is created
       await this.initExperiment();
-
-      const run: Evalite.Storage.Entities.Run = {
-        id: this.nextId.run++,
-        runType: opts.runType,
-        created_at: new Date().toISOString(),
-      };
-
-      this.entityStore.runs.set(run.id, run);
-      return run;
+      return this.localStorage.runs.create(opts);
     },
 
-    getMany: async (
+    getMany: (
       opts?: Evalite.Storage.Runs.GetManyOpts
     ): Promise<Evalite.Storage.Entities.Run[]> => {
-      let runs = Array.from(this.entityStore.runs.values());
-
-      // Apply filters
-      if (opts?.ids && opts.ids.length > 0) {
-        runs = runs.filter((r) => opts.ids!.includes(r.id));
-      }
-
-      if (opts?.runType) {
-        runs = runs.filter((r) => r.runType === opts.runType);
-      }
-
-      if (opts?.createdAt) {
-        runs = runs.filter((r) => r.created_at === opts.createdAt);
-      }
-
-      if (opts?.createdAfter) {
-        runs = runs.filter((r) => r.created_at > opts.createdAfter!);
-      }
-
-      if (opts?.createdBefore) {
-        runs = runs.filter((r) => r.created_at < opts.createdBefore!);
-      }
-
-      // Apply sorting
-      const orderBy = opts?.orderBy ?? "created_at";
-      const orderDirection = opts?.orderDirection ?? "desc";
-      runs.sort((a, b) => {
-        const aVal = a[orderBy];
-        const bVal = b[orderBy];
-        const comparison = aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
-        return orderDirection === "asc" ? comparison : -comparison;
-      });
-
-      // Apply limit
-      if (opts?.limit) {
-        runs = runs.slice(0, opts.limit);
-      }
-
-      return runs;
+      return this.localStorage.runs.getMany(opts);
     },
   };
 
@@ -184,87 +111,19 @@ export class BraintrustStorage implements Evalite.Storage {
       // Initialize experiment but don't create a span for the suite
       // Suites are just organizational units in Evalite - each eval will be a row
       await this.initExperiment();
-
-      const suite: Evalite.Storage.Entities.Suite = {
-        id: this.nextId.suite++,
-        run_id: opts.runId,
-        name: opts.name,
-        status: "running",
-        filepath: opts.filepath,
-        duration: 0,
-        created_at: new Date().toISOString(),
-        variant_name: opts.variantName,
-        variant_group: opts.variantGroup,
-      };
-
-      this.entityStore.suites.set(suite.id, suite);
-      return suite;
+      return this.localStorage.suites.create(opts);
     },
 
-    update: async (
+    update: (
       opts: Evalite.Storage.Suites.UpdateOpts
     ): Promise<Evalite.Storage.Entities.Suite> => {
-      const suite = this.entityStore.suites.get(opts.id);
-      if (!suite) {
-        throw new Error(`Suite with id ${opts.id} not found`);
-      }
-
-      suite.status = opts.status;
-      this.entityStore.suites.set(opts.id, suite);
-
-      return suite;
+      return this.localStorage.suites.update(opts);
     },
 
-    getMany: async (
+    getMany: (
       opts?: Evalite.Storage.Suites.GetManyOpts
     ): Promise<Evalite.Storage.Entities.Suite[]> => {
-      let suites = Array.from(this.entityStore.suites.values());
-
-      // Apply filters
-      if (opts?.ids && opts.ids.length > 0) {
-        suites = suites.filter((s) => opts.ids!.includes(s.id));
-      }
-
-      if (opts?.runIds && opts.runIds.length > 0) {
-        suites = suites.filter((s) => opts.runIds!.includes(s.run_id));
-      }
-
-      if (opts?.name) {
-        suites = suites.filter((s) => s.name === opts.name);
-      }
-
-      if (opts?.statuses && opts.statuses.length > 0) {
-        suites = suites.filter((s) => opts.statuses!.includes(s.status));
-      }
-
-      if (opts?.createdAt) {
-        suites = suites.filter((s) => s.created_at === opts.createdAt);
-      }
-
-      if (opts?.createdAfter) {
-        suites = suites.filter((s) => s.created_at > opts.createdAfter!);
-      }
-
-      if (opts?.createdBefore) {
-        suites = suites.filter((s) => s.created_at < opts.createdBefore!);
-      }
-
-      // Apply sorting
-      const orderBy = opts?.orderBy ?? "created_at";
-      const orderDirection = opts?.orderDirection ?? "desc";
-      suites.sort((a, b) => {
-        const aVal = a[orderBy];
-        const bVal = b[orderBy];
-        const comparison = aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
-        return orderDirection === "asc" ? comparison : -comparison;
-      });
-
-      // Apply limit
-      if (opts?.limit) {
-        suites = suites.slice(0, opts.limit);
-      }
-
-      return suites;
+      return this.localStorage.suites.getMany(opts);
     },
   };
 
@@ -274,22 +133,14 @@ export class BraintrustStorage implements Evalite.Storage {
     ): Promise<Evalite.Storage.Entities.Eval> => {
       const experiment = await this.initExperiment();
 
-      const eval_: Evalite.Storage.Entities.Eval = {
-        id: this.nextId.eval++,
-        suite_id: opts.suiteId,
-        duration: opts.duration,
-        input: opts.input,
-        output: opts.output,
-        expected: opts.expected,
-        created_at: new Date().toISOString(),
-        col_order: opts.order,
-        status: opts.status,
-        rendered_columns: opts.renderedColumns,
-        trial_index: opts.trialIndex,
-      };
+      // Store locally first to get the ID
+      const eval_ = await this.localStorage.evals.create(opts);
 
       // Get the suite to include its metadata
-      const suite = this.entityStore.suites.get(opts.suiteId);
+      const suites = await this.localStorage.suites.getMany({
+        ids: [opts.suiteId],
+      });
+      const suite = suites[0];
 
       // Create a top-level span for each eval (test case)
       // Each eval becomes a row in the Braintrust experiment
@@ -309,10 +160,9 @@ export class BraintrustStorage implements Evalite.Storage {
         },
       });
 
-      // Store the span object
-      this.spanMap.evals.set(eval_.id, span);
+      // Store the span object using the local ID
+      this.spanMap.evals.set(eval_.id as number, span);
 
-      this.entityStore.evals.set(eval_.id, eval_);
       return eval_;
     },
 
@@ -320,22 +170,12 @@ export class BraintrustStorage implements Evalite.Storage {
       opts: Evalite.Storage.Evals.UpdateOpts
     ): Promise<Evalite.Storage.Entities.Eval> => {
       await this.initExperiment();
-      const eval_ = this.entityStore.evals.get(opts.id);
-      if (!eval_) {
-        throw new Error(`Eval with id ${opts.id} not found`);
-      }
 
-      // Update the eval entity
-      eval_.output = opts.output;
-      eval_.duration = opts.duration;
-      eval_.input = opts.input;
-      eval_.expected = opts.expected;
-      eval_.status = opts.status;
-      eval_.rendered_columns = opts.renderedColumns;
-      eval_.trial_index = opts.trialIndex;
+      // Update locally
+      const eval_ = await this.localStorage.evals.update(opts);
 
       // Get the existing span and log the updated data
-      const span = this.spanMap.evals.get(opts.id);
+      const span = this.spanMap.evals.get(opts.id as number);
       if (span) {
         span.log({
           input: opts.input,
@@ -354,36 +194,13 @@ export class BraintrustStorage implements Evalite.Storage {
         }
       }
 
-      this.entityStore.evals.set(opts.id, eval_);
       return eval_;
     },
 
-    getMany: async (
+    getMany: (
       opts?: Evalite.Storage.Evals.GetManyOpts
     ): Promise<Evalite.Storage.Entities.Eval[]> => {
-      let evals = Array.from(this.entityStore.evals.values());
-
-      // Apply filters
-      if (opts?.ids && opts.ids.length > 0) {
-        evals = evals.filter((e) => opts.ids!.includes(e.id));
-      }
-
-      if (opts?.suiteIds && opts.suiteIds.length > 0) {
-        evals = evals.filter((e) => opts.suiteIds!.includes(e.suite_id));
-      }
-
-      if (opts?.order !== undefined) {
-        evals = evals.filter((e) => e.col_order === opts.order);
-      }
-
-      if (opts?.statuses && opts.statuses.length > 0) {
-        evals = evals.filter((e) => opts.statuses!.includes(e.status));
-      }
-
-      // Sort by col_order
-      evals.sort((a, b) => a.col_order - b.col_order);
-
-      return evals;
+      return this.localStorage.evals.getMany(opts);
     },
   };
 
@@ -393,46 +210,31 @@ export class BraintrustStorage implements Evalite.Storage {
     ): Promise<Evalite.Storage.Entities.Score> => {
       await this.initExperiment();
 
-      const score: Evalite.Storage.Entities.Score = {
-        id: this.nextId.score++,
-        eval_id: opts.evalId,
-        name: opts.name,
-        score: opts.score,
-        description: opts.description,
-        metadata: opts.metadata,
-        created_at: new Date().toISOString(),
-      };
+      // Store locally
+      const score = await this.localStorage.scores.create(opts);
 
       // Get the eval's span and log the score to it
-      const span = this.spanMap.evals.get(opts.evalId);
+      const span = this.spanMap.evals.get(opts.evalId as number);
       if (span) {
+        // Braintrust requires scores to be between 0 and 1
+        // Clamp the score to this range, treating null as 0
+        const normalizedScore = Math.max(0, Math.min(1, opts.score ?? 0));
+
         // Add scores to the span
         span.log({
           scores: {
-            [opts.name]: opts.score,
+            [opts.name]: normalizedScore,
           },
         });
       }
 
-      this.entityStore.scores.set(score.id, score);
       return score;
     },
 
-    getMany: async (
+    getMany: (
       opts?: Evalite.Storage.Scores.GetManyOpts
     ): Promise<Evalite.Storage.Entities.Score[]> => {
-      let scores = Array.from(this.entityStore.scores.values());
-
-      // Apply filters
-      if (opts?.ids && opts.ids.length > 0) {
-        scores = scores.filter((s) => opts.ids!.includes(s.id));
-      }
-
-      if (opts?.evalIds && opts.evalIds.length > 0) {
-        scores = scores.filter((s) => opts.evalIds!.includes(s.eval_id));
-      }
-
-      return scores;
+      return this.localStorage.scores.getMany(opts);
     },
   };
 
@@ -442,21 +244,11 @@ export class BraintrustStorage implements Evalite.Storage {
     ): Promise<Evalite.Storage.Entities.Trace> => {
       const experiment = await this.initExperiment();
 
-      const trace: Evalite.Storage.Entities.Trace = {
-        id: this.nextId.trace++,
-        eval_id: opts.evalId,
-        input: opts.input,
-        output: opts.output,
-        start_time: opts.start,
-        end_time: opts.end,
-        input_tokens: opts.inputTokens,
-        output_tokens: opts.outputTokens,
-        total_tokens: opts.totalTokens,
-        col_order: opts.order,
-      };
+      // Store locally first
+      const trace = await this.localStorage.traces.create(opts);
 
       // Get the eval's span as parent
-      const parentSpan = this.spanMap.evals.get(opts.evalId);
+      const parentSpan = this.spanMap.evals.get(opts.evalId as number);
 
       // Create a nested span for the trace
       const parent = parentSpan ? await parentSpan.export() : undefined;
@@ -478,74 +270,40 @@ export class BraintrustStorage implements Evalite.Storage {
         },
       });
 
-      this.spanMap.traces.set(trace.id, span);
+      this.spanMap.traces.set(trace.id as number, span);
       // Convert performance.now() timestamp to Unix epoch seconds
       span.end({ endTime: (performance.timeOrigin + opts.end) / 1000 });
 
-      this.entityStore.traces.set(trace.id, trace);
       return trace;
     },
 
-    getMany: async (
+    getMany: (
       opts?: Evalite.Storage.Traces.GetManyOpts
     ): Promise<Evalite.Storage.Entities.Trace[]> => {
-      let traces = Array.from(this.entityStore.traces.values());
-
-      // Apply filters
-      if (opts?.ids && opts.ids.length > 0) {
-        traces = traces.filter((t) => opts.ids!.includes(t.id));
-      }
-
-      if (opts?.evalIds && opts.evalIds.length > 0) {
-        traces = traces.filter((t) => opts.evalIds!.includes(t.eval_id));
-      }
-
-      // Sort by col_order
-      traces.sort((a, b) => a.col_order - b.col_order);
-
-      return traces;
+      return this.localStorage.traces.getMany(opts);
     },
   };
 
   cache = {
-    get: async (
+    get: (
       keyHash: string
     ): Promise<{ value: unknown; duration: number } | null> => {
-      const entry = this.entityStore.cache.get(keyHash);
-      if (!entry) {
-        return null;
-      }
-
-      // Check if cache is expired (older than 24 hours)
-      const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-      if (entry.created_at < oneDayAgo) {
-        this.entityStore.cache.delete(keyHash);
-        return null;
-      }
-
-      return {
-        value: entry.value,
-        duration: entry.duration,
-      };
+      return this.localStorage.cache.get(keyHash);
     },
 
-    set: async (
+    set: (
       keyHash: string,
       data: { value: unknown; duration: number }
     ): Promise<void> => {
-      this.entityStore.cache.set(keyHash, {
-        value: data.value,
-        duration: data.duration,
-        created_at: Date.now(),
-      });
+      return this.localStorage.cache.set(keyHash, data);
     },
 
-    delete: async (keyHash: string): Promise<void> => {
-      this.entityStore.cache.delete(keyHash);
+    delete: (keyHash: string): Promise<void> => {
+      return this.localStorage.cache.delete(keyHash);
     },
 
-    clear: async (): Promise<void> => {
-      this.entityStore.cache.clear();
+    clear: (): Promise<void> => {
+      return this.localStorage.cache.clear();
     },
   };
 
@@ -554,6 +312,7 @@ export class BraintrustStorage implements Evalite.Storage {
       // Flush any pending logs to Braintrust
       await this.experiment.flush();
     }
+    await this.localStorage.close();
   }
 
   async [Symbol.asyncDispose](): Promise<void> {
