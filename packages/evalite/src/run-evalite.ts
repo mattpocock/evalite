@@ -413,6 +413,22 @@ export const runEvalite = async (opts: {
       });
     }
 
+    // If using Braintrust storage, output the experiment URL
+    // Use duck typing to check for getExperimentUrl method
+    if (
+      storage &&
+      typeof storage === "object" &&
+      "getExperimentUrl" in storage
+    ) {
+      const experimentUrl = (storage as any).getExperimentUrl();
+      if (experimentUrl) {
+        console.log(`\n View results in Braintrust: ${experimentUrl}\n`);
+      }
+
+      // Close storage to flush any pending data to Braintrust
+      await storage.close();
+    }
+
     if (typeof exitCode === "number" && opts.mode === "run-once-and-exit") {
       process.exit(exitCode);
     }
