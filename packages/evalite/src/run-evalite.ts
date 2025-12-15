@@ -400,10 +400,10 @@ export const runEvalite = async (opts: {
       if (experimentUrl) {
         console.log(`\n View results in Braintrust: ${experimentUrl}\n`);
       }
-    }
 
-    // Close storage to flush any pending data (e.g., to Braintrust)
-    await storage.close();
+      // Close storage to flush any pending data to Braintrust
+      await storage.close();
+    }
 
     if (typeof exitCode === "number" && opts.mode === "run-once-and-exit") {
       process.exit(exitCode);
