@@ -2,13 +2,21 @@
   "name": "evaluhealth",
   "version": "0.19.0",
   "type": "module",
-  "description": "Test your LLM-powered apps with a TypeScript-native, Vitest-based eval runner. No API key required.",
+  "description": "Test your LLM-powered healthcare and life sciences apps with a TypeScript-native, Vitest-based eval runner. No API key required.",
   "homepage": "https://evalu.health",
   "keywords": [
     "ai",
     "evals",
     "typescript",
-    "vitest"
+    "vitest",
+    "healthcare",
+    "life-sciences",
+    "medical-ai",
+    "clinical-ai",
+    "biomedical",
+    "hipaa",
+    "fda",
+    "regulatory-compliance"
   ],
   "main": "./tsconfig-warning/index.js",
   "bugs": {
