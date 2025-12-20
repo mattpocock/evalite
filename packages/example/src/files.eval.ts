@@ -1,14 +1,14 @@
-import { evalite, EvaliteFile } from "evalite";
+import { evaluhealth, EvaluhealthFile } from "evaluhealth";
 import path from "node:path";
 
-evalite("Files", {
+evaluhealth("Files", {
   data: async () => [
     {
       input: "X",
     },
   ],
   task: async (input) => {
-    return EvaliteFile.fromPath(path.join(import.meta.dirname, "test.png"));
+    return EvaluhealthFile.fromPath(path.join(import.meta.dirname, "test.png"));
   },
   scorers: [],
 });

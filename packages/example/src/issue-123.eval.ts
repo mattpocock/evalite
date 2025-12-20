@@ -1,6 +1,6 @@
-import { evalite } from "evalite";
+import { evaluhealth } from "evaluhealth";
 
-evalite("Issue 123 Test", {
+evaluhealth("Issue 123 Test", {
   data: async () => {
     return [
       { input: "hello", expected: "hello, world" },

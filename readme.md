@@ -1,7 +1,7 @@
-![Evalite: the TypeScript-native, local-first tool for testing LLM-powered apps.](https://raw.githubusercontent.com/mattpocock/evalite/refs/heads/main/repo-card.jpg)
+![Evaluhealth: the TypeScript-native, local-first tool for testing LLM-powered apps.](https://raw.githubusercontent.com/kernelius-hq/evaluhealth/refs/heads/main/repo-card.jpg)
 
-- [View the docs](https://www.evalite.dev/)
-- [Join the Discord](https://www.mattpocock.com/ai-discord)
+- [View the docs](https://www.evalu.health/)
+- [Join the Discord](https://www.kernelius.com/ai-discord)
 
 ## Contributing
 
@@ -14,13 +14,13 @@ OPENAI_API_KEY=your-api-key
 2. Run development commands:
 
 ```bash
-pnpm run dev          # Build, then run tsc -w on evalite + vitest on evalite-tests
-pnpm run example      # Build, then run evalite watch + UI dev server at http://localhost:5173
+pnpm run dev          # Build, then run tsc -w on evaluhealth + vitest on evaluhealth-tests
+pnpm run example      # Build, then run evaluhealth watch + UI dev server at http://localhost:5173
 pnpm run test         # Build and run all tests
 ```
 
 > [!IMPORTANT]
 >
-> You may need to run `pnpm build` in root, then `npm link` inside `packages/evalite` to get the global `evalite` command to work.
+> You may need to run `pnpm build` in root, then `npm link` inside `packages/evaluhealth` to get the global `evaluhealth` command to work.
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for full documentation.

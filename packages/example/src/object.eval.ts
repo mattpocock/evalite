@@ -1,6 +1,6 @@
-import { createScorer, evalite } from "evalite";
+import { createScorer, evaluhealth } from "evaluhealth";
 
-evalite("Test Objects", {
+evaluhealth("Test Objects", {
   data: async () => {
     return [
       {

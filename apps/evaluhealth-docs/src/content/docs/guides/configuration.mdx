@@ -1,0 +1,103 @@
+---
+title: Configuration
+---
+
+import { Steps } from "@astrojs/starlight/components";
+
+Since **Evaluhealth is based on Vitest**, you can configure eval behavior using Vitest's configuration options. Each data point in your eval becomes a separate Vitest test case, which means all Vitest configuration options work with Evaluhealth.
+
+## Evaluhealth Configuration
+
+You can configure Evaluhealth-specific options using `evaluhealth.config.ts`:
+
+```ts
+// evaluhealth.config.ts
+import { defineConfig } from "evaluhealth/config";
+
+export default defineConfig({
+  testTimeout: 60000, // 60 seconds
+  maxConcurrency: 100, // Run up to 100 tests in parallel
+  scoreThreshold: 80, // Fail if average score < 80
+  hideTable: false,
+  server: {
+    port: 3006,
+  },
+});
+```
+
+### Available Options
+
+- **`testTimeout`**: Maximum time (in milliseconds) a test can run before timing out. Default is 30000ms (30 seconds).
+- **`maxConcurrency`**: Maximum number of test cases to run in parallel. Default is 5.
+- **`scoreThreshold`**: Minimum average score (0-100). Process exits with code 1 if average score falls below this threshold.
+- **`hideTable`**: Hide the results table in terminal output. Default is false.
+- **`server.port`**: Port for the Evaluhealth UI server. Default is 3006.
+- **`trialCount`**: Number of times to run each test case. Default is 1. Useful for measuring variance in non-deterministic evaluations.
+- **`setupFiles`**: Array of file paths to run before tests (e.g., for loading environment variables).
+
+## Important Configuration Options
+
+### `maxConcurrency`
+
+Control how many test cases run in parallel. Default is 5.
+
+Configure in `evaluhealth.config.ts`:
+
+```ts
+// evaluhealth.config.ts
+import { defineConfig } from "evaluhealth/config";
+
+export default defineConfig({
+  maxConcurrency: 100, // Run up to 100 tests in parallel
+});
+```
+
+This is useful for optimizing performance and managing API rate limits.
+
+### `testTimeout`
+
+Set the maximum time (in milliseconds) a test can run before timing out. Default is 30000ms in Evaluhealth.
+
+Configure in `evaluhealth.config.ts`:
+
+```ts
+// evaluhealth.config.ts
+import { defineConfig } from "evaluhealth/config";
+
+export default defineConfig({
+  testTimeout: 60000, // 60 seconds
+});
+```
+
+### Running Evals Multiple Times
+
+Run each test case multiple times to measure variance in non-deterministic evaluations.
+
+Configure globally in `evaluhealth.config.ts`:
+
+```ts
+// evaluhealth.config.ts
+import { defineConfig } from "evaluhealth/config";
+
+export default defineConfig({
+  trialCount: 3, // Run each test case 3 times
+});
+```
+
+Or override per-eval in the `evaluhealth()` call:
+
+```ts
+evaluhealth("Non-deterministic eval", {
+  data: () => [{ input: "Alice", expected: "Alice" }],
+  task: async (input) => {
+    // Non-deterministic task
+    return getRandomGreeting(input);
+  },
+  scorers: [
+    /* ... */
+  ],
+  trialCount: 5, // Override config: run 5 times
+});
+```
+
+Note: Per-eval `trialCount` overrides `evaluhealth.config.ts` if both are present.

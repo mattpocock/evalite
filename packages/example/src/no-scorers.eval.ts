@@ -1,6 +1,6 @@
-import { evalite } from "evalite";
+import { evaluhealth } from "evaluhealth";
 
-evalite("No Scorers Example", {
+evaluhealth("No Scorers Example", {
   data: () => {
     return [
       {

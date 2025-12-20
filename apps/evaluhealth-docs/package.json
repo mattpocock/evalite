@@ -1,0 +1,18 @@
+{
+  "name": "evaluhealth-docs",
+  "type": "module",
+  "private": true,
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.29.2",
+    "astro": "^4.16.10",
+    "sharp": "^0.32.5"
+  }
+}

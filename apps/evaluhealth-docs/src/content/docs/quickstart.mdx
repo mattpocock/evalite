@@ -1,0 +1,104 @@
+---
+title: Quickstart
+description: A guide in my new Starlight docs site.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+We're going to walk through setting up Evaluhealth in an existing project.
+
+<Steps>
+
+1. Install `evaluhealth`, `vitest`, and a scoring library like `autoevals`:
+
+   ```bash
+   pnpm add -D evaluhealth vitest autoevals
+   ```
+
+2. Add an `eval:dev` script to your package.json:
+
+   ```json
+   {
+     "scripts": {
+       "eval:dev": "evaluhealth watch"
+     }
+   }
+   ```
+
+3. Create your first eval:
+
+   ```ts
+   // my-eval.eval.ts
+
+   import { evaluhealth } from "evaluhealth";
+   import { Levenshtein } from "autoevals";
+
+   evaluhealth("My Eval", {
+     // An array of test data
+     // - TODO: Replace with your test data
+     data: [{ input: "Hello", expected: "Hello World!" }],
+     // The task to perform
+     // - TODO: Replace with your LLM call
+     task: async (input) => {
+       return input + " World!";
+     },
+     // The scoring methods for the eval
+     scorers: [Levenshtein],
+   });
+   ```
+
+   <Aside type="tip">
+
+   `.eval.ts` is the extension Evaluhealth looks for when scanning for evals.
+
+   </Aside>
+
+4. Run `pnpm run eval:dev`.
+
+   ```bash
+   pnpm run eval:dev
+   ```
+
+   This runs `evaluhealth`, which runs the evals:
+
+   - Runs the `data` function to get the test data
+   - Runs the `task` function on each test data
+   - Scores the output of the `task` function using the `scorers`
+   - Saves the results to a sqlite database in `node_modules/.evaluhealth`
+
+   It then:
+
+   - Shows a UI for viewing the traces, scores, inputs and outputs at http://localhost:3006.
+   - If you only ran one eval, it also shows a table summarizing the eval in the terminal.
+
+5. Open http://localhost:3006 in your browser to view the results of the eval.
+
+</Steps>
+
+### What Next?
+
+Head to the [AI SDK example](/examples/ai-sdk) to see a fully-fleshed out example of Evaluhealth in action.
+
+### Troubleshooting
+
+##### Error: Could not locate the bindings file
+
+Some users experienced issues running `evaluhealth watch`. Your package manager will report the following error message:
+
+```
+Command failed, Error: Could not locate the bindings file.
+```
+
+This error is related to the `better-sqlite3` package. To resolve this, you can try the following steps:
+
+- Rebuild `better-sqlite3`:
+
+```bash
+pnpm rebuild better-sqlite3
+```
+
+- Approve the rebuild of the package with:
+
+```bash
+pnpm approve-builds
+```

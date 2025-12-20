@@ -1,0 +1,19 @@
+{
+  "name": "evaluhealth-tests",
+  "version": "0.0.11",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vitest -w",
+    "test": "vitest run",
+    "lint": "tsc"
+  },
+  "dependencies": {
+    "evaluhealth": "workspace:*",
+    "evaluhealth-ui": "workspace:*",
+    "strip-ansi": "^7.1.2",
+    "autoevals": "^0.0.131",
+    "@ai-sdk/openai": "^2.0.42",
+    "ai": "^5.0.59"
+  }
+}

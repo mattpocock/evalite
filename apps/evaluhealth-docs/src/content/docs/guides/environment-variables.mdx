@@ -1,0 +1,47 @@
+---
+title: Environment Variables
+---
+
+import { Steps } from "@astrojs/starlight/components";
+
+To call your LLM from a third-party service, you'll likely need some environment variables to keep your API keys safe.
+
+## Setting Up Env Variables
+
+<Steps>
+
+1. Create a `.env` file in the root of your project:
+
+   ```
+   // .env
+   OPENAI_API_KEY=your-api-key
+   ```
+
+2. Add `.env` to your `.gitignore`, if it's not already there
+
+   ```
+   // .gitignore
+   .env
+   ```
+
+3. Install `dotenv`:
+
+   ```bash
+   pnpm add -D dotenv
+   ```
+
+4. Add an `evaluhealth.config.ts` file:
+
+   ```ts
+   // evaluhealth.config.ts
+
+   import { defineConfig } from "evaluhealth/config";
+
+   export default defineConfig({
+     setupFiles: ["dotenv/config"],
+   });
+   ```
+
+</Steps>
+
+Now, your environment variables will be available in your evals.

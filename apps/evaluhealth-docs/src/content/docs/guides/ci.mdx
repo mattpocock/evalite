@@ -1,0 +1,180 @@
+---
+title: CI/CD
+---
+
+Evaluhealth integrates seamlessly into CI/CD pipelines, allowing you to validate LLM-powered features as part of your automated testing workflow.
+
+## Static UI Export
+
+Export eval results as a static HTML bundle for viewing in CI artifacts without running a live server.
+
+### Basic Usage
+
+```bash
+evaluhealth export
+```
+
+Exports latest full run to `./evaluhealth-export` directory.
+
+### Options
+
+**Custom output directory:**
+
+```bash
+evaluhealth export --output=./my-export
+```
+
+**Export specific run:**
+
+```bash
+evaluhealth export --run-id=123
+```
+
+**Custom base path for non-root hosting:**
+
+```bash
+evaluhealth export --basePath=/evals-123
+```
+
+Use when hosting at subpaths (e.g., S3/CloudFront with path-based URLs). The base path must start with `/`.
+
+### Export Structure
+
+Generated bundle contains:
+
+- `index.html` - Standalone UI (works without server)
+- `data/*.json` - Pre-computed API responses
+- `files/*` - Images, audio, etc. from eval results
+- `assets/*` - UI JavaScript/CSS
+
+### Viewing Exports
+
+**Local preview:**
+
+```bash
+npx serve -s ./evaluhealth-export
+```
+
+**Static hosting:** Upload to artifact.ci, S3, GitHub Pages, etc.
+
+### CI Integration Example
+
+GitHub Actions workflow exporting UI to artifacts:
+
+```yaml
+name: Run Evals
+
+on: [push, pull_request]
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "22"
+
+      - run: npm install
+
+      - name: Run evaluations
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: npx evaluhealth --threshold=70
+
+      - name: Export UI
+        run: npx evaluhealth export --output=./ui-export
+
+      - name: Upload static UI
+        uses: actions/upload-artifact@v3
+        with:
+          name: evaluhealth-ui
+          path: ui-export
+```
+
+View results by downloading artifact and running `npx serve -s ./ui-export`.
+
+### Path-Based Deployment Example
+
+Deploy to S3/CloudFront with unique paths per run:
+
+```yaml
+- name: Export UI with base path
+  run: |
+    RUN_PATH="/evals-${{ github.run_id }}"
+    npx evaluhealth export --basePath="$RUN_PATH" --output=./ui-export
+
+- name: Upload to S3
+  run: |
+    aws s3 sync ./ui-export s3://my-bucket/evals-${{ github.run_id }}/
+    echo "View at: https://my-domain.com/evals-${{ github.run_id }}"
+```
+
+To test locally with base path:
+
+```bash
+# Export with base path
+evaluhealth export --basePath=/evals-123
+
+# Create matching directory structure
+mkdir -p /tmp/test/evals-123
+cp -r evaluhealth-export/* /tmp/test/evals-123/
+
+# Serve and visit http://localhost:3000/evals-123
+npx serve /tmp/test
+```
+
+## Running on CI
+
+Run Evaluhealth in run-once mode (default):
+
+```bash
+evaluhealth
+```
+
+Executes all evals and exits.
+
+## Score Thresholds
+
+Fail CI builds if scores fall below threshold:
+
+```bash
+evaluhealth --threshold=70
+```
+
+Exits with code 1 if average score < 70.
+
+## JSON Export
+
+For programmatic analysis, export raw JSON:
+
+```bash
+evaluhealth --outputPath=./results.json
+```
+
+### Export Format
+
+Typed hierarchical structure:
+
+```typescript
+import type { Evaluhealth } from "evaluhealth";
+
+type Output = Evaluhealth.Exported.Output;
+```
+
+Contains:
+
+- **`run`**: Metadata (id, runType, createdAt)
+- **`evals`**: Array of evaluations with:
+  - Basic info (name, filepath, duration, status, averageScore)
+  - **`results`**: Individual test results with:
+    - Test data (input, output, expected)
+    - **`scores`**: Scorer results
+    - **`traces`**: LLM call traces
+
+### Use Cases
+
+- **Analytics**: Import into dashboards for performance tracking
+- **Archiving**: Store historical results for comparison
+- **Custom tooling**: Build scripts around eval data

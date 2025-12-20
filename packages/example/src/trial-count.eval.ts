@@ -1,4 +1,4 @@
-import { evalite } from "evalite";
+import { evaluhealth } from "evaluhealth";
 
 // Non-deterministic task that returns random responses
 const getRandomGreeting = (name: string): string => {
@@ -11,7 +11,7 @@ const getRandomGreeting = (name: string): string => {
   return greetings[Math.floor(Math.random() * greetings.length)]!;
 };
 
-evalite("Random Greeting Test", {
+evaluhealth("Random Greeting Test", {
   data: () => [
     {
       input: "Alice",

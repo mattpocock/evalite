@@ -6,5 +6,10 @@
   "linked": [],
   "access": "public",
   "baseBranch": "main",
-  "ignore": ["example", "evalite-tests", "evalite-docs", "evalite-ui"]
+  "ignore": [
+    "example",
+    "evaluhealth-tests",
+    "evaluhealth-docs",
+    "evaluhealth-ui"
+  ]
 }

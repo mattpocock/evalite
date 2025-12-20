@@ -1,7 +1,7 @@
 import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
-import { evalite } from "evalite";
-import { traceAISDKModel } from "evalite/ai-sdk";
+import { evaluhealth } from "evaluhealth";
+import { traceAISDKModel } from "evaluhealth/ai-sdk";
 import { createStorage } from "unstorage";
 import fsDriver from "unstorage/drivers/fs";
 import { cacheModel } from "./cache-model";
@@ -12,7 +12,7 @@ const storage = createStorage({
   }),
 });
 
-evalite("Content generation", {
+evaluhealth("Content generation", {
   data: async () => {
     return [
       {

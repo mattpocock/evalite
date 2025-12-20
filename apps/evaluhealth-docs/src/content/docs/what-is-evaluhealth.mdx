@@ -1,0 +1,66 @@
+---
+title: What Is Evaluhealth?
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+Evaluhealth runs your evals locally. Evals are like tests, but for AI-powered apps.
+
+So Evaluhealth is like Jest or Vitest, but for apps that use AI.
+
+Here are the headlines:
+
+- Lets you write evals in `.eval.ts` files.
+- Runs a local server on `localhost` with live reload
+- Lets you capture traces, build custom scorers, and much more
+- Based on Vitest, so you can use all the same tools (mocks, lifecycle hooks) you're used to
+
+## What Are Evals?
+
+**Evals are to AI-powered apps what tests are to regular apps**. They're a way to check that your app is working as expected.
+
+Normal tests give you a pass or fail metric. **Evals give you a score from 0-100** based on how well your app is performing.
+
+Instead of `.test.ts` files, Evaluhealth uses `.eval.ts` files. They look like this:
+
+```ts
+// my-eval.eval.ts
+
+import { evaluhealth } from "evaluhealth";
+import { Levenshtein } from "autoevals";
+
+evaluhealth("My Eval", {
+  // A set of data to test
+  data: [{ input: "Hello", expected: "Hello World!" }],
+  // The task to perform, usually to call a LLM.
+  task: async (input) => {
+    return input + " World!";
+  },
+  // Some methods to score the eval
+  scorers: [
+    // For instance, Levenshtein distance measures
+    // the similarity between two strings
+    Levenshtein,
+  ],
+});
+```
+
+In the code above, we have:
+
+- `data`: A dataset to test
+- `task`: The task to perform
+- `scorers`: Methods to score the eval
+
+These are the core elements of an eval.
+
+> Thanks to [Braintrust](https://www.braintrust.dev/) for the API inspiration
+
+## Why Does Evaluhealth Exist?
+
+There are plenty of eval runners out there. But most of them are also bundled with a cloud service.
+
+Evaluhealth is different. It's **local-only**. It runs on your machine, and you stay in complete control of your data.
+
+This means no friction, no sign-off, and no vendor lock-in. Just you, your code, and your evals.
+
+And, of course, it's completely open source.

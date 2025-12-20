@@ -1,8 +1,8 @@
 import { Factuality, Levenshtein } from "autoevals";
-import { evalite } from "evalite";
+import { evaluhealth } from "evaluhealth";
 import { setTimeout } from "node:timers/promises";
 
-evalite("Failure", {
+evaluhealth("Failure", {
   data: async () => [
     {
       input: "X",

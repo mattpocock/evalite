@@ -1,0 +1,35 @@
+---
+title: Skipping Evals
+---
+
+## Skipping Entire Evals
+
+You can use `evaluhealth.skip()` to skip an entire eval without running it.
+
+```ts
+evaluhealth.skip("My Eval", {
+  data: () => [],
+  task: () => {},
+});
+```
+
+This is useful when you want to temporarily disable an eval during development or testing.
+
+## Focusing on Specific Evals
+
+You can use the `only` flag on data entries to focus on specific inputs during development.
+
+```ts
+evaluhealth("My Eval", {
+  data: () => [
+    { input: "test1", expected: "output1" },
+    { input: "test2", expected: "output2", only: true },
+    { input: "test3", expected: "output3" },
+  ],
+  task: async (input) => {
+    // Only runs for "test2"
+  },
+});
+```
+
+When any data entry has `only: true`, only those evals will be run.

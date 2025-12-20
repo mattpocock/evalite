@@ -1,7 +1,7 @@
-import { evalite } from "evalite";
+import { evaluhealth } from "evaluhealth";
 import { setTimeout } from "timers/promises";
 
-evalite("Long", {
+evaluhealth("Long", {
   data: async () => [
     {
       input: `What's the capital of France?`,

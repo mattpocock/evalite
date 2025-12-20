@@ -1,9 +1,9 @@
 import { Levenshtein } from "autoevals";
-import { createScorer, evalite } from "evalite";
-import { reportTrace } from "evalite/traces";
+import { createScorer, evaluhealth } from "evaluhealth";
+import { reportTrace } from "evaluhealth/traces";
 import { setTimeout } from "node:timers/promises";
 
-evalite("Traces", {
+evaluhealth("Traces", {
   data: async () => {
     return [
       { input: "abc", expected: "abcdef" },
