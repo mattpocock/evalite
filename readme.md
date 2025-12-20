@@ -2,6 +2,8 @@
 
 **Evaluhealth** is a fork of [Evalite](https://github.com/mattpocock/evalite) specifically tailored for **healthcare and life sciences** applications. Built with TypeScript and Vitest, it provides a local-first evaluation framework for testing LLM-powered healthcare applications, medical AI systems, and life science research tools.
 
+> **By [Kernelius](https://kernelius.com)** — Building AI tools for healthcare and life sciences.
+
 ## Healthcare & Life Sciences Focus
 
 Evaluhealth is designed to help developers and researchers in healthcare and life sciences:

@@ -1,5 +1,7 @@
 ![Evaluhealth: the TypeScript-native, local-first tool for testing LLM-powered apps.](https://raw.githubusercontent.com/kernelius-hq/evaluhealth/refs/heads/main/repo-card.jpg)
 
+> **By [Kernelius](https://kernelius.com)** — Building AI tools for healthcare and life sciences.
+
 ## What Is Evaluhealth?
 
 **Evaluhealth** is a fork of [Evalite](https://github.com/mattpocock/evalite) specifically designed for **healthcare and life sciences** applications. It's a TypeScript-native, local-first evaluation framework for testing LLM-powered healthcare applications, medical AI systems, and life science research tools.
