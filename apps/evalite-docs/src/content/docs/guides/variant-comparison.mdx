@@ -81,3 +81,43 @@ Now answer the question.`,
   scorers: [Levenshtein],
 });
 ```
+
+## Controlling Variant Concurrency
+
+When comparing many variants or models with rate limits, you can use `parallelLimit` to control how many variants execute concurrently:
+
+```ts
+evalite.each(
+  [
+    { name: "GPT-4o", input: { model: "gpt-4o" } },
+    { name: "GPT-4o mini", input: { model: "gpt-4o-mini" } },
+    { name: "Claude Sonnet 3.5", input: { model: "claude-3-5-sonnet" } },
+    { name: "Claude Haiku", input: { model: "claude-3-5-haiku" } },
+  ],
+  { parallelLimit: 2 } // Only 2 variants run at once
+)("Compare models", {
+  data: async () => [
+    { input: "What's the capital of France?", expected: "Paris" },
+    // ...
+  ],
+  task: async (input, variant) => {
+    return generateText({
+      model: openai(variant.model),
+      prompt: input,
+    });
+  },
+  scorers: [Factuality, Levenshtein],
+});
+```
+
+### Use Cases
+
+- **API rate limiting**: Stay within provider concurrent request limits
+- **Cost control**: Run expensive models sequentially or in small batches
+- **Resource management**: Control memory/CPU usage for large evaluations
+
+<Aside type="note">
+  Each variant still respects the global `maxConcurrency` setting for its
+  individual test cases. The `parallelLimit` only controls how many variants run
+  concurrently.
+</Aside>
