@@ -207,6 +207,18 @@ export declare namespace Evalite {
     DataShape<TInput, TExpected>[]
   >;
 
+  export type EachOpts = {
+    /**
+     * Maximum number of variants to run concurrently.
+     * If not specified, all variants run concurrently (respecting global maxConcurrency).
+     * @example
+     * ```ts
+     * evalite.each(variants, { parallelLimit: 2 })("Compare", { ... })
+     * ```
+     */
+    parallelLimit?: number;
+  };
+
   export type RunnerOpts<TInput, TOutput, TExpected, TVariant = undefined> = {
     data:
       | DataShape<TInput, TExpected>[]

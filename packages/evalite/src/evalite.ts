@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
-import { describe, inject, it } from "vitest";
+import { afterAll, beforeAll, describe, inject, it } from "vitest";
 import { reportTraceLocalStorage } from "./traces.js";
 import { writeFileQueueLocalStorage } from "./write-file-queue-local-storage.js";
 import { createEvaliteFileIfNeeded } from "./utils.js";
@@ -8,6 +8,7 @@ import type { Evalite } from "./types.js";
 import { FILES_LOCATION } from "./backend-only-constants.js";
 import { createScorer } from "./index.js";
 import { serializeAnnotation } from "./reporter/events.js";
+import { Semaphore } from "./semaphore.js";
 
 const joinArrayOfUnknownResults = (results: unknown[]): unknown => {
   return results.reduce((acc, result) => {
@@ -121,6 +122,9 @@ const runTask = async <TInput, TOutput, TExpected, TVariant = undefined>(
   };
 };
 
+// Registry for variant group semaphores to control concurrency
+const variantGroupSemaphores = new Map<string, Semaphore>();
+
 export const evalite = <TInput, TOutput, TExpected = TOutput>(
   evalName: string,
   opts: Evalite.RunnerOpts<TInput, TOutput, TExpected>
@@ -137,20 +141,35 @@ evalite.skip = <TInput, TOutput, TExpected>(
 evalite.experimental_skip = evalite.skip;
 
 evalite.each = <TVariant>(
-  variants: Array<{ name: string; input: TVariant }>
+  variants: Array<{ name: string; input: TVariant }>,
+  opts?: Evalite.EachOpts
 ) => {
   return <TInput, TOutput, TExpected = TOutput>(
     evalName: string,
-    opts: Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant>
+    evalOpts: Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant>
   ) => {
+    // Create or get semaphore for this variant group if parallelLimit is specified
+    let semaphore: Semaphore | undefined;
+    if (opts?.parallelLimit) {
+      const groupKey = evalName;
+      if (!variantGroupSemaphores.has(groupKey)) {
+        variantGroupSemaphores.set(groupKey, new Semaphore(opts.parallelLimit));
+      }
+      semaphore = variantGroupSemaphores.get(groupKey);
+    }
+
     for (const variant of variants) {
       registerEvalite(
         evalName,
         {
-          ...opts,
-          task: (input) => opts.task(input, variant.input),
+          ...evalOpts,
+          task: (input) => evalOpts.task(input, variant.input),
         },
-        { variantName: variant.name, variantGroup: evalName }
+        {
+          variantName: variant.name,
+          variantGroup: evalName,
+          semaphore: semaphore,
+        }
       );
     }
   };
@@ -189,6 +208,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
     modifier?: "only" | "skip";
     variantName?: string;
     variantGroup?: string;
+    semaphore?: Semaphore;
   } = {}
 ) {
   const describeFn = vitestOpts.modifier === "skip" ? describe.skip : describe;
@@ -206,6 +226,17 @@ function registerEvalite<TInput, TOutput, TExpected>(
     : evalName;
 
   return describeFn(fullEvalName, async () => {
+    // Acquire semaphore permit before running this variant
+    if (vitestOpts.semaphore) {
+      beforeAll(async () => {
+        await vitestOpts.semaphore!.acquire();
+      });
+
+      afterAll(() => {
+        vitestOpts.semaphore!.release();
+      });
+    }
+
     const datasetResult = await datasetPromise;
 
     if (!datasetResult.success) {
