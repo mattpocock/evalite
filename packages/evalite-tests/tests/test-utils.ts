@@ -47,7 +47,7 @@ export const loadFixture = async (
       });
     },
     run: async (opts: {
-      path?: string | undefined;
+      paths?: string[];
       mode:
         | "watch-for-file-changes"
         | "run-once-and-exit"

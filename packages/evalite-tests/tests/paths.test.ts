@@ -6,7 +6,7 @@ it("Should allow you to pass a specific filename to run", async () => {
 
   await fixture.run({
     mode: "run-once-and-exit",
-    path: "should-run.eval.ts",
+    paths: ["should-run.eval.ts"],
   });
 
   const evals = await getSuitesAsRecordViaStorage(fixture.storage);
@@ -15,16 +15,44 @@ it("Should allow you to pass a specific filename to run", async () => {
   expect(evals["Should Not Run"]).not.toBeDefined();
 });
 
+it("Should allow you to pass multiple paths to run", async () => {
+  await using fixture = await loadFixture("paths");
+
+  await fixture.run({
+    mode: "run-once-and-exit",
+    paths: ["should-run.eval.ts", "should-not-run.eval.ts"],
+  });
+
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
+
+  expect(evals["Should Run"]).toHaveLength(1);
+  expect(evals["Should Not Run"]).toHaveLength(1);
+});
+
 it("Should allow you to pass a filename filter", async () => {
   await using fixture = await loadFixture("paths");
 
   await fixture.run({
     mode: "run-once-and-exit",
-    path: "should-run",
+    paths: ["should-run"],
   });
 
   const evals = await getSuitesAsRecordViaStorage(fixture.storage);
 
   expect(evals["Should Run"]).toHaveLength(1);
   expect(evals["Should Not Run"]).not.toBeDefined();
+});
+
+it("Should allow you to pass multiple filters to run", async () => {
+  await using fixture = await loadFixture("paths");
+
+  await fixture.run({
+    mode: "run-once-and-exit",
+    paths: ["should-run", "should-not-run"],
+  });
+
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
+
+  expect(evals["Should Run"]).toHaveLength(1);
+  expect(evals["Should Not Run"]).toHaveLength(1);
 });

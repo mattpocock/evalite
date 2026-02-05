@@ -14,7 +14,7 @@ const packageJson = createRequire(import.meta.url)(
 ) as typeof import("../package.json");
 
 type ProgramOpts = {
-  path: string | undefined;
+  paths: string[];
   threshold: number | undefined;
   outputPath: string | undefined;
   hideTable: boolean | undefined;
@@ -23,8 +23,9 @@ type ProgramOpts = {
 
 const commonParameters = {
   positional: {
-    kind: "tuple",
-    parameters: [{ parse: String, brief: "path", optional: true }],
+    kind: "array",
+    parameter: { parse: String, brief: "paths" },
+    minimum: 0,
   },
   flags: {
     threshold: {
@@ -73,9 +74,9 @@ export const createProgram = (commands: {
 }) => {
   const runOnce = buildCommand({
     parameters: commonParameters,
-    func: async (flags: Flags, path: string | undefined) => {
+    func: async (flags: Flags, ...paths: string[]) => {
       return commands.runOnceAtPath({
-        path,
+        paths,
         threshold: flags.threshold,
         outputPath: flags.outputPath,
         hideTable: flags.hideTable,
@@ -89,9 +90,9 @@ export const createProgram = (commands: {
 
   const serve = buildCommand({
     parameters: commonParameters,
-    func: (flags: Flags, path: string | undefined) => {
+    func: (flags: Flags, ...paths: string[]) => {
       return commands.serve({
-        path,
+        paths,
         threshold: flags.threshold,
         outputPath: flags.outputPath,
         hideTable: flags.hideTable,
@@ -105,14 +106,14 @@ export const createProgram = (commands: {
 
   const watch = buildCommand({
     parameters: commonParameters,
-    func: (flags: Flags, path: string | undefined) => {
+    func: (flags: Flags, ...paths: string[]) => {
       if (flags.outputPath) {
         throw new Error(
           "--outputPath is not supported in watch mode. Use 'evalite --outputPath <path>' instead."
         );
       }
       return commands.watch({
-        path,
+        paths,
         threshold: flags.threshold,
         outputPath: flags.outputPath,
         hideTable: flags.hideTable,
@@ -195,35 +196,35 @@ export const createProgram = (commands: {
 };
 
 export const program = createProgram({
-  watch: (path) => {
+  watch: (opts) => {
     return runEvalite({
-      path: path.path,
-      scoreThreshold: path.threshold,
+      paths: opts.paths,
+      scoreThreshold: opts.threshold,
       cwd: undefined,
       mode: "watch-for-file-changes",
-      outputPath: path.outputPath,
-      hideTable: path.hideTable,
-      cacheEnabled: path.noCache ? false : undefined,
+      outputPath: opts.outputPath,
+      hideTable: opts.hideTable,
+      cacheEnabled: opts.noCache ? false : undefined,
     });
   },
-  runOnceAtPath: (path) => {
+  runOnceAtPath: (opts) => {
     return runEvalite({
-      path: path.path,
-      scoreThreshold: path.threshold,
+      paths: opts.paths,
+      scoreThreshold: opts.threshold,
       cwd: undefined,
       mode: "run-once-and-exit",
-      outputPath: path.outputPath,
-      cacheEnabled: path.noCache ? false : undefined,
+      outputPath: opts.outputPath,
+      cacheEnabled: opts.noCache ? false : undefined,
     });
   },
-  serve: (path) => {
+  serve: (opts) => {
     return runEvalite({
-      path: path.path,
-      scoreThreshold: path.threshold,
+      paths: opts.paths,
+      scoreThreshold: opts.threshold,
       cwd: undefined,
       mode: "run-once-and-serve",
-      outputPath: path.outputPath,
-      cacheEnabled: path.noCache ? false : undefined,
+      outputPath: opts.outputPath,
+      cacheEnabled: opts.noCache ? false : undefined,
     });
   },
   export: async (opts) => {
