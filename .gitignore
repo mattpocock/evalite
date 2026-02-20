@@ -8,3 +8,4 @@ dist
 .twoslash-lint
 coverage
 .cursor/mcp.json
+.pnpm-store

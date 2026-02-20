@@ -42,7 +42,7 @@ Then, find a way to break it into a smaller chunk and only do that chunk (i.e. c
 
 Before committing, run the feedback loops:
 
-- `pnpm ci` to build, test, and lint
+- `pnpm run ci` to build, test, and lint
 
 # COMMIT
 
