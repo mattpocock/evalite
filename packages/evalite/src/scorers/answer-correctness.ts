@@ -1,4 +1,10 @@
-import { cosineSimilarity, embedMany, generateObject, jsonSchema } from "ai";
+import {
+  cosineSimilarity,
+  embedMany,
+  generateText,
+  Output,
+  jsonSchema,
+} from "ai";
 import { wrapAISDKModel } from "../ai-sdk.js";
 import type { Evalite } from "../types.js";
 import { promptBuilder } from "./prompt-builder.js";
@@ -231,9 +237,9 @@ export async function answerCorrectness(
   };
 
   if (responseStatements.length > 0 && referenceStatements.length > 0) {
-    const result = await generateObject({
+    const result = await generateText({
       model: cachedModel,
-      schema: AnswerCorrectnessClassificationSchema,
+      output: Output.object({ schema: AnswerCorrectnessClassificationSchema }),
       prompt: correctnessClassifierPrompt({
         question: opts.question,
         answerStatements: responseStatements,
@@ -241,7 +247,7 @@ export async function answerCorrectness(
       }),
     });
 
-    classification = result.object.classification;
+    classification = result.output!.classification;
     factualityScore = computeFBetaScore(classification, beta);
   } else if (
     responseStatements.length === 0 &&

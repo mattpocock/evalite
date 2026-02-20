@@ -1,4 +1,4 @@
-import { generateObject, jsonSchema } from "ai";
+import { generateText, Output, jsonSchema } from "ai";
 import { wrapAISDKModel } from "../ai-sdk.js";
 import type { Evalite } from "../types.js";
 import { promptBuilder } from "./prompt-builder.js";
@@ -118,9 +118,9 @@ export async function contextRecall(opts: Evalite.Scorers.ContextRecallOpts) {
 
   const context = opts.groundTruth.join("\n");
 
-  const result = await generateObject({
+  const result = await generateText({
     model: wrapAISDKModel(opts.model),
-    schema: ContextRecallClassificationsSchema,
+    output: Output.object({ schema: ContextRecallClassificationsSchema }),
     prompt: classifyStatementsPrompt({
       question: opts.question,
       context,
@@ -128,7 +128,7 @@ export async function contextRecall(opts: Evalite.Scorers.ContextRecallOpts) {
     }),
   });
 
-  const classifications = result.object.classifications;
+  const classifications = result.output!.classifications;
 
   if (classifications.length === 0) {
     throw new Error("No classifications were found from the answer");

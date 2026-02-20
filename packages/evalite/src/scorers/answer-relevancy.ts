@@ -1,4 +1,10 @@
-import { cosineSimilarity, embedMany, generateObject, jsonSchema } from "ai";
+import {
+  cosineSimilarity,
+  embedMany,
+  generateText,
+  Output,
+  jsonSchema,
+} from "ai";
 import { wrapAISDKModel } from "../ai-sdk.js";
 import type { Evalite } from "../types.js";
 import { promptBuilder } from "./prompt-builder.js";
@@ -110,15 +116,15 @@ export async function answerRelevancy(
 
   for (let i = 0; i < strictness; i++) {
     try {
-      const result = await generateObject({
+      const result = await generateText({
         model: cachedModel,
-        schema: AnswerRelevancyOutputSchema,
+        output: Output.object({ schema: AnswerRelevancyOutputSchema }),
         prompt: answerRelevancyPrompt({ response: opts.answer }),
       });
 
-      if (result.object.question && result.object.question.trim()) {
-        generatedQuestions.push(result.object.question.trim());
-        noncommittalFlags.push(result.object.noncommittal === 1);
+      if (result.output?.question && result.output.question.trim()) {
+        generatedQuestions.push(result.output.question.trim());
+        noncommittalFlags.push(result.output.noncommittal === 1);
       }
     } catch (error) {
       console.warn(

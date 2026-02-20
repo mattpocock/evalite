@@ -1,32 +1,40 @@
 import { generateText } from "ai";
-import { MockLanguageModelV2 } from "ai/test";
+import { MockLanguageModelV3 } from "ai/test";
 import { wrapAISDKModel } from "evalite/ai-sdk";
 import { evalite } from "evalite";
 
-const model = new MockLanguageModelV2({
-  doGenerate: async (options) => ({
-    rawCall: { rawPrompt: null, rawSettings: {} },
-    finishReason: "stop",
-    usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
+const model = new MockLanguageModelV3({
+  doGenerate: {
+    finishReason: { unified: "stop", raw: undefined },
+    usage: {
+      inputTokens: {
+        total: 10,
+        noCache: undefined,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: { total: 20, text: undefined, reasoning: undefined },
+    },
     content: [{ type: "text", text: `Response for task` }],
     warnings: [],
-    providerMetadata: undefined,
-    request: undefined,
-    response: undefined,
-  }),
+  },
 });
 
-const scorerModel = new MockLanguageModelV2({
-  doGenerate: async (options) => ({
-    rawCall: { rawPrompt: null, rawSettings: {} },
-    finishReason: "stop",
-    usage: { inputTokens: 5, outputTokens: 10, totalTokens: 15 },
+const scorerModel = new MockLanguageModelV3({
+  doGenerate: {
+    finishReason: { unified: "stop", raw: undefined },
+    usage: {
+      inputTokens: {
+        total: 5,
+        noCache: undefined,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: { total: 10, text: undefined, reasoning: undefined },
+    },
     content: [{ type: "text", text: `1` }],
     warnings: [],
-    providerMetadata: undefined,
-    request: undefined,
-    response: undefined,
-  }),
+  },
 });
 
 const tracedModel = wrapAISDKModel(model);
