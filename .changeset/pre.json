@@ -8,6 +8,8 @@
     "example": "0.0.11"
   },
   "changesets": [
+    "0000-add-docs-link",
+    "0000-ai-sdk-v6",
     "0000-cache-config",
     "0000-cache-debug-mode",
     "0000-config-errors",
@@ -24,6 +26,7 @@
     "angry-dogs-sort",
     "better-tires-battle",
     "big-walls-grab",
+    "busy-sheep-burn",
     "clever-toes-camp",
     "cyan-lines-peel",
     "easy-islands-beam",

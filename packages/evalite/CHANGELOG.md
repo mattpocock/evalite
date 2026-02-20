@@ -1,5 +1,16 @@
 # evalite
 
+## 1.0.0-beta.16
+
+### Minor Changes
+
+- cef8166: Migrated AI SDK integration from v5 to v6. The `ai` peer dependency is now `^6` and `@ai-sdk/provider` is `^3`. Users on AI SDK v5 should stay on the previous Evalite version.
+- 7f73ec0: Added forceRerunTriggers to the config to match Vitest's version.
+
+### Patch Changes
+
+- e0feff2: Added documentation link to UI header.
+
 ## 1.0.0-beta.15
 
 ### Patch Changes
