@@ -12,9 +12,9 @@
   "dependencies": {
     "unstorage": "^1.17.1",
     "evalite": "workspace:*",
-    "ai": "^5.0.59",
-    "@ai-sdk/openai": "^2.0.42",
-    "@ai-sdk/provider": "^2.0.0",
+    "ai": "^6",
+    "@ai-sdk/openai": "^3.0.0",
+    "@ai-sdk/provider": "^3.0.0",
     "dotenv": "^16.4.5",
     "zod": "^3.25.76",
     "vitest": "^4.0.0"
