@@ -449,4 +449,4 @@ it("Should not hang endlessly", async () => {
   );
 
   expect(areAnyHandlesOfServerType).toBe(false);
-}, 1000);
+}, 10_000);

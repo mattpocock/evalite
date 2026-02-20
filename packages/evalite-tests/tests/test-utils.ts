@@ -1,6 +1,5 @@
 import { randomUUID } from "crypto";
 import type { Evalite } from "evalite";
-import { DB_LOCATION } from "evalite/backend-only-constants";
 import { createInMemoryStorage } from "evalite/in-memory-storage";
 import { runEvalite } from "evalite/runner";
 import { cpSync, rmSync } from "fs";

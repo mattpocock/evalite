@@ -184,6 +184,7 @@ export const exportCommand = async (opts: {
       cwd: opts.cwd,
       mode: "run-once",
       storage: opts.storage,
+      disableServer: true,
     });
   }
 

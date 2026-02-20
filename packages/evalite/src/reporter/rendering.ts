@@ -202,52 +202,71 @@ export function renderTable(
   const availableInnerSpace =
     availableColumns - tableOverhead - scoreWidth - variantWidth;
 
-  const colWidth = Math.min(
-    Math.floor(availableInnerSpace / columns.length),
-    80
+  const colWidth = Math.max(
+    Math.min(Math.floor(availableInnerSpace / columns.length), 80),
+    3
   );
 
-  logger.log(
-    table(
-      [
-        [
-          ...(hasVariants ? [c.cyan(c.bold("Variant"))] : []),
-          ...columns.map((col) => c.cyan(c.bold(col.label))),
-          ...(hasScores ? [c.cyan(c.bold("Score"))] : []),
-        ],
-        ...rows.map((row) => [
-          ...(hasVariants ? [row.variant || ""] : []),
-          ...row.columns.map((col) => {
-            return typeof col.value === "object"
-              ? inspect(col.value, {
-                  colors: true,
-                  depth: null,
-                  breakLength: colWidth,
-                  numericSeparator: true,
-                  compact: true,
-                })
-              : col.value;
-          }),
-          ...(hasScores ? [displayScore(row.score)] : []),
-        ]),
-      ],
-      {
-        columns: [
-          ...(hasVariants
-            ? [{ width: variantWidth, paddingLeft: 1, paddingRight: 1 }]
-            : []),
-          ...columns.map((col) => ({
-            width: colWidth,
-            wrapWord: typeof col.value === "string",
-            truncate: 200,
-            paddingLeft: 1,
-            paddingRight: 1,
-          })),
-          ...(hasScores ? [{ width: scoreWidth }] : []),
-        ],
+  const tableData = [
+    [
+      ...(hasVariants ? [c.cyan(c.bold("Variant"))] : []),
+      ...columns.map((col) => c.cyan(c.bold(col.label))),
+      ...(hasScores ? [c.cyan(c.bold("Score"))] : []),
+    ],
+    ...rows.map((row) => [
+      ...(hasVariants ? [row.variant || ""] : []),
+      ...row.columns.map((col) => {
+        return typeof col.value === "object"
+          ? inspect(col.value, {
+              colors: true,
+              depth: null,
+              breakLength: colWidth,
+              numericSeparator: true,
+              compact: true,
+            })
+          : col.value;
+      }),
+      ...(hasScores ? [displayScore(row.score)] : []),
+    ]),
+  ];
+
+  const tableConfig = {
+    columns: [
+      ...(hasVariants
+        ? [{ width: variantWidth, paddingLeft: 1, paddingRight: 1 }]
+        : []),
+      ...columns.map((col) => ({
+        width: colWidth,
+        wrapWord: typeof col.value === "string",
+        truncate: 200,
+        paddingLeft: 1,
+        paddingRight: 1,
+      })),
+      ...(hasScores ? [{ width: scoreWidth }] : []),
+    ],
+  };
+
+  try {
+    logger.log(table(tableData, tableConfig));
+  } catch {
+    // The `table` library can crash with double-width characters (emoji)
+    // in narrow columns. Fall back to a simple display.
+    for (const row of rows) {
+      const parts = row.columns.map((col) => {
+        const val =
+          typeof col.value === "string"
+            ? col.value.length > colWidth
+              ? col.value.slice(0, colWidth - 1) + "…"
+              : col.value
+            : String(col.value);
+        return `${c.cyan(col.label)}: ${val}`;
+      });
+      if (row.score !== null) {
+        parts.push(displayScore(row.score));
       }
-    )
-  );
+      logger.log(parts.join("  "));
+    }
+  }
 }
 
 export function renderScoreDisplay(
