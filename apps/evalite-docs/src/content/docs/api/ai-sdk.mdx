@@ -35,12 +35,12 @@ evalite("My Eval", {
 
 ```typescript
 wrapAISDKModel(
-  model: LanguageModelV2,
+  model: LanguageModel,
   options?: {
     tracing?: boolean;
     caching?: boolean;
   }
-): LanguageModelV2
+): LanguageModel
 ```
 
 **Parameters:**
@@ -137,32 +137,34 @@ const result = await streamText({
 const text = await result.text;
 ```
 
-**Generate Object:**
+**Structured Output:**
 
 ```typescript
-import { generateObject } from "ai";
+import { generateText, Output } from "ai";
 import { z } from "zod";
 
-const result = await generateObject({
+const result = await generateText({
   model: wrapAISDKModel(openai("gpt-4")),
-  schema: z.object({ name: z.string() }),
+  output: Output.object({ schema: z.object({ name: z.string() }) }),
   prompt: "Generate a person",
 });
+
+const person = result.output; // { name: string }
 ```
 
-**Stream Object:**
+**Streaming Structured Output:**
 
 ```typescript
-import { streamObject } from "ai";
+import { streamText, Output } from "ai";
 import { z } from "zod";
 
-const result = await streamObject({
+const result = streamText({
   model: wrapAISDKModel(openai("gpt-4")),
-  schema: z.object({ name: z.string() }),
+  output: Output.object({ schema: z.object({ name: z.string() }) }),
   prompt: "Generate a person",
 });
 
-const object = await result.object;
+const person = await result.output; // { name: string }
 ```
 
 ## Behavior in Production
