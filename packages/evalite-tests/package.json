@@ -12,7 +12,7 @@
     "evalite": "workspace:*",
     "evalite-ui": "workspace:*",
     "strip-ansi": "^7.1.2",
-    "@ai-sdk/openai": "^2.0.42",
-    "ai": "^5.0.59"
+    "@ai-sdk/openai": "^3.0.0",
+    "ai": "^6"
   }
 }

@@ -1,4 +1,4 @@
-import { generateObject, jsonSchema, type LanguageModel } from "ai";
+import { generateText, Output, jsonSchema, type LanguageModel } from "ai";
 import { promptBuilder } from "../prompt-builder.js";
 import type { Evalite } from "../../types.js";
 
@@ -227,13 +227,13 @@ export async function decomposeIntoStatements(
   answer: string,
   model: LanguageModel
 ): Promise<string[]> {
-  const result = await generateObject({
+  const result = await generateText({
     model: model,
-    schema: StatementGeneratorOutputSchema,
+    output: Output.object({ schema: StatementGeneratorOutputSchema }),
     prompt: generateStatementsPrompt({ question, answer }),
   });
 
-  return result.object.statements;
+  return result.output!.statements;
 }
 
 /**
@@ -251,16 +251,16 @@ export async function evaluateStatementFaithfulness(
   statements: string[],
   model: LanguageModel
 ): Promise<Evalite.Scorers.FaithfulnessStatements> {
-  const result = await generateObject({
+  const result = await generateText({
     model: model,
-    schema: FaithfulnessStatementsOutputSchema,
+    output: Output.object({ schema: FaithfulnessStatementsOutputSchema }),
     prompt: evaluateStatementsPrompt({
       context,
       statements: statements.map((s) => ({ statement: s })),
     }),
   });
 
-  return result.object.statements.map((s) => ({
+  return result.output!.statements.map((s) => ({
     statement: s.statement,
     reason: s.reason,
     verdict: s.verdict,
@@ -281,14 +281,14 @@ export async function evaluateStatementsSimple(
   statements: string[],
   model: LanguageModel
 ): Promise<number[]> {
-  const result = await generateObject({
+  const result = await generateText({
     model: model,
-    schema: SimpleVerdictOutputSchema,
+    output: Output.object({ schema: SimpleVerdictOutputSchema }),
     prompt: simpleNLIPrompt({
       context,
       statements,
     }),
   });
 
-  return result.object.verdicts;
+  return result.output!.verdicts;
 }

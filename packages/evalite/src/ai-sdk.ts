@@ -1,14 +1,15 @@
 import type {
-  LanguageModelV2,
-  LanguageModelV2CallOptions,
-  LanguageModelV2StreamPart,
+  LanguageModelV3,
+  LanguageModelV3CallOptions,
+  LanguageModelV3StreamPart,
 } from "@ai-sdk/provider";
+import type { LanguageModel } from "ai";
 import { wrapLanguageModel } from "ai";
 import { reportTraceLocalStorage } from "./traces.js";
 import { getCacheContext, generateCacheKey } from "./cache.js";
 
 const handlePromptContent = (
-  content: LanguageModelV2CallOptions["prompt"][number]["content"][number]
+  content: LanguageModelV3CallOptions["prompt"][number]["content"][number]
 ): unknown => {
   if (typeof content === "string") {
     return {
@@ -33,18 +34,6 @@ const handlePromptContent = (
   }
 
   if (content.type === "tool-result") {
-    const output = content.output;
-
-    // Check for unsupported media content
-    if (
-      output.type === "content" &&
-      output.value.find((item) => item.type === "media")
-    ) {
-      throw new Error(
-        `Unsupported content type: media in tool-result. Not supported yet.`
-      );
-    }
-
     return {
       type: "tool-result" as const,
       toolCallId: content.toolCallId,
@@ -53,14 +42,14 @@ const handlePromptContent = (
     };
   }
 
-  // Unsupported content types are image and file
+  // Unsupported content types (file, reasoning, tool-approval-response, etc.)
   throw new Error(
     `Unsupported content type: ${content.type}. Not supported yet.`
   );
 };
 
 const processPromptForTracing = (
-  prompt: LanguageModelV2CallOptions["prompt"]
+  prompt: LanguageModelV3CallOptions["prompt"]
 ) => {
   return prompt.map((prompt) => {
     if (!Array.isArray(prompt.content)) {
@@ -81,17 +70,31 @@ const processPromptForTracing = (
 
 const fixCacheResponse = (
   obj: any
-): Awaited<ReturnType<LanguageModelV2["doGenerate"]>> => {
+): Awaited<ReturnType<LanguageModelV3["doGenerate"]>> => {
   if (obj?.response?.timestamp) {
     obj.response.timestamp = new Date(obj.response.timestamp);
   }
-  return obj as Awaited<ReturnType<LanguageModelV2["doGenerate"]>>;
+  return obj as Awaited<ReturnType<LanguageModelV3["doGenerate"]>>;
 };
 
+const getModelId = (model: LanguageModel): string => {
+  if (typeof model === "string") return model;
+  return model.modelId;
+};
+
+const extractUsageForTrace = (usage: {
+  inputTokens: { total: number | undefined };
+  outputTokens: { total: number | undefined };
+}) => ({
+  inputTokens: usage.inputTokens.total ?? 0,
+  outputTokens: usage.outputTokens.total ?? 0,
+  totalTokens: (usage.inputTokens.total ?? 0) + (usage.outputTokens.total ?? 0),
+});
+
 export const wrapAISDKModel = (
-  model: LanguageModelV2,
+  model: LanguageModel,
   options?: { tracing?: boolean; caching?: boolean }
-): LanguageModelV2 => {
+): LanguageModel => {
   const enableTracing = options?.tracing ?? true;
   const enableCaching = options?.caching ?? true;
 
@@ -100,9 +103,12 @@ export const wrapAISDKModel = (
     return model;
   }
 
+  const modelId = getModelId(model);
+
   return wrapLanguageModel({
-    model,
+    model: model as LanguageModelV3,
     middleware: {
+      specificationVersion: "v3" as const,
       wrapGenerate: async (opts) => {
         const start = performance.now();
         let result: Awaited<ReturnType<typeof opts.doGenerate>> | undefined;
@@ -111,7 +117,7 @@ export const wrapAISDKModel = (
         // Try cache if enabled
         if (cacheContext) {
           const keyHash = generateCacheKey({
-            model: model.modelId,
+            model: modelId,
             params: opts.params,
             callType: "generate",
             callParams: opts.params,
@@ -138,9 +144,13 @@ export const wrapAISDKModel = (
                   ReturnType<typeof opts.doGenerate>
                 >;
                 result.usage = {
-                  inputTokens: 0,
-                  outputTokens: 0,
-                  totalTokens: 0,
+                  inputTokens: {
+                    total: 0,
+                    noCache: 0,
+                    cacheRead: 0,
+                    cacheWrite: 0,
+                  },
+                  outputTokens: { total: 0, text: 0, reasoning: 0 },
                 };
               }
             }
@@ -157,7 +167,7 @@ export const wrapAISDKModel = (
           // Store in cache if caching enabled
           if (cacheContext) {
             const keyHash = generateCacheKey({
-              model: model.modelId,
+              model: modelId,
               params: opts.params,
               callType: "generate",
               callParams: opts.params,
@@ -213,11 +223,7 @@ export const wrapAISDKModel = (
               toolCalls,
             },
             input: processPromptForTracing(opts.params.prompt),
-            usage: {
-              inputTokens: result.usage.inputTokens ?? 0,
-              outputTokens: result.usage.outputTokens ?? 0,
-              totalTokens: result.usage.totalTokens ?? 0,
-            },
+            usage: extractUsageForTrace(result.usage),
             start,
             end,
           });
@@ -227,7 +233,7 @@ export const wrapAISDKModel = (
       },
       wrapStream: async ({ doStream, params }) => {
         const start = performance.now();
-        let cachedParts: LanguageModelV2StreamPart[] | undefined;
+        let cachedParts: LanguageModelV3StreamPart[] | undefined;
 
         const cacheContext = getCacheContext();
         const reportTraceFromContext = reportTraceLocalStorage.getStore();
@@ -235,7 +241,7 @@ export const wrapAISDKModel = (
         // Try cache if enabled
         if (cacheContext) {
           const keyHash = generateCacheKey({
-            model: model.modelId,
+            model: modelId,
             params: params,
             callType: "stream",
             callParams: params,
@@ -258,7 +264,7 @@ export const wrapAISDKModel = (
                   savedDuration: cached.duration,
                 });
 
-                cachedParts = cached.value as LanguageModelV2StreamPart[];
+                cachedParts = cached.value as LanguageModelV3StreamPart[];
 
                 // If tracing enabled, report trace for cached stream
                 if (reportTraceFromContext) {
@@ -271,18 +277,12 @@ export const wrapAISDKModel = (
                     end: performance.now(),
                     input: processPromptForTracing(params.prompt),
                     output: cachedParts,
-                    usage: usage
-                      ? {
-                          inputTokens: usage.inputTokens ?? 0,
-                          outputTokens: usage.outputTokens ?? 0,
-                          totalTokens: usage.totalTokens ?? 0,
-                        }
-                      : undefined,
+                    usage: usage ? extractUsageForTrace(usage) : undefined,
                   });
                 }
 
                 // Reconstruct stream from cached parts
-                const stream = new ReadableStream<LanguageModelV2StreamPart>({
+                const stream = new ReadableStream<LanguageModelV3StreamPart>({
                   async start(controller) {
                     for (const part of cachedParts!) {
                       controller.enqueue(part);
@@ -306,11 +306,11 @@ export const wrapAISDKModel = (
         // Execute stream if not cached
         {
           const { stream, ...rest } = await doStream();
-          const fullResponse: LanguageModelV2StreamPart[] = [];
+          const fullResponse: LanguageModelV3StreamPart[] = [];
 
           const transformStream = new TransformStream<
-            LanguageModelV2StreamPart,
-            LanguageModelV2StreamPart
+            LanguageModelV3StreamPart,
+            LanguageModelV3StreamPart
           >({
             transform(chunk, controller) {
               fullResponse.push(chunk);
@@ -322,7 +322,7 @@ export const wrapAISDKModel = (
               // Store in cache if enabled
               if (cacheContext) {
                 const keyHash = generateCacheKey({
-                  model: model.modelId,
+                  model: modelId,
                   params: params,
                   callType: "stream",
                   callParams: params,
@@ -362,13 +362,7 @@ export const wrapAISDKModel = (
                   end: performance.now(),
                   input: processPromptForTracing(params.prompt),
                   output: fullResponse,
-                  usage: usage
-                    ? {
-                        inputTokens: usage.inputTokens ?? 0,
-                        outputTokens: usage.outputTokens ?? 0,
-                        totalTokens: usage.totalTokens ?? 0,
-                      }
-                    : undefined,
+                  usage: usage ? extractUsageForTrace(usage) : undefined,
                 });
               }
             },
