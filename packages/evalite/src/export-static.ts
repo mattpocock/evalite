@@ -165,6 +165,7 @@ export const exportCommand = async (opts: {
   basePath?: string;
   cwd: string;
   storage: Evalite.Storage;
+  disableServer?: boolean;
 }) => {
   // Check if storage has any runs
   const existingRuns = await opts.storage.runs.getMany({ limit: 1 });
@@ -184,7 +185,7 @@ export const exportCommand = async (opts: {
       cwd: opts.cwd,
       mode: "run-once",
       storage: opts.storage,
-      disableServer: true,
+      disableServer: opts.disableServer,
     });
   }
 

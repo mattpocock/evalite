@@ -296,6 +296,7 @@ it("Should run evaluations if storage is empty", async () => {
     cwd: fixture.dir,
     storage: fixture.storage,
     outputPath: path.join(fixture.dir, "evalite-export"),
+    disableServer: true,
   });
 
   const exportDir = path.join(fixture.dir, "evalite-export");
@@ -317,6 +318,7 @@ it("Should export evaluations even if the run fails", async () => {
     cwd: fixture.dir,
     storage: fixture.storage,
     outputPath: path.join(fixture.dir, "evalite-export"),
+    disableServer: true,
   });
 
   const exportDir = path.join(fixture.dir, "evalite-export");
@@ -439,6 +441,7 @@ it("Should not hang endlessly", async () => {
     cwd: fixture.dir,
     storage: fixture.storage,
     outputPath: exportDir,
+    disableServer: true,
   });
 
   // Get all the active handles
