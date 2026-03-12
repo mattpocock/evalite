@@ -195,7 +195,7 @@ export declare namespace Evalite {
 
   export type Scorer<TInput, TOutput, TExpected> = (
     opts: ScoreInput<TInput, TOutput, TExpected>
-  ) => MaybePromise<Score>;
+  ) => MaybePromise<Score | Score[]>;
 
   export type DataShape<TInput, TExpected> = {
     input: TInput;
@@ -245,7 +245,11 @@ export declare namespace Evalite {
     description?: string;
     scorer: (
       input: Evalite.ScoreInput<TInput, TOutput, TExpected>
-    ) => Evalite.MaybePromise<number | Evalite.UserProvidedScoreWithMetadata>;
+    ) => Evalite.MaybePromise<
+      | number
+      | Evalite.UserProvidedScoreWithMetadata
+      | Array<number | Evalite.UserProvidedScoreWithMetadata>
+    >;
   };
 
   export interface Trace {

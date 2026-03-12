@@ -16,6 +16,32 @@ it("Should let users create custom scorers", async () => {
   expect(evals.Index![0]?.results[0]?.scores[0]?.score).toBe(1);
 });
 
+it("Should let users return an array of scores from custom scorers", async () => {
+  await using fixture = await loadFixture("custom-scorer-array");
+
+  await fixture.run({
+    mode: "run-once-and-exit",
+  });
+
+  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+  const scores = evals.Index![0]?.results[0]?.scores;
+
+  expect(scores).toHaveLength(4);
+  expect(scores![0]?.name).toBe("Multiple Criteria");
+  expect(scores![0]?.score).toBe(1);
+  expect((scores![0]?.metadata as any)?.criterion).toBe("Is Same");
+
+  expect(scores![1]?.name).toBe("Multiple Criteria");
+  expect(scores![1]?.score).toBe(1);
+  expect((scores![1]?.metadata as any)?.criterion).toBe("Length is 6");
+
+  expect(scores![2]?.name).toBe("Inline Scorer 1");
+  expect(scores![2]?.score).toBe(1);
+
+  expect(scores![3]?.name).toBe("Inline Scorer 2");
+  expect(scores![3]?.score).toBe(0.5);
+});
+
 it("Should fail if the custom scorer does not return a number", async () => {
   const scorer = createScorer<string, string, never>({
     name: "Is Same",
