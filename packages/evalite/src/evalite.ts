@@ -86,23 +86,25 @@ const runTask = async <TInput, TOutput, TExpected, TVariant = undefined>(
   const output = await executeTask(opts.task, opts.input, opts.variant);
   const duration = Math.round(performance.now() - start);
 
-  const scores = await Promise.all(
-    (opts.scorers || []).map(async (scorerOrOpts) => {
-      if (typeof scorerOrOpts === "function") {
-        return scorerOrOpts({
-          input: opts.input,
-          output,
-          expected: opts.expected,
-        });
-      } else {
-        return createScorer(scorerOrOpts)({
-          input: opts.input,
-          output,
-          expected: opts.expected,
-        });
-      }
-    })
-  );
+  const scores = (
+    await Promise.all(
+      (opts.scorers || []).map(async (scorerOrOpts) => {
+        if (typeof scorerOrOpts === "function") {
+          return scorerOrOpts({
+            input: opts.input,
+            output,
+            expected: opts.expected,
+          });
+        } else {
+          return createScorer(scorerOrOpts)({
+            input: opts.input,
+            output,
+            expected: opts.expected,
+          });
+        }
+      })
+    )
+  ).flat();
 
   const columns =
     (await opts.columns?.({
