@@ -47,6 +47,7 @@
     "typescript": "5.6.2"
   },
   "devDependencies": {
+    "@ai-hero/sandcastle": "^0.1.4",
     "@eslint/js": "^9.38.0",
     "eslint": "^9.38.0",
     "globals": "^16.4.0",
