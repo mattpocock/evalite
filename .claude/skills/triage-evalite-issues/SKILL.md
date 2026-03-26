@@ -10,7 +10,7 @@ disable-model-invocation: true
 
 ### 1. Fetch the 20 most recent open issues
 
-!`gh issue list --repo mattpocock/evalite --state open --limit 20 --search "-label:Sandcastle" --json number,title,labels,body,createdAt --jq '.[] | {number, title, labels: [.labels[].name], createdAt, body}'`
+!`gh issue list --repo mattpocock/evalite --state open --limit 20 --search "-label:Sandcastle" --json number,title,labels,body,createdAt,comments --jq '.[] | {number, title, labels: [.labels[].name], createdAt, body, comments: [.comments[] | {author: .author.login, body: .body}]}'`
 
 ### 2. Categorize and prioritize
 
