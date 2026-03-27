@@ -226,8 +226,6 @@ export const runEvalite = async (opts: {
   forceRerunTriggers?: string[];
 }) => {
   const cwd = opts.cwd ?? process.cwd();
-  const filesLocation = path.join(cwd, FILES_LOCATION);
-  await mkdir(filesLocation, { recursive: true });
 
   // Load config file if present
   const config = await loadEvaliteConfig(cwd);
@@ -264,6 +262,12 @@ export const runEvalite = async (opts: {
 
   // Determine cache enabled: opts > config > default (true)
   const cacheEnabled = opts.cacheEnabled ?? config?.cache ?? true;
+
+  // Only create the cache files directory when caching is enabled
+  if (cacheEnabled) {
+    const filesLocation = path.join(cwd, FILES_LOCATION);
+    await mkdir(filesLocation, { recursive: true });
+  }
 
   // Merge setupFiles:
   // 1. Always include env-setup-file first to load .env files
