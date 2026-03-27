@@ -15,7 +15,7 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
   && apt-get update && apt-get install -y gh \
   && rm -rf /var/lib/apt/lists/*
 
-RUN corepack enable
+RUN npm install -g pnpm@9.11.0
 
 # Create a non-root user for Claude to run as
 RUN useradd -m -s /bin/bash agent
