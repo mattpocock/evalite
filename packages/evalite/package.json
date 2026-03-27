@@ -28,8 +28,8 @@
     "./setup-files/*"
   ],
   "scripts": {
-    "dev": "tsc -w",
-    "build": "tsc && chmod +x ./dist/bin.js",
+    "dev": "tsgo -w",
+    "build": "tsgo && chmod +x ./dist/bin.js",
     "test": "vitest run",
     "typecheck": "tsgo"
   },
