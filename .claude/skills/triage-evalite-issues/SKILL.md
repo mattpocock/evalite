@@ -13,7 +13,7 @@ disable-model-invocation: true
 Run this command to fetch issues:
 
 ```bash
-gh issue list --repo mattpocock/evalite --state open --limit 20 --search "-label:Sandcastle" --json number,title,labels,body,createdAt,comments --jq '.[] | {number, title, labels: [.labels[].name], createdAt, body, comments: [.comments[] | {author: .author.login, body: .body}]}'
+gh issue list --repo mattpocock/evalite --state open --limit 20 --search "-label:Sandcastle -label:enhancement" --json number,title,labels,body,createdAt,comments --jq '.[] | {number, title, labels: [.labels[].name], createdAt, body, comments: [.comments[] | {author: .author.login, body: .body}]}'
 ```
 
 ### 2. Categorize and prioritize
@@ -28,6 +28,17 @@ Prioritize bugs over feature requests. Within bugs, prioritize by:
 1. Issues with clear reproduction steps
 2. Issues affecting core functionality (eval execution, scoring, database)
 3. Issues affecting integrations (AI SDK, UI)
+
+### 2a. Categorize Features
+
+For each feature request, add an 'enhancement' label:
+
+```bash
+gh issue edit <number> --repo mattpocock/evalite --add-label "
+enhancement"
+```
+
+Confirm with the user first before labelling, in case they have a different categorization in mind.
 
 ### 3. Present a summary and recommend one issue
 
@@ -48,26 +59,11 @@ Then **recommend the single highest-priority issue** to focus on, with a brief e
 
 Try to reproduce the chosen bug using the evalite test suite. Use the **write-a-test** skill for instructions on how to create fixtures and tests.
 
-Steps:
-
-1. Create a fixture in `packages/evalite-tests/tests/fixtures/issue-<number>/` that replicates the scenario described in the issue
-2. Write a test in `packages/evalite-tests/tests/` that demonstrates the bug
-3. Run the test: `pnpm --filter evalite build && cd packages/evalite-tests && npx vitest run tests/<test-file>.test.ts`
-4. If the test fails in the way the issue describes, the bug is **reproduced**
-
 ### 5. If reproduced
 
 Show the user the reproduction results and proposed comment. **Wait for user approval before commenting or labeling.**
 
-1. **Comment on the issue** with reproduction details:
-
-   ```bash
-   gh issue comment <number> --repo mattpocock/evalite --body "Reproduced this issue. Here's a minimal reproduction:
-
-   <describe the fixture and what the test asserts>
-
-   The test confirms <describe the failure>."
-   ```
+1. **Comment on the issue** with detailed reproduction instructions.
 
    Include code examples and all the details needed for a developer to understand and verify the reproduction.
 
