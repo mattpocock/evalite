@@ -7,7 +7,7 @@
     "build": "vite build",
     "after-build": "rm -rf ../../packages/evalite/dist/ui && cp -r dist ../../packages/evalite/dist/ui",
     "dev": "vite",
-    "typecheck": "tsr generate && tsc --noEmit",
+    "typecheck": "tsr generate && tsgo --noEmit",
     "lint": "eslint .",
     "test": "vitest run"
   },

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vitest -w",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsgo --noEmit"
   },
   "dependencies": {
     "evalite": "workspace:*",

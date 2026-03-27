@@ -31,7 +31,7 @@
     "dev": "tsc -w",
     "build": "tsc && chmod +x ./dist/bin.js",
     "test": "vitest run",
-    "typecheck": "tsc"
+    "typecheck": "tsgo"
   },
   "exports": {
     ".": "./dist/index.js",

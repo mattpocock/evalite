@@ -37,6 +37,7 @@
     "@changesets/cli": "^2.29.7",
     "@total-typescript/tsconfig": "^1.0.4",
     "@types/node": "^22.7.7",
+    "@typescript/native-preview": "^7.0.0-dev.20260327.2",
     "husky": "^9.1.7",
     "prettier": "^3.3.3",
     "tsx": "^4.19.0",
