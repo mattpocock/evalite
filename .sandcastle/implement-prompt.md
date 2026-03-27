@@ -51,10 +51,6 @@ Keep it concise.
 
 # THE ISSUE
 
-If the task is not complete, leave a comment on the GitHub issue with what was done.
-
-If the task is complete, remove the `Sandcastle` label from the issue.
-
 Do not close the issue - this will be done later.
 Do not push the code to the remote.
 
