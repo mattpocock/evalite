@@ -31,7 +31,7 @@ const MAX_PARALLEL_ISSUES = 4;
 // Hooks run inside the sandbox before the agent starts each iteration.
 // pnpm install ensures the sandbox always has fresh dependencies.
 const hooks = {
-  onSandboxReady: [{ command: "pnpm install" }],
+  onSandboxReady: [{ command: "pnpm install && pnpm build" }],
 };
 
 // Copy node_modules from the host into the worktree before each sandbox
