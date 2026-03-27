@@ -2,7 +2,7 @@
 
 Fix issue #{{ISSUE_NUMBER}}: {{ISSUE_TITLE}}
 
-Pull in the issue using `gh issue view`. If it has a parent PRD, pull that in too.
+Pull in the issue using `gh issue view --comments`. If it has a parent PRD, pull that in too.
 
 Only work on the issue specified.
 
@@ -52,6 +52,8 @@ Keep it concise.
 # THE ISSUE
 
 If the task is not complete, leave a comment on the GitHub issue with what was done.
+
+If the task is complete, remove the `Sandcastle` label from the issue.
 
 Do not close the issue - this will be done later.
 
