@@ -1,5 +1,17 @@
 # evalite
 
+## 1.0.0-beta.17
+
+### Minor Changes
+
+- 957fa4b: Added `--threshold` flag to `evalite export` command. When specified, the export process exits with code 1 if scores are below the threshold, matching the behavior of `evalite run`.
+
+### Patch Changes
+
+- 869b566: Fix: Only create cache directory when `cacheEnabled` is true. Previously, the `node_modules/.evalite/files` directory was created unconditionally at startup, before the `cacheEnabled` setting was resolved.
+- ed956bf: Fix suite duration tracking - suites now record wall-clock duration instead of always showing 0
+- 7415082: Handle `reasoning` content type in `wrapAISDKModel` instead of throwing an error. This fixes a crash when using AI SDK v5+ with thinking models (e.g., Anthropic Claude with extended thinking) that include `reasoning` parts in assistant messages.
+
 ## 1.0.0-beta.16
 
 ### Minor Changes
