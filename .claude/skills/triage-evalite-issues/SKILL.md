@@ -13,7 +13,7 @@ disable-model-invocation: true
 Run this command to fetch issues:
 
 ```bash
-gh issue list --repo mattpocock/evalite --state open --limit 20 --search "-label:Sandcastle -label:enhancement" --json number,title,labels,body,createdAt,comments --jq '.[] | {number, title, labels: [.labels[].name], createdAt, body, comments: [.comments[] | {author: .author.login, body: .body}]}'
+gh issue list --repo mattpocock/evalite --state open --limit 20 --search "-label:Sandcastle -label:enhancement -label:triaged" --json number,title,labels,body,createdAt,comments --jq '.[] | {number, title, labels: [.labels[].name], createdAt, body, comments: [.comments[] | {author: .author.login, body: .body}]}'
 ```
 
 ### 2. Categorize and prioritize
