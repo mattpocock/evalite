@@ -6,8 +6,8 @@ import { createSqliteStorage } from "evalite/sqlite-storage";
 import { readdir, readFile } from "node:fs/promises";
 import { Server } from "node:http";
 import path from "node:path";
-import { assert, expect, it } from "vitest";
-import { loadFixture } from "./test-utils.js";
+import { assert, expect, it, vitest } from "vitest";
+import { loadFixture, overrideExit } from "./test-utils.js";
 
 it("Should export all required files and directory structure", async () => {
   await using fixture = await loadFixture("export");
@@ -430,6 +430,80 @@ it("Should calculate summary score correctly in menu-items.json (issue 331)", as
   // Verify summary score is the average of all suite scores (not 0 due to variable shadowing)
   const expectedAverage = (0.5 + 1.0 + 1.0) / 3;
   expect(menuItemsData.score).toBeCloseTo(expectedAverage, 5);
+});
+
+it("Should exit with code 1 when export auto-runs evals that score below threshold (issue 370)", async () => {
+  await using fixture = await loadFixture("threshold");
+
+  const exit = vitest.fn();
+  using _ = overrideExit(exit);
+
+  await exportCommand({
+    cwd: fixture.dir,
+    storage: fixture.storage,
+    outputPath: path.join(fixture.dir, "evalite-export"),
+    disableServer: true,
+    scoreThreshold: 50,
+  });
+
+  // Export should still produce files
+  const dataDir = path.join(fixture.dir, "evalite-export", "data");
+  const dataFiles = await readdir(dataDir);
+  expect(dataFiles).toContain("server-state.json");
+
+  // But process.exit(1) should have been called because score is 20% < 50%
+  expect(exit).toHaveBeenCalledWith(1);
+});
+
+it("Should not exit with code 1 when export auto-runs evals that score at or above threshold (issue 370)", async () => {
+  await using fixture = await loadFixture("threshold");
+
+  const exit = vitest.fn();
+  using _ = overrideExit(exit);
+
+  await exportCommand({
+    cwd: fixture.dir,
+    storage: fixture.storage,
+    outputPath: path.join(fixture.dir, "evalite-export"),
+    disableServer: true,
+    scoreThreshold: 20,
+  });
+
+  // Export should produce files
+  const dataDir = path.join(fixture.dir, "evalite-export", "data");
+  const dataFiles = await readdir(dataDir);
+  expect(dataFiles).toContain("server-state.json");
+
+  // process.exit(1) should NOT have been called because score is 20% >= 20%
+  expect(exit).not.toHaveBeenCalledWith(1);
+});
+
+it("Should exit with code 1 when export with pre-existing data scores below threshold (issue 370)", async () => {
+  await using fixture = await loadFixture("threshold");
+
+  // Pre-run evals to populate storage
+  await fixture.run({
+    mode: "run-once-and-exit",
+  });
+
+  const exit = vitest.fn();
+  using _ = overrideExit(exit);
+
+  await exportCommand({
+    cwd: fixture.dir,
+    storage: fixture.storage,
+    outputPath: path.join(fixture.dir, "evalite-export"),
+    disableServer: true,
+    scoreThreshold: 50,
+  });
+
+  // Export should produce files
+  const dataDir = path.join(fixture.dir, "evalite-export", "data");
+  const dataFiles = await readdir(dataDir);
+  expect(dataFiles).toContain("server-state.json");
+
+  // process.exit(1) should be called because score is 20% < 50%
+  expect(exit).toHaveBeenCalledWith(1);
 });
 
 it("Should not hang endlessly", async () => {
