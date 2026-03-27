@@ -313,11 +313,14 @@ export class EvaliteRunner {
 
               // Update the eval status and duration
               if (isSuiteComplete) {
+                const duration =
+                  Date.now() - new Date(suite.created_at).getTime();
                 await this.opts.storage.suites.update({
                   id: suite.id,
                   status: allEvals.some((e) => e.status === "fail")
                     ? "fail"
                     : "success",
+                  duration,
                 });
               }
 

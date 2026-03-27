@@ -381,19 +381,22 @@ export class SqliteStorage implements Evalite.Storage {
   private updateSuiteStatus({
     suiteId,
     status,
+    duration,
   }: {
     suiteId: number | bigint;
     status: Evalite.Storage.Entities.SuiteStatus;
+    duration?: number;
   }): Evalite.Storage.Entities.Suite {
     this.db
       .prepare(
         `UPDATE ${tableNames.suites}
-       SET status = @status
+       SET status = @status, duration = COALESCE(@duration, duration)
        WHERE id = @id`
       )
       .run({
         id: suiteId,
         status,
+        duration: duration ?? null,
       });
 
     return this.db
@@ -482,6 +485,7 @@ export class SqliteStorage implements Evalite.Storage {
       return this.updateSuiteStatus({
         suiteId: opts.id,
         status: opts.status,
+        duration: opts.duration,
       });
     },
 

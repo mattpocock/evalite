@@ -683,6 +683,7 @@ export declare namespace Evalite {
       export interface UpdateOpts {
         id: number;
         status: Entities.SuiteStatus;
+        duration?: number;
       }
 
       export interface GetManyOpts {

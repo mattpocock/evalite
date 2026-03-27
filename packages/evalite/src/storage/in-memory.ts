@@ -113,7 +113,7 @@ export class InMemoryStorage implements Evalite.Storage {
       const updated = {
         ...suite,
         status: opts.status,
-        duration: 0,
+        duration: opts.duration ?? suite.duration,
       };
 
       this.suitesStore.set(opts.id, updated);
