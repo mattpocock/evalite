@@ -69,6 +69,7 @@ export const createProgram = (commands: {
     output: string | undefined;
     runId: number | undefined;
     basePath: string | undefined;
+    threshold: number | undefined;
   }) => void;
 }) => {
   const runOnce = buildCommand({
@@ -147,17 +148,26 @@ export const createProgram = (commands: {
             "Base path for hosting at non-root URLs (default: /). Must start with /",
           optional: true,
         },
+        threshold: {
+          kind: "parsed",
+          parse: parseFloat,
+          brief:
+            "Fails the process if the score is below threshold. Specified as 0-100.",
+          optional: true,
+        },
       },
     },
     func: (flags: {
       output: string | undefined;
       runId: number | undefined;
       basePath: string | undefined;
+      threshold: number | undefined;
     }) => {
       return commands.export({
         output: flags.output,
         runId: flags.runId,
         basePath: flags.basePath,
+        threshold: flags.threshold,
       });
     },
     docs: {
@@ -241,6 +251,7 @@ export const program = createProgram({
       outputPath: opts.output ?? "./evalite-export",
       runId: opts.runId,
       basePath: opts.basePath,
+      scoreThreshold: opts.threshold,
     });
   },
 });

@@ -166,6 +166,7 @@ export const exportCommand = async (opts: {
   cwd: string;
   storage: Evalite.Storage;
   disableServer?: boolean;
+  scoreThreshold?: number;
 }) => {
   // Check if storage has any runs
   const existingRuns = await opts.storage.runs.getMany({ limit: 1 });
@@ -186,6 +187,7 @@ export const exportCommand = async (opts: {
       mode: "run-once",
       storage: opts.storage,
       disableServer: opts.disableServer,
+      scoreThreshold: opts.scoreThreshold,
     });
   }
 
@@ -195,6 +197,35 @@ export const exportCommand = async (opts: {
     runId: opts.runId,
     basePath: opts.basePath,
   });
+
+  // Check threshold after export
+  if (typeof opts.scoreThreshold === "number") {
+    const run = opts.runId
+      ? (await opts.storage.runs.getMany({ ids: [opts.runId] }))[0]
+      : (await opts.storage.runs.getMany({ runType: "full", limit: 1 }))[0];
+
+    if (run) {
+      const suites = await opts.storage.suites.getMany({
+        runIds: [run.id],
+        statuses: ["success", "fail"],
+      });
+      const allEvals = await opts.storage.evals.getMany({
+        suiteIds: suites.map((s) => s.id),
+      });
+      const allScores = await opts.storage.scores.getMany({
+        evalIds: allEvals.map((e) => e.id),
+      });
+
+      const averageScore =
+        allScores.length > 0
+          ? allScores.reduce((sum, s) => sum + s.score, 0) / allScores.length
+          : null;
+
+      if (averageScore === null || averageScore * 100 < opts.scoreThreshold) {
+        process.exit(1);
+      }
+    }
+  }
 };
 
 /**
