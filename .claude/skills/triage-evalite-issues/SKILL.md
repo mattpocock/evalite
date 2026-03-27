@@ -18,6 +18,10 @@ Run this command to fetch issues:
 gh issue list --state open --limit 20 --search "-label:Sandcastle -label:enhancement -label:triaged" --json number,title,labels,body,createdAt,comments --jq '.[] | {number, title, labels: [.labels[].name], createdAt, body, comments: [.comments[] | {author: .author.login, body: .body}]}'
 ```
 
+Issues labelled with `triage` have been triaged but cannot be worked on.
+Issues labelled with `Sandcastle` have been triaged and reproduced, and will be picked up by the agent to work on.
+Issues labelled with `enhancement` are feature requests, not bugs.
+
 ### 2. Categorize and prioritize
 
 Read each issue and categorize it as one of:
