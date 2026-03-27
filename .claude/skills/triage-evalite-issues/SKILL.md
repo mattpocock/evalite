@@ -1,10 +1,12 @@
 ---
 name: triage-evalite-issues
-description: Triage open GitHub issues for mattpocock/evalite. Fetches the 20 most recent issues, prioritizes bugs, recommends one to focus on, then attempts reproduction and labeling. Use when triaging issues, reviewing the backlog, or deciding what to work on next.
+description: Triage open GitHub issues for this repo. Fetches the 20 most recent issues, prioritizes bugs, recommends one to focus on, then attempts reproduction and labeling. Use when triaging issues, reviewing the backlog, or deciding what to work on next.
 disable-model-invocation: true
 ---
 
 # Triage Evalite Issues
+
+This skill triages open GitHub issues for this repo. It does not do implementation, only reproduction and labeling for triage purposes.
 
 ## Workflow
 
@@ -13,7 +15,7 @@ disable-model-invocation: true
 Run this command to fetch issues:
 
 ```bash
-gh issue list --repo mattpocock/evalite --state open --limit 20 --search "-label:Sandcastle -label:enhancement -label:triaged" --json number,title,labels,body,createdAt,comments --jq '.[] | {number, title, labels: [.labels[].name], createdAt, body, comments: [.comments[] | {author: .author.login, body: .body}]}'
+gh issue list --state open --limit 20 --search "-label:Sandcastle -label:enhancement -label:triaged" --json number,title,labels,body,createdAt,comments --jq '.[] | {number, title, labels: [.labels[].name], createdAt, body, comments: [.comments[] | {author: .author.login, body: .body}]}'
 ```
 
 ### 2. Categorize and prioritize
@@ -78,6 +80,10 @@ Show the user the reproduction results and proposed comment. **Wait for user app
 ### 6. If not reproduced
 
 Report what was tried and why it didn't reproduce. Do not comment on the issue or add labels. Ask the user if they want to pick a different issue from the list.
+
+### 7. Next steps
+
+Once the triage is complete, immediately recommend the next issue to focus on based on the prioritization.
 
 ## Important notes
 
