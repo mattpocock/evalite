@@ -6,7 +6,7 @@ Integrate Evalite into CI/CD pipelines to validate LLM-powered features automati
 
 ## Static UI Export
 
-Export eval results as a static HTML bundle for viewing in CI artifacts without running a live server.
+Export eval results as a static HTML bundle for viewing via any static file server or CI artifact viewer.
 
 ### Basic Usage
 
@@ -42,7 +42,7 @@ Use when hosting at subpaths (e.g., S3/CloudFront with path-based URLs). The bas
 
 Generated bundle contains:
 
-- `index.html` - Standalone UI (works without server)
+- `index.html` - UI entry point (requires a static file server)
 - `data/*.json` - Pre-computed API responses
 - `files/*` - Images, audio, etc. from eval results
 - `assets/*` - UI JavaScript/CSS
