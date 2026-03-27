@@ -10,7 +10,7 @@ import { getCacheContext, generateCacheKey } from "./cache.js";
 
 const handlePromptContent = (
   content: LanguageModelV3CallOptions["prompt"][number]["content"][number]
-): unknown => {
+): unknown | null => {
   if (typeof content === "string") {
     return {
       type: "text" as const,
@@ -42,10 +42,8 @@ const handlePromptContent = (
     };
   }
 
-  // Unsupported content types (file, reasoning, tool-approval-response, etc.)
-  throw new Error(
-    `Unsupported content type: ${content.type}. Not supported yet.`
-  );
+  // Skip unsupported content types (reasoning, file, tool-approval-response, etc.)
+  return null;
 };
 
 const processPromptForTracing = (
@@ -59,7 +57,7 @@ const processPromptForTracing = (
       };
     }
 
-    const content = prompt.content.map(handlePromptContent);
+    const content = prompt.content.map(handlePromptContent).filter(Boolean);
 
     return {
       role: prompt.role,
