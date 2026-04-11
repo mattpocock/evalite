@@ -1,0 +1,174 @@
+---
+title: Storage
+---
+
+import { Steps } from "@astrojs/starlight/components";
+
+By default, Evalite persists results to a local SQLite database at `.evalite/cache.sqlite`. This works well for individual development, but you may want to use a different storage backend for team-wide visibility or CI/CD persistence.
+
+## Available Adapters
+
+Evalite ships with three storage adapters:
+
+- **SQLite** (default) — local file-based storage, zero configuration
+- **InMemory** — ephemeral storage for testing, results are discarded on exit
+- **Postgres** — persist results to a PostgreSQL database for shared, durable storage
+
+## Postgres Storage
+
+Use Postgres storage when you want eval results accessible across machines, CI runs, or team members.
+
+<Steps>
+
+1. **Install the `postgres` package**
+
+   Evalite uses [postgres.js](https://github.com/porsager/postgres) as its Postgres client. Install it as a peer dependency:
+
+   ```bash
+   npm install postgres
+   ```
+
+2. **Create the database schema**
+
+   Evalite does not auto-create tables. Run the following DDL against your database to set up the required schema:
+
+   ```sql
+   CREATE SCHEMA IF NOT EXISTS evals;
+
+   CREATE TABLE evals.runs (
+       id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+       run_type TEXT NOT NULL CHECK (run_type IN ('full', 'partial')),
+       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+   );
+
+   CREATE TABLE evals.evaluations (
+       id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+       run_id INTEGER NOT NULL REFERENCES evals.runs(id) ON DELETE CASCADE,
+       name TEXT NOT NULL,
+       filepath TEXT NOT NULL,
+       status TEXT NOT NULL DEFAULT 'running'
+           CHECK (status IN ('running', 'success', 'fail')),
+       duration INTEGER NOT NULL DEFAULT 0,
+       variant_name TEXT,
+       variant_group TEXT,
+       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+   );
+
+   CREATE TABLE evals.results (
+       id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+       eval_id INTEGER NOT NULL REFERENCES evals.evaluations(id) ON DELETE CASCADE,
+       duration INTEGER NOT NULL,
+       input JSONB,
+       output JSONB,
+       expected JSONB,
+       col_order INTEGER NOT NULL,
+       status TEXT NOT NULL DEFAULT 'success',
+       rendered_columns JSONB,
+       trial_index INTEGER,
+       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+   );
+
+   CREATE TABLE evals.scores (
+       id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+       result_id INTEGER NOT NULL REFERENCES evals.results(id) ON DELETE CASCADE,
+       name TEXT NOT NULL,
+       score DOUBLE PRECISION NOT NULL,
+       description TEXT,
+       metadata JSONB,
+       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+   );
+
+   CREATE TABLE evals.traces (
+       id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+       result_id INTEGER NOT NULL REFERENCES evals.results(id) ON DELETE CASCADE,
+       input JSONB NOT NULL,
+       output JSONB NOT NULL,
+       start_time BIGINT NOT NULL,
+       end_time BIGINT NOT NULL,
+       input_tokens INTEGER,
+       output_tokens INTEGER,
+       total_tokens INTEGER,
+       col_order INTEGER NOT NULL
+   );
+   ```
+
+   You can customize the schema name and evaluations table name via the adapter options.
+
+3. **Configure `evalite.config.ts`**
+
+   ```ts
+   import { defineConfig } from "evalite/config";
+   import { createPostgresStorage } from "evalite/postgres-storage";
+
+   export default defineConfig({
+     storage: () =>
+       createPostgresStorage(process.env.DATABASE_URL!, {
+         schema: "evals", // default
+       }),
+   });
+   ```
+
+   The `storage` option accepts a factory function that returns a storage instance. This is called once when Evalite starts.
+
+</Steps>
+
+### Options
+
+`createPostgresStorage` accepts either a connection string or an options object with individual connection parameters:
+
+```ts
+// Connection string
+createPostgresStorage("postgresql://user:pass@host:5432/db", opts?)
+
+// Individual parameters
+createPostgresStorage({
+  host: "db.example.com",
+  port: 5432,
+  database: "mydb",
+  user: "postgres",
+  password: "secret",
+  ssl: "require",
+  maxConnections: 10,
+  schema: "evals",
+})
+```
+
+**Connection options:**
+
+- **`host`** — database host (default: `"localhost"`)
+- **`port`** — database port (default: `5432`)
+- **`database`** — database name (default: `"postgres"`)
+- **`user`** — database user (default: `"postgres"`)
+- **`password`** — database password
+- **`ssl`** — enable SSL (`true`, `"require"`, or `"prefer"`)
+- **`maxConnections`** — maximum connections in the pool
+
+**Storage options (available in both forms):**
+
+- **`schema`** — Postgres schema to use (default: `"evals"`)
+- **`evaluationsTable`** — table name for evaluations (default: `"evaluations"`)
+
+### Loading Environment Variables
+
+Since the `storage` factory runs at config load time (before Vitest setup files), you need to load environment variables directly in the config file:
+
+```ts
+import "dotenv/config";
+import { defineConfig } from "evalite/config";
+import { createPostgresStorage } from "evalite/postgres-storage";
+
+export default defineConfig({
+  storage: () =>
+    createPostgresStorage(process.env.DATABASE_URL!, {
+      schema: "evals",
+    }),
+});
+```
+
+> [!IMPORTANT]
+>
+> The `setupFiles` option loads files for Vitest test workers, not the Evalite CLI process. If your connection string comes from a `.env` file, import `dotenv/config` at the top of `evalite.config.ts`.
+
+## Custom Storage
+
+All storage adapters implement the `Evalite.Storage` interface. You can create your own adapter by implementing this interface. See the [source code](https://github.com/mattpocock/evalite/tree/main/packages/evalite/src/storage) for reference implementations.

@@ -45,7 +45,16 @@
     "./runner": "./dist/run-evalite.js",
     "./export-static": "./dist/export-static.js",
     "./sqlite-storage": "./dist/storage/sqlite.js",
-    "./in-memory-storage": "./dist/storage/in-memory.js"
+    "./in-memory-storage": "./dist/storage/in-memory.js",
+    "./postgres-storage": "./dist/storage/postgres.js"
+  },
+  "peerDependencies": {
+    "postgres": "^3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "postgres": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@ai-sdk/provider": "^2.0.0",

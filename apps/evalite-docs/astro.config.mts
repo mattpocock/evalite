@@ -131,6 +131,10 @@ export default defineConfig({
               slug: "guides/configuration",
             },
             {
+              label: "Storage",
+              slug: "guides/storage",
+            },
+            {
               label: "Streams",
               slug: "guides/streams",
             },

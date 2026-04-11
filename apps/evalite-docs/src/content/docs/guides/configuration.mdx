@@ -34,6 +34,7 @@ export default defineConfig({
 - **`server.port`**: Port for the Evalite UI server. Default is 3006.
 - **`trialCount`**: Number of times to run each test case. Default is 1. Useful for measuring variance in non-deterministic evaluations.
 - **`setupFiles`**: Array of file paths to run before tests (e.g., for loading environment variables).
+- **`storage`**: Factory function returning a storage adapter. Defaults to local SQLite. See the [Storage guide](/guides/storage/) for Postgres and other options.
 
 ## Important Configuration Options
 
