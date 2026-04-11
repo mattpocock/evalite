@@ -17,6 +17,20 @@ type PostgresStorageOpts = {
   schema?: string;
   /** Table name for evaluations (default: 'evaluations') */
   evaluationsTable?: string;
+  /** Host to connect to (alternative to connection string) */
+  host?: string;
+  /** Port to connect to (default: 5432) */
+  port?: number;
+  /** Database name */
+  database?: string;
+  /** Database user */
+  user?: string;
+  /** Database password */
+  password?: string;
+  /** Enable SSL connection */
+  ssl?: boolean | "require" | "prefer";
+  /** Maximum number of connections in the pool */
+  maxConnections?: number;
 };
 
 export class PostgresStorage implements Evalite.Storage {
@@ -461,11 +475,13 @@ export class PostgresStorage implements Evalite.Storage {
 /**
  * Create a new Postgres storage backend for evalite.
  *
- * @param connectionString - Postgres connection string (e.g. postgresql://user:pass@host:5432/db)
- * @param opts - Optional configuration (schema, table names)
+ * Accepts either a connection string or individual connection parameters via opts.
+ *
+ * @param connectionStringOrOpts - Postgres connection string, or opts object with connection params
+ * @param opts - Optional configuration when using a connection string
  * @returns A new PostgresStorage instance
  *
- * @example
+ * @example Connection string
  * ```ts
  * import { createPostgresStorage } from "evalite/postgres-storage";
  *
@@ -475,16 +491,60 @@ export class PostgresStorage implements Evalite.Storage {
  *   }),
  * });
  * ```
+ *
+ * @example Individual parameters
+ * ```ts
+ * import { createPostgresStorage } from "evalite/postgres-storage";
+ *
+ * export default defineConfig({
+ *   storage: () => createPostgresStorage({
+ *     host: "db.example.com",
+ *     port: 5432,
+ *     database: "mydb",
+ *     user: "postgres",
+ *     password: "secret",
+ *     ssl: "require",
+ *     maxConnections: 10,
+ *     schema: "evals",
+ *   }),
+ * });
+ * ```
  */
 export const createPostgresStorage = async (
-  connectionString: string,
+  connectionStringOrOpts: string | PostgresStorageOpts,
   opts?: PostgresStorageOpts
 ): Promise<PostgresStorage> => {
   const pgModule = await import("postgres");
   const pg = pgModule.default;
-  const schema = opts?.schema ?? "evals";
-  const sql = pg(connectionString, {
+
+  const resolvedOpts =
+    typeof connectionStringOrOpts === "string" ? opts : connectionStringOrOpts;
+  const schema = resolvedOpts?.schema ?? "evals";
+  const pgOpts: Record<string, unknown> = {
     connection: { search_path: `${schema},public` },
-  });
-  return PostgresStorage.create(sql, opts);
+  };
+
+  if (resolvedOpts?.maxConnections) {
+    pgOpts.max = resolvedOpts.maxConnections;
+  }
+  if (resolvedOpts?.ssl !== undefined) {
+    pgOpts.ssl = resolvedOpts.ssl;
+  }
+
+  let sql: Sql;
+  if (typeof connectionStringOrOpts === "string") {
+    sql = pg(connectionStringOrOpts, pgOpts);
+  } else {
+    // Build a connection string from individual params
+    const host = resolvedOpts?.host ?? "localhost";
+    const port = resolvedOpts?.port ?? 5432;
+    const user = resolvedOpts?.user ?? "postgres";
+    const password = resolvedOpts?.password;
+    const database = resolvedOpts?.database ?? "postgres";
+    const auth = password ? `${user}:${password}` : user;
+    const connString = `postgresql://${auth}@${host}:${port}/${database}`;
+    sql = pg(connString, pgOpts);
+  }
+
+  return PostgresStorage.create(sql, resolvedOpts);
 };
