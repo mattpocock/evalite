@@ -22,6 +22,18 @@ const ADAPTERS_TO_TEST: StorageTestFactory[] = [
   },
 ];
 
+// Conditionally add Postgres adapter when a connection string is available
+if (process.env.EVALITE_TEST_POSTGRES_URL) {
+  const { createPostgresStorage } = await import("./postgres.js");
+  ADAPTERS_TO_TEST.push({
+    name: "PostgresStorage",
+    factory: async () =>
+      createPostgresStorage(process.env.EVALITE_TEST_POSTGRES_URL!, {
+        schema: "evals_test",
+      }),
+  });
+}
+
 /**
  * Test utility that runs the same test suite against all registered storage.
  * Each test will be run with `it.each` for every storage in ADAPTERS_TO_TEST.
