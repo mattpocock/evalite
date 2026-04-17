@@ -55,7 +55,7 @@
     "@stricli/core": "^1.2.0",
     "@vitest/runner": "^4.0.0",
     "@vitest/utils": "^4.0.1",
-    "better-sqlite3": "^11.6.0",
+    "better-sqlite3": "^12.9.0",
     "fastify": "^5.6.1",
     "file-type": "^19.6.0",
     "jiti": "^2.6.1",
