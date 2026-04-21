@@ -409,6 +409,10 @@ const TraceMenuItem = (props: {
         name: props.name,
         evalIndex: props.evalIndex,
       }}
+      search={(prev) => ({
+        ...prev,
+        trace: props.traceIndex,
+      })}
       className={
         "px-3 py-2 hover:bg-foreground/10 transition-colors border-l-4"
       }
