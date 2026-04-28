@@ -168,7 +168,7 @@ const exportResultsToJSON = async (opts: {
  * watch mode, score thresholds, and result exporting.
  *
  * @param opts - Configuration options for running evaluations
- * @param opts.path - Optional path filter to run specific eval files (defaults to undefined, which runs all evals)
+ * @param opts.paths - Optional array of path filters to run specific eval files (defaults to undefined, which runs all evals)
  * @param opts.cwd - Working directory (defaults to process.cwd())
  * @param opts.testOutputWritable - Optional writable stream for test output
  * @param opts.mode - Execution mode: "watch-for-file-changes", "run-once-and-exit", "run-once-and-serve", or "run-once"
@@ -198,16 +198,16 @@ const exportResultsToJSON = async (opts: {
  *   forceRerunTriggers: ["src/**\/*.ts", "prompts/**\/*"]
  * });
  *
- * // Run specific eval file with custom working directory
+ * // Run specific eval files with custom working directory
  * await runEvalite({
- *   path: "tests/my-eval.eval.ts",
+ *   paths: ["tests/my-eval.eval.ts", "tests/other.eval.ts"],
  *   cwd: "/path/to/project",
  *   mode: "run-once-and-exit"
  * });
  * ```
  */
 export const runEvalite = async (opts: {
-  path?: string | undefined;
+  paths?: string[];
   cwd?: string | undefined;
   testOutputWritable?: Writable;
   mode: Evalite.RunMode;
@@ -282,7 +282,7 @@ export const runEvalite = async (opts: {
       ? opts.forceRerunTriggers
       : config?.forceRerunTriggers) ?? configDefaults.forceRerunTriggers;
 
-  const filters = opts.path ? [opts.path] : undefined;
+  const filters = opts.paths?.length ? opts.paths : undefined;
   process.env.EVALITE_REPORT_TRACES = "true";
 
   let server: ReturnType<typeof createServer> | undefined = undefined;

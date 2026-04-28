@@ -21,7 +21,11 @@ describe("createCommand", () => {
 
     expect(runOnceAtPath).toHaveBeenCalled();
     expect(runOnceAtPath).toHaveBeenCalledWith({
-      path: undefined,
+      paths: [],
+      threshold: undefined,
+      outputPath: undefined,
+      hideTable: undefined,
+      noCache: undefined,
     });
   });
 
@@ -41,7 +45,35 @@ describe("createCommand", () => {
 
     expect(watch).not.toHaveBeenCalled();
     expect(runOnceAtPath).toHaveBeenCalledWith({
-      path: "./src",
+      paths: ["./src"],
+      threshold: undefined,
+      outputPath: undefined,
+      hideTable: undefined,
+      noCache: undefined,
+    });
+  });
+
+  it("evalite with multiple paths", async () => {
+    const watch = vitest.fn();
+    const runOnceAtPath = vitest.fn();
+    const exportFn = vitest.fn();
+    const serveFn = vitest.fn();
+    const program = createProgram({
+      watch,
+      runOnceAtPath,
+      export: exportFn,
+      serve: serveFn,
+    });
+
+    await run(program, ["./src/a.eval.ts", "./src/b.eval.ts"], { process });
+
+    expect(watch).not.toHaveBeenCalled();
+    expect(runOnceAtPath).toHaveBeenCalledWith({
+      paths: ["./src/a.eval.ts", "./src/b.eval.ts"],
+      threshold: undefined,
+      outputPath: undefined,
+      hideTable: undefined,
+      noCache: undefined,
     });
   });
 
@@ -60,7 +92,11 @@ describe("createCommand", () => {
     await run(program, ["watch"], { process });
 
     expect(watch).toHaveBeenCalledWith({
-      path: undefined,
+      paths: [],
+      threshold: undefined,
+      outputPath: undefined,
+      hideTable: undefined,
+      noCache: undefined,
     });
     expect(runOnceAtPath).not.toHaveBeenCalled();
   });
@@ -80,7 +116,37 @@ describe("createCommand", () => {
     await run(program, ["watch", "./src"], { process });
 
     expect(watch).toHaveBeenCalledWith({
-      path: "./src",
+      paths: ["./src"],
+      threshold: undefined,
+      outputPath: undefined,
+      hideTable: undefined,
+      noCache: undefined,
+    });
+    expect(runOnceAtPath).not.toHaveBeenCalled();
+  });
+
+  it("evalite watch with multiple paths", async () => {
+    const watch = vitest.fn();
+    const runOnceAtPath = vitest.fn();
+    const exportFn = vitest.fn();
+    const serveFn = vitest.fn();
+    const program = createProgram({
+      watch,
+      runOnceAtPath,
+      export: exportFn,
+      serve: serveFn,
+    });
+
+    await run(program, ["watch", "./src/a.eval.ts", "./src/b.eval.ts"], {
+      process,
+    });
+
+    expect(watch).toHaveBeenCalledWith({
+      paths: ["./src/a.eval.ts", "./src/b.eval.ts"],
+      threshold: undefined,
+      outputPath: undefined,
+      hideTable: undefined,
+      noCache: undefined,
     });
     expect(runOnceAtPath).not.toHaveBeenCalled();
   });
@@ -101,8 +167,11 @@ describe("createCommand", () => {
 
     expect(watch).not.toHaveBeenCalled();
     expect(runOnceAtPath).toHaveBeenCalledWith({
-      path: undefined,
+      paths: [],
       threshold: 50,
+      outputPath: undefined,
+      hideTable: undefined,
+      noCache: undefined,
     });
   });
 
@@ -121,8 +190,11 @@ describe("createCommand", () => {
     await run(program, ["watch", "--threshold=50"], { process });
 
     expect(watch).toHaveBeenCalledWith({
-      path: undefined,
+      paths: [],
       threshold: 50,
+      outputPath: undefined,
+      hideTable: undefined,
+      noCache: undefined,
     });
     expect(runOnceAtPath).not.toHaveBeenCalled();
   });
@@ -163,8 +235,11 @@ describe("createCommand", () => {
 
     expect(watch).not.toHaveBeenCalled();
     expect(runOnceAtPath).toHaveBeenCalledWith({
-      path: undefined,
+      paths: [],
       outputPath: "results.json",
+      threshold: undefined,
+      hideTable: undefined,
+      noCache: undefined,
     });
   });
 
@@ -183,9 +258,11 @@ describe("createCommand", () => {
     await run(program, ["serve"], { process });
 
     expect(serveFn).toHaveBeenCalledWith({
-      path: undefined,
+      paths: [],
       threshold: undefined,
       outputPath: undefined,
+      hideTable: undefined,
+      noCache: undefined,
     });
     expect(watch).not.toHaveBeenCalled();
     expect(runOnceAtPath).not.toHaveBeenCalled();
@@ -206,9 +283,11 @@ describe("createCommand", () => {
     await run(program, ["serve", "./src"], { process });
 
     expect(serveFn).toHaveBeenCalledWith({
-      path: "./src",
+      paths: ["./src"],
       threshold: undefined,
       outputPath: undefined,
+      hideTable: undefined,
+      noCache: undefined,
     });
     expect(watch).not.toHaveBeenCalled();
     expect(runOnceAtPath).not.toHaveBeenCalled();
