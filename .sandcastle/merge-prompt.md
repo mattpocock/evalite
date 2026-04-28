@@ -15,7 +15,7 @@ After all branches are merged, make a single commit summarizing the merge.
 
 # CLOSE ISSUES
 
-For each branch that was merged, remove the issue's `Sandcastle` label, and comment on the issue saying what was done.
+For each branch that was merged, remove the issue's `ready-for-agent` label, and comment on the issue saying what was done.
 
 {{ISSUES}}
 
