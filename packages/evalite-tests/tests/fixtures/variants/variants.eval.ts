@@ -1,5 +1,4 @@
 import { evalite } from "evalite";
-import { Levenshtein } from "autoevals";
 
 evalite.each([
   { name: "Variant A", input: { suffix: "a" } },
@@ -17,5 +16,10 @@ evalite.each([
   task: async (input, variant) => {
     return `output-${variant.suffix}`;
   },
-  scorers: [Levenshtein],
+  scorers: [
+    {
+      name: "Pass",
+      scorer: () => ({ score: 1 }),
+    },
+  ],
 });

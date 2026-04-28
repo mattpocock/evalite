@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
+import { getSuitesAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Terminal output should contain '-' instead of '0%' or '100%'", async () => {
   await using fixture = await loadFixture("no-scorers");
@@ -25,12 +25,12 @@ it("DB should have empty scores array", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
 
   expect(evals["No Scorers"]).toBeDefined();
-  expect(evals["No Scorers"]?.[0]?.results).toBeDefined();
-  expect(evals["No Scorers"]?.[0]?.results[0]?.scores).toEqual([]);
-  expect(evals["No Scorers"]?.[0]?.results[1]?.scores).toEqual([]);
+  expect(evals["No Scorers"]?.[0]?.evals).toBeDefined();
+  expect(evals["No Scorers"]?.[0]?.evals[0]?.scores).toEqual([]);
+  expect(evals["No Scorers"]?.[0]?.evals[1]?.scores).toEqual([]);
 });
 
 it("Score display should show '-' in summary", async () => {

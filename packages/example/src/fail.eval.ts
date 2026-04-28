@@ -1,4 +1,3 @@
-import { Factuality, Levenshtein } from "autoevals";
 import { evalite } from "evalite";
 import { setTimeout } from "node:timers/promises";
 

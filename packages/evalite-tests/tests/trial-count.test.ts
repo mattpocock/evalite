@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { getEvalsAsRecordViaStorage, loadFixture } from "./test-utils.js";
+import { getSuitesAsRecordViaStorage, loadFixture } from "./test-utils.js";
 
 it("Should create N results per data point when trialCount is set", async () => {
   await using fixture = await loadFixture("trial-count");
@@ -8,8 +8,8 @@ it("Should create N results per data point when trialCount is set", async () => 
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
-  const results = evals["Trial Count Test"]?.[0]?.results;
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
+  const results = evals["Trial Count Test"]?.[0]?.evals;
 
   // 2 data points × 3 trials = 6 results
   expect(results).toHaveLength(6);
@@ -22,8 +22,8 @@ it("Should assign unique col_order to each trial", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
-  const results = evals["Trial Count Test"]?.[0]?.results || [];
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
+  const results = evals["Trial Count Test"]?.[0]?.evals || [];
 
   // All col_order values should be unique
   const colOrders = results.map((r) => r.col_order);
@@ -41,8 +41,8 @@ it("Should store trial_index correctly", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
-  const results = evals["Trial Count Test"]?.[0]?.results || [];
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
+  const results = evals["Trial Count Test"]?.[0]?.evals || [];
 
   // Group results by input
   const resultsByInput: Record<string, typeof results> = {};
@@ -72,8 +72,8 @@ it("Should respect trialCount from config", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
-  const results = evals["Config Trial Count"]?.[0]?.results;
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
+  const results = evals["Config Trial Count"]?.[0]?.evals;
 
   // 1 data point × 5 trials (from config) = 5 results
   expect(results).toHaveLength(5);
@@ -89,8 +89,8 @@ it("Should let eval-level trialCount override config-level", async () => {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
-  const results = evals["Precedence Test"]?.[0]?.results;
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
+  const results = evals["Precedence Test"]?.[0]?.evals;
 
   // 1 data point × 4 trials (from eval opts, overriding config's 2) = 4 results
   expect(results).toHaveLength(4);
@@ -124,7 +124,7 @@ evalite.skip("Skipped Trial Test", {
     mode: "run-once-and-exit",
   });
 
-  const evals = await getEvalsAsRecordViaStorage(fixture.storage);
+  const evals = await getSuitesAsRecordViaStorage(fixture.storage);
 
   // Skipped eval should not create any results
   expect(evals["Skipped Trial Test"]).toBeUndefined();

@@ -1,0 +1,6 @@
+{
+  "extends": "@total-typescript/tsconfig/tsc/no-dom/library",
+  "compilerOptions": {
+    "noEmit": true
+  }
+}

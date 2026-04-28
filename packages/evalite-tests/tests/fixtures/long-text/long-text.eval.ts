@@ -1,5 +1,4 @@
 import { evalite } from "evalite";
-import { Levenshtein } from "autoevals";
 
 evalite("Long Text", {
   data: () => {
@@ -27,5 +26,10 @@ evalite("Long Text", {
   task: (input) => {
     return input;
   },
-  scorers: [Levenshtein],
+  scorers: [
+    {
+      name: "Pass",
+      scorer: () => ({ score: 1 }),
+    },
+  ],
 });

@@ -1,7 +1,6 @@
 import { notFound } from "@tanstack/react-router";
 import type { Evalite } from "evalite/types";
-
-const BASE_URL = window.location.origin;
+import { BASE_URL } from "./constants";
 
 declare global {
   interface Window {
@@ -106,49 +105,49 @@ export const getMenuItems = async (fetchOpts?: {
   );
 };
 
-export const getEvalByName = async (
+export const getSuiteByName = async (
   name: string,
   timestamp: string | null | undefined,
   fetchOpts?: { signal?: AbortSignal }
-): Promise<Evalite.SDK.GetEvalByNameResult> => {
+): Promise<Evalite.SDK.GetSuiteByNameResult> => {
   if (isStaticMode()) {
     const sanitized = sanitizeFilename(name);
-    return safeFetch<Evalite.SDK.GetEvalByNameResult>(
-      prefixPath(`/data/eval-${sanitized}.json`),
+    return safeFetch<Evalite.SDK.GetSuiteByNameResult>(
+      prefixPath(`/data/suite-${sanitized}.json`),
       fetchOpts
     );
   }
 
   const params = new URLSearchParams({ name, timestamp: timestamp || "" });
-  return safeFetch<Evalite.SDK.GetEvalByNameResult>(
-    `${BASE_URL}/api/eval?${params.toString()}`,
+  return safeFetch<Evalite.SDK.GetSuiteByNameResult>(
+    `${BASE_URL}/api/suite?${params.toString()}`,
     fetchOpts
   );
 };
 
-export const getResult = async (
+export const getEval = async (
   opts: {
-    evalName: string;
-    evalTimestamp: string | null | undefined;
-    resultIndex: string;
+    suiteName: string;
+    suiteTimestamp: string | null | undefined;
+    evalIndex: string;
   },
   fetchOpts?: { signal?: AbortSignal }
-): Promise<Evalite.SDK.GetResultResult> => {
+): Promise<Evalite.SDK.GetEvalResult> => {
   if (isStaticMode()) {
-    const sanitized = sanitizeFilename(opts.evalName);
-    return safeFetch<Evalite.SDK.GetResultResult>(
-      prefixPath(`/data/result-${sanitized}-${opts.resultIndex}.json`),
+    const sanitized = sanitizeFilename(opts.suiteName);
+    return safeFetch<Evalite.SDK.GetEvalResult>(
+      prefixPath(`/data/eval-${sanitized}-${opts.evalIndex}.json`),
       fetchOpts
     );
   }
 
   const params = new URLSearchParams({
-    name: opts.evalName,
-    index: opts.resultIndex,
-    timestamp: opts.evalTimestamp || "",
+    name: opts.suiteName,
+    index: opts.evalIndex,
+    timestamp: opts.suiteTimestamp || "",
   });
-  return safeFetch<Evalite.SDK.GetResultResult>(
-    `${BASE_URL}/api/eval/result?${params.toString()}`,
+  return safeFetch<Evalite.SDK.GetEvalResult>(
+    `${BASE_URL}/api/suite/eval?${params.toString()}`,
     fetchOpts
   );
 };
@@ -165,4 +164,30 @@ export const downloadFile = (filepath: string) => {
     return prefixPath(`/files/${filepath}`);
   }
   return `${BASE_URL}/api/file?path=${filepath}&download=true`;
+};
+
+export const triggerRerun = async (): Promise<{
+  success: boolean;
+  error?: string;
+}> => {
+  try {
+    const response = await fetch(`${BASE_URL}/api/rerun`, {
+      method: "POST",
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: data.error || `Request failed with status ${response.status}`,
+      };
+    }
+
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
 };

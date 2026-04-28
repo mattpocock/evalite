@@ -4,13 +4,17 @@ title: Scorers
 
 import { Aside } from "@astrojs/starlight/components";
 
-Scorers are used to score the output of your LLM call.
+Evals are great for putting a ton of data through your system and checking the outputs. But scanning through all that data manually is hard work.
 
-[Autoevals](https://github.com/braintrustdata/autoevals) is a great library of scorers to get you started.
+Scorers give you a way to benchmark your system. Instead of "yeah, that looks good", you can say "our system scored 90% on this test".
 
-## Inline Scorers
+## Built-in Scorers
 
-If you don't need your scorer to be reusable, you can define it inline.
+Evalite provides ready-to-use scorers for common evaluation patterns. See [Built-in Scorers](/api/scorers) for the complete list.
+
+## Custom Scorers
+
+Evalite lets you create custom scorers to suit your needs. You specify them in the `scorers` array of the `evalite` function:
 
 ```ts
 import { evalite } from "evalite";
@@ -32,73 +36,29 @@ evalite("My Eval", {
 });
 ```
 
-## Creating Reusable Scorers
+### The `scorer` function
 
-If you have a scorer you want to use across multiple files, you can use `createScorer` to create a reusable scorer.
-
-```ts
-import { createScorer } from "evalite";
-
-const containsParis = createScorer<string, string>({
-  name: "Contains Paris",
-  description: "Checks if the output contains the word 'Paris'.",
-  scorer: ({ output }) => {
-    return output.includes("Paris") ? 1 : 0;
-  },
-});
-
-evalite("My Eval", {
-  data: [{ input: "Hello" }],
-  task: async (input) => {
-    return input + " World!";
-  },
-  scorers: [containsParis],
-});
-```
-
-The `name` and `description` of the scorer will be displayed in the Evalite UI.
-
-## Score Properties
-
-The `score` function receives three properties on the object passed:
+The `scorer` function receives the input, output, and expected values. It must return a number between 0 and 1.
 
 ```ts
-import { createScorer } from "evalite";
-
-const containsParis = createScorer<string, string>({
-  name: "Contains Paris",
-  description: "Checks if the output contains the word 'Paris'.",
-  scorer: ({ input, output, expected }) => {
-    // input comes from `data`
-    // expected also comes from `data`
-    // output is the output of `task`
-    return output.includes("Paris") ? 1 : 0;
-  },
-});
+({ input, output, expected }) => {
+  return output.includes("Paris") ? 1 : 0;
+},
 ```
 
-These are typed using the three type arguments passed to `createScorer`:
+It can also be `async`, allowing you to perform asynchronous like contacting LLM's or searching databases:
 
 ```ts
-import { createScorer } from "evalite";
+({ input, output, expected }) => {
+  const response = await generateObject({
+    // Your AI SDK call here
+  })
 
-const containsParis = createScorer<
-  string, // Type of 'input'
-  string, // Type of 'output'
-  string // Type of 'expected'
->({
-  name: "Contains Word",
-  description: "Checks if the output contains the specified word.",
-  scorer: ({ output, input, expected }) => {
-    // output is typed as string!
-    return output.includes(expected) ? 1 : 0;
-  },
-});
+  return response.object.score;
+},
 ```
 
-If `expected` is omitted, it will be inferred from the type of `output`.
-
-## Scorer Metadata
+### Metadata
 
 You can provide metadata along with your custom scorer:
 
@@ -119,128 +79,26 @@ const containsParis = createScorer<string>({
 });
 ```
 
-This will be visible along with the score in the Evalite UI.
+This will be visible along with the score in the Evalite UI. This is especially useful when you call LLM's inside scorers - you can include the reasoning from the LLM in the metadata.
 
-<Aside type="tip">
+## Reusable Scorers
 
-This is especially useful for debugging LLM-as-a-judge evals. In autoevals `Factuality` scorer, the metadata will include a rationale for why the scorer gave the score it did.
+If you have a scorer you want to use across multiple files, you can use `createScorer` to create a reusable scorer. See [createScorer()](/api/create-scorer) for more details.
 
-</Aside>
-
-## Creating LLM-As-A-Judge Scorers
-
-Here is a brief guide on building your own LLM-as-a-judge scorer.
-
-We're looking to improve this feature with a first-class guide in the future.
+These are typed using the three type arguments passed to `createScorer`:
 
 ```ts
-import { openai } from "@ai-sdk/openai";
-import { generateObject } from "ai";
 import { createScorer } from "evalite";
-import { z } from "zod";
 
-/**
- * Factuality scorer using OpenAI's GPT-4o model.
- */
-export const Factuality = createScorer<string, string, string>({
-  name: "Factuality",
-  scorer: async ({ input, expected, output }) => {
-    return checkFactuality({
-      question: input,
-      groundTruth: expected!,
-      submission: output,
-    });
+const containsParis = createScorer<
+  string, // Type of 'input'
+  string, // Type of 'output'
+  string // Type of 'expected'
+>({
+  name: "Contains Word",
+  description: "Checks if the output contains the specified word.",
+  scorer: ({ output, input, expected }) => {
+    return output.includes(expected) ? 1 : 0;
   },
-});
-
-/**
- * Checks the factuality of a submission, using
- * OpenAI's GPT-4o model.
- */
-const checkFactuality = async (opts: {
-  question: string;
-  groundTruth: string;
-  submission: string;
-}) => {
-  const { object } = await generateObject({
-    model: openai("gpt-4o-2024-11-20"),
-    /**
-     * Prompt taken from autoevals:
-     *
-     * {@link https://github.com/braintrustdata/autoevals/blob/5aa20a0a9eb8fc9e07e9e5722ebf71c68d082f32/templates/factuality.yaml}
-     */
-    prompt: `
-      You are comparing a submitted answer to an expert answer on a given question. Here is the data:
-      [BEGIN DATA]
-      ************
-      [Question]: ${opts.question}
-      ************
-      [Expert]: ${opts.groundTruth}
-      ************
-      [Submission]: ${opts.submission}
-      ************
-      [END DATA]
-
-      Compare the factual content of the submitted answer with the expert answer. Ignore any differences in style, grammar, or punctuation.
-      The submitted answer may either be a subset or superset of the expert answer, or it may conflict with it. Determine which case applies. Answer the question by selecting one of the following options:
-      (A) The submitted answer is a subset of the expert answer and is fully consistent with it.
-      (B) The submitted answer is a superset of the expert answer and is fully consistent with it.
-      (C) The submitted answer contains all the same details as the expert answer.
-      (D) There is a disagreement between the submitted answer and the expert answer.
-      (E) The answers differ, but these differences don't matter from the perspective of factuality.
-    `,
-    schema: z.object({
-      answer: z.enum(["A", "B", "C", "D", "E"]).describe("Your selection."),
-      rationale: z
-        .string()
-        .describe("Why you chose this answer. Be very detailed."),
-    }),
-  });
-
-  /**
-   * LLM's are well documented at being poor at generating
-   */
-  const scores = {
-    A: 0.4,
-    B: 0.6,
-    C: 1,
-    D: 0,
-    E: 1,
-  };
-
-  return {
-    score: scores[object.answer],
-    metadata: {
-      rationale: object.rationale,
-    },
-  };
-};
-
-/**
- * Use the Factuality eval like so:
- *
- * 1. The input (in data()) is a question.
- * 2. The expected output is the ground truth answer to the question.
- * 3. The output is the text to be evaluated.
- */
-evalite("Factuality", {
-  data: [
-    {
-      // The question
-      input: "What is the capital of France?",
-
-      // The expected answer
-      expected: "Paris",
-    },
-  ],
-  task: async (input) => {
-    // Technically correct, but a nightmare for non-LLM
-    // scorers to evaluate.
-    return (
-      "The capital of France is a city that starts " +
-      "with a letter P, and ends in 'aris'."
-    );
-  },
-  scorers: [Factuality],
 });
 ```

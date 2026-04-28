@@ -1,0 +1,246 @@
+---
+title: EvaliteFile
+---
+
+Utilities for working with images, audio, video, and other media files in evaluations.
+
+## Overview
+
+`EvaliteFile` provides methods for referencing files in your evals. Evalite automatically handles file storage and display in the UI.
+
+## Methods
+
+### `EvaliteFile.fromPath()`
+
+Reference a file on disk without loading it into memory.
+
+**Signature:**
+
+```typescript
+EvaliteFile.fromPath(path: string): Evalite.File
+```
+
+**Parameters:**
+
+- `path` - File path relative to your project root or absolute path
+
+**Returns:** An `Evalite.File` object that can be used in data, task outputs, traces, or columns.
+
+**Example:**
+
+```typescript
+import { evalite, EvaliteFile } from "evalite";
+
+evalite("Image Analysis", {
+  data: [
+    {
+      input: EvaliteFile.fromPath("./images/cat.jpg"),
+      expected: "A cat sitting on a couch",
+    },
+  ],
+  task: async (input) => {
+    console.log(input.path); // "./images/cat.jpg"
+
+    // Use the file path with your LLM
+    const response = await analyzeLLM(input.path);
+    return response;
+  },
+  scorers: [],
+});
+```
+
+### `EvaliteFile.isEvaliteFile()`
+
+Check if a value is an `Evalite.File` object.
+
+**Signature:**
+
+```typescript
+EvaliteFile.isEvaliteFile(value: unknown): value is Evalite.File
+```
+
+**Example:**
+
+```typescript
+import { EvaliteFile } from "evalite";
+
+const file = EvaliteFile.fromPath("./image.jpg");
+console.log(EvaliteFile.isEvaliteFile(file)); // true
+console.log(EvaliteFile.isEvaliteFile("./image.jpg")); // false
+```
+
+## Automatic File Detection
+
+Evalite automatically detects and handles `Uint8Array` (Buffer) objects without requiring `EvaliteFile`:
+
+```typescript
+import { evalite } from "evalite";
+import { readFileSync } from "fs";
+
+evalite("Image Eval", {
+  data: [
+    {
+      // Evalite automatically handles Buffers
+      input: readFileSync("./image.jpg"),
+      expected: readFileSync("./expected.jpg"),
+    },
+  ],
+  task: async (input) => {
+    // Return a Buffer - Evalite handles it automatically
+    return readFileSync("./output.jpg");
+  },
+  scorers: [],
+});
+```
+
+When Evalite detects a `Uint8Array`, it:
+
+1. Saves the file to `./node_modules/.evalite/files/`
+2. References the cached file in the UI
+3. Displays the file based on its type (image, audio, video, etc.)
+
+## Usage in Different Contexts
+
+### In Data (Input/Expected)
+
+```typescript
+evalite("My Eval", {
+  data: [
+    {
+      input: EvaliteFile.fromPath("./input.jpg"),
+      expected: EvaliteFile.fromPath("./expected.jpg"),
+    },
+  ],
+  task: async (input) => {
+    // ...
+  },
+});
+```
+
+### In Task Output
+
+```typescript
+evalite("My Eval", {
+  data: [{ input: "Generate an image" }],
+  task: async (input) => {
+    const imageBuffer = await generateImage(input);
+    // Return Buffer or EvaliteFile
+    return imageBuffer; // Automatically handled
+  },
+});
+```
+
+### In Traces
+
+```typescript
+import { reportTrace } from "evalite/traces";
+
+evalite("My Eval", {
+  data: [{ input: "Hello" }],
+  task: async (input) => {
+    const imageInput = readFileSync("./input.jpg");
+
+    reportTrace({
+      input: imageInput, // File in trace
+      output: "Analysis complete",
+    });
+
+    return "Done";
+  },
+});
+```
+
+### In Columns
+
+```typescript
+evalite("My Eval", {
+  data: [{ input: "Hello" }],
+  task: async (input) => {
+    return "Output";
+  },
+  columns: () => [
+    {
+      label: "Debug Image",
+      value: EvaliteFile.fromPath("./debug.jpg"),
+    },
+  ],
+});
+```
+
+## When to Use fromPath() vs Buffers
+
+**Use `EvaliteFile.fromPath()` when:**
+
+- File is already on disk
+- Want to avoid loading large files into memory
+- Need to reference the file path in your task
+
+**Use Buffers (automatic detection) when:**
+
+- File is generated in memory
+- File comes from an API response
+- Working with base64 or other in-memory formats
+
+## Complete Example
+
+```typescript
+import { evalite, EvaliteFile } from "evalite";
+import { readFileSync } from "fs";
+import { reportTrace } from "evalite/traces";
+
+evalite("Multi-Modal Analysis", {
+  data: async () => {
+    return [
+      {
+        // Mix of file references and buffers
+        input: {
+          image: EvaliteFile.fromPath("./images/cat.jpg"),
+          audio: readFileSync("./audio/meow.mp3"),
+        },
+        expected: "A cat meowing",
+      },
+    ];
+  },
+  task: async (input) => {
+    // Trace with file
+    reportTrace({
+      input: input.image,
+      output: "Processing...",
+    });
+
+    const result = await analyzeMultiModal(input);
+
+    return result;
+  },
+  columns: ({ output }) => [
+    {
+      label: "Visualization",
+      value: readFileSync("./viz.png"),
+    },
+  ],
+  scorers: [
+    {
+      name: "Match",
+      scorer: ({ output, expected }) => {
+        return output === expected ? 1 : 0;
+      },
+    },
+  ],
+});
+```
+
+## File Storage
+
+All files (whether from `EvaliteFile.fromPath()` or auto-detected Buffers) are stored in:
+
+```
+./node_modules/.evalite/files/
+```
+
+This cache is gitignored by default. Files are referenced by content hash to avoid duplicates.
+
+## See Also
+
+- [Images and Media Guide](/tips/images-and-media) - Working with multi-modal data
+- [evalite()](/api/evalite) - Main evaluation function
+- [Traces](/api/traces) - Adding traces to track nested calls

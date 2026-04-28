@@ -1,12 +1,11 @@
 import { expect, it, vitest } from "vitest";
-import { loadFixture } from "./test-utils.js";
+import { loadFixture, overrideExit } from "./test-utils.js";
 
 it("Should set exitCode to 1 if the score is below the threshold", async () => {
   await using fixture = await loadFixture("threshold");
 
   const exit = vitest.fn();
-
-  globalThis.process.exit = exit as any;
+  using _ = overrideExit(exit);
 
   await fixture.run({
     mode: "run-once-and-exit",
@@ -20,6 +19,9 @@ it("Should set exitCode to 1 if the score is below the threshold", async () => {
 it("Should pass if the score is at the threshold", async () => {
   await using fixture = await loadFixture("threshold");
 
+  const exit = vitest.fn();
+  using _ = overrideExit(exit);
+
   await fixture.run({
     mode: "run-once-and-exit",
     scoreThreshold: 20,
@@ -30,6 +32,9 @@ it("Should pass if the score is at the threshold", async () => {
 
 it("Should pass if the score exceeds the threshold", async () => {
   await using fixture = await loadFixture("threshold");
+
+  const exit = vitest.fn();
+  using _ = overrideExit(exit);
 
   await fixture.run({
     mode: "run-once-and-exit",

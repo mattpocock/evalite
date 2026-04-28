@@ -1,0 +1,335 @@
+---
+title: Storage
+---
+
+Storage backends for persisting evaluation results. Evalite provides built-in SQLite and in-memory storage, plus a Storage interface for custom implementations.
+
+## Built-in Storage
+
+### `createSqliteStorage()`
+
+Create a SQLite storage backend for persistent storage.
+
+**Signature:**
+
+```typescript
+createSqliteStorage(dbLocation: string): Promise<SqliteStorage>
+```
+
+**Parameters:**
+
+- `dbLocation` - Path to the SQLite database file (e.g., `"./evalite.db"`)
+
+**Returns:** A Promise that resolves to a `SqliteStorage` instance implementing the `Evalite.Storage` interface.
+
+**Example:**
+
+```typescript
+import { defineConfig } from "evalite/config";
+import { createSqliteStorage } from "evalite/sqlite-storage";
+
+export default defineConfig({
+  storage: () => createSqliteStorage("./evalite.db"),
+});
+```
+
+**Features:**
+
+- Persistent storage across runs
+- Automatic schema management
+- History tracking for comparing runs
+
+### `createInMemoryStorage()`
+
+Create an in-memory storage backend. Data is lost when the process exits.
+
+**Signature:**
+
+```typescript
+createInMemoryStorage(): InMemoryStorage
+```
+
+**Returns:** An `InMemoryStorage` instance implementing the `Evalite.Storage` interface.
+
+**Example:**
+
+```typescript
+import { defineConfig } from "evalite/config";
+import { createInMemoryStorage } from "evalite/in-memory-storage";
+
+export default defineConfig({
+  storage: () => createInMemoryStorage(),
+});
+```
+
+**Features:**
+
+- Fast (no I/O operations)
+- No persistence
+- Used by default when no storage is configured
+- Useful for local development and quick iteration
+
+## Storage Interface
+
+The `Evalite.Storage` interface allows you to implement custom storage backends (e.g., PostgreSQL, Turso, cloud storage).
+
+### Interface Definition
+
+```typescript
+interface Storage {
+  runs: {
+    create(opts: CreateOpts): Promise<Entities.Run>;
+    getMany(opts?: GetManyOpts): Promise<Entities.Run[]>;
+  };
+
+  suites: {
+    create(opts: CreateOpts): Promise<Entities.Suite>;
+    update(opts: UpdateOpts): Promise<Entities.Suite>;
+    getMany(opts?: GetManyOpts): Promise<Entities.Suite[]>;
+  };
+
+  evals: {
+    create(opts: CreateOpts): Promise<Entities.Eval>;
+    update(opts: UpdateOpts): Promise<Entities.Eval>;
+    getMany(opts?: GetManyOpts): Promise<Entities.Eval[]>;
+  };
+
+  scores: {
+    create(opts: CreateOpts): Promise<Entities.Score>;
+    getMany(opts?: GetManyOpts): Promise<Entities.Score[]>;
+  };
+
+  traces: {
+    create(opts: CreateOpts): Promise<Entities.Trace>;
+    getMany(opts?: GetManyOpts): Promise<Entities.Trace[]>;
+  };
+
+  close(): Promise<void>;
+  [Symbol.asyncDispose](): Promise<void>;
+}
+```
+
+### Entity Types
+
+Storage backends must return these entity types:
+
+**Run:**
+
+```typescript
+type Run = {
+  id: number;
+  runType: "full" | "partial";
+  created_at: string; // ISO 8601 timestamp
+};
+```
+
+**Suite:**
+
+```typescript
+type Suite = {
+  id: number;
+  run_id: number;
+  name: string;
+  status: "fail" | "success" | "running";
+  filepath: string;
+  duration: number; // milliseconds
+  created_at: string;
+  variant_name?: string;
+  variant_group?: string;
+};
+```
+
+**Eval:**
+
+```typescript
+type Eval = {
+  id: number;
+  suite_id: number;
+  duration: number; // milliseconds
+  input: unknown;
+  output: unknown;
+  expected?: unknown;
+  created_at: string;
+  col_order: number;
+  status: "fail" | "success" | "running";
+  rendered_columns?: unknown;
+  trial_index?: number | null;
+};
+```
+
+**Score:**
+
+```typescript
+type Score = {
+  id: number;
+  eval_id: number;
+  name: string;
+  score: number; // 0-1
+  description?: string;
+  metadata?: unknown;
+  created_at: string;
+};
+```
+
+**Trace:**
+
+```typescript
+type Trace = {
+  id: number;
+  eval_id: number;
+  input: unknown;
+  output: unknown;
+  usage?: {
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+  };
+  start: number; // timestamp
+  end: number; // timestamp
+  created_at: string;
+};
+```
+
+## Implementing Custom Storage
+
+Create a class that implements the `Evalite.Storage` interface:
+
+```typescript
+import type { Evalite } from "evalite/types";
+
+export class PostgresStorage implements Evalite.Storage {
+  constructor(private connectionString: string) {}
+
+  runs = {
+    async create(opts: Evalite.Storage.Runs.CreateOpts) {
+      // Insert run into Postgres
+      // Return Evalite.Storage.Entities.Run
+    },
+    async getMany(opts?: Evalite.Storage.Runs.GetManyOpts) {
+      // Query runs from Postgres
+      // Return Evalite.Storage.Entities.Run[]
+    },
+  };
+
+  suites = {
+    async create(opts: Evalite.Storage.Suites.CreateOpts) {
+      // ...
+    },
+    async update(opts: Evalite.Storage.Suites.UpdateOpts) {
+      // ...
+    },
+    async getMany(opts?: Evalite.Storage.Suites.GetManyOpts) {
+      // ...
+    },
+  };
+
+  evals = {
+    async create(opts: Evalite.Storage.Evals.CreateOpts) {
+      // ...
+    },
+    async update(opts: Evalite.Storage.Evals.UpdateOpts) {
+      // ...
+    },
+    async getMany(opts?: Evalite.Storage.Evals.GetManyOpts) {
+      // ...
+    },
+  };
+
+  scores = {
+    async create(opts: Evalite.Storage.Scores.CreateOpts) {
+      // ...
+    },
+    async getMany(opts?: Evalite.Storage.Scores.GetManyOpts) {
+      // ...
+    },
+  };
+
+  traces = {
+    async create(opts: Evalite.Storage.Traces.CreateOpts) {
+      // ...
+    },
+    async getMany(opts?: Evalite.Storage.Traces.GetManyOpts) {
+      // ...
+    },
+  };
+
+  async close() {
+    // Close database connection
+  }
+
+  async [Symbol.asyncDispose]() {
+    await this.close();
+  }
+}
+
+// Factory function
+export const createPostgresStorage = (
+  connectionString: string
+): PostgresStorage => {
+  return new PostgresStorage(connectionString);
+};
+```
+
+### Using Custom Storage
+
+```typescript
+// evalite.config.ts
+import { defineConfig } from "evalite/config";
+import { createPostgresStorage } from "./postgres-storage";
+
+export default defineConfig({
+  storage: () => createPostgresStorage(process.env.DATABASE_URL),
+});
+```
+
+## Storage Lifecycle
+
+Storage instances are managed using the `await using` syntax:
+
+```typescript
+import { createSqliteStorage } from "evalite/sqlite-storage";
+
+await using storage = createSqliteStorage("./evalite.db");
+
+// Use storage...
+// Automatically closed when leaving scope
+```
+
+Implement `[Symbol.asyncDispose]()` to ensure proper cleanup.
+
+## Query Options
+
+### Common Query Patterns
+
+**Get latest run:**
+
+```typescript
+const runs = await storage.runs.getMany({ limit: 1 });
+const latestRun = runs[0];
+```
+
+**Get suites for a run:**
+
+```typescript
+const suites = await storage.suites.getMany({ run_id: runId });
+```
+
+**Get evals with scores:**
+
+```typescript
+const evals = await storage.evals.getMany({ suite_id: suiteId });
+const scores = await storage.scores.getMany({ eval_id: evalId });
+```
+
+## Best Practices
+
+1. **Use in-memory for local development** - Default, fast, no cleanup needed
+2. **Use SQLite for persistence** - When you need to compare runs over time
+3. **Implement proper cleanup** - Use `close()` and `[Symbol.asyncDispose]()`
+4. **Handle JSON fields** - input/output/expected/metadata are stored as JSON
+5. **Index appropriately** - Optimize queries for run_id, suite_id, eval_id lookups
+
+## See Also
+
+- [defineConfig()](/api/define-config) - Configure storage in config file
+- [runEvalite()](/api/run-evalite) - Pass storage instance programmatically

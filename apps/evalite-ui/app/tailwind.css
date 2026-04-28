@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@source "../node_modules/streamdown/dist/index.js";
+
 @plugin '@tailwindcss/typography';
 
 @custom-variant dark (&:is(.dark *));
@@ -47,6 +49,13 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-json-tree-bg: var(--json-tree-bg);
+  --color-json-tree-string: var(--json-tree-string);
+  --color-json-tree-number: var(--json-tree-number);
+  --color-json-tree-boolean: var(--json-tree-boolean);
+  --color-json-tree-null: var(--json-tree-null);
+  --color-json-tree-key: var(--json-tree-key);
+  --color-json-tree-bracket: var(--json-tree-bracket);
 }
 
 :root {
@@ -90,6 +99,13 @@
   --code-number: oklch(0.56 0 0);
   --selection: oklch(0.145 0 0);
   --selection-foreground: oklch(1 0 0);
+  --json-tree-bg: transparent;
+  --json-tree-string: oklch(0.55 0.15 145);
+  --json-tree-number: oklch(0.55 0.18 35);
+  --json-tree-boolean: oklch(0.5 0.2 280);
+  --json-tree-null: oklch(0.5 0.1 320);
+  --json-tree-key: oklch(0.45 0.12 240);
+  --json-tree-bracket: oklch(0.6 0 0);
 }
 .dark {
   --background: oklch(0.145 0 0);
@@ -131,6 +147,13 @@
   --code-number: oklch(0.72 0 0);
   --selection: oklch(0.922 0 0);
   --selection-foreground: oklch(0.205 0 0);
+  --json-tree-bg: transparent;
+  --json-tree-string: oklch(0.7 0.15 145);
+  --json-tree-number: oklch(0.75 0.18 35);
+  --json-tree-boolean: oklch(0.75 0.2 280);
+  --json-tree-null: oklch(0.65 0.1 320);
+  --json-tree-key: oklch(0.8 0.12 240);
+  --json-tree-bracket: oklch(0.55 0 0);
 }
 
 @layer base {
@@ -139,5 +162,9 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  .disable-transitions * {
+    transition: none !important;
   }
 }

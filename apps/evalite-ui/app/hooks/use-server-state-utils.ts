@@ -9,12 +9,12 @@ export const useServerStateUtils = (state: Evalite.ServerState) => {
     const isRunningFilepath = (filepath: string) =>
       filePathSet.has(filepath) && state.type === "running";
 
-    const isRunningEvalName = (name: string) =>
-      state.type === "running" && state.evalNamesRunning.includes(name);
+    const isRunningSuiteName = (name: string) =>
+      state.type === "running" && state.suiteNamesRunning.includes(name);
 
     return {
       isRunningFilepath,
-      isRunningEvalName,
+      isRunningSuiteName,
     };
   }, [state]);
 };

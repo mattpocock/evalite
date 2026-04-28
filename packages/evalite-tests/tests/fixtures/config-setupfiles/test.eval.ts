@@ -1,5 +1,4 @@
 import { evalite } from "evalite";
-import { Levenshtein } from "autoevals";
 
 evalite("Env Var Test", {
   data: () => [
@@ -11,5 +10,10 @@ evalite("Env Var Test", {
   task: async (input) => {
     return process.env.TEST_ENV_VAR as string;
   },
-  scorers: [Levenshtein],
+  scorers: [
+    {
+      name: "Pass",
+      scorer: () => ({ score: 1 }),
+    },
+  ],
 });

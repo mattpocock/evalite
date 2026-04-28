@@ -1,0 +1,92 @@
+---
+title: Comparing Different Approaches
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+A/B test different models, prompts, or configurations on the same dataset using `evalite.each()`.
+
+## What You Can Compare
+
+- Different models on the same dataset
+- Prompt strategies (direct vs chain-of-thought vs few-shot)
+- Config parameters (temperature, system prompts, etc.)
+
+## Basic Usage
+
+```ts
+import { evalite } from "evalite";
+import { openai } from "@ai-sdk/openai";
+import { generateText } from "ai";
+import { exactMatch } from "evalite/scorers";
+
+evalite.each([
+  { name: "GPT-4o mini", input: { model: "gpt-4o-mini", temp: 0.7 } },
+  { name: "GPT-4o", input: { model: "gpt-4o", temp: 0.7 } },
+  { name: "Claude Sonnet", input: { model: "claude-3-5-sonnet", temp: 1.0 } },
+])("Compare models", {
+  data: async () => [
+    { input: "What's the capital of France?", expected: "Paris" },
+    { input: "What's the capital of Germany?", expected: "Berlin" },
+  ],
+  task: async (input, variant) => {
+    return generateText({
+      model: openai(variant.model),
+      temperature: variant.temp,
+      prompt: input,
+    });
+  },
+  scorers: [
+    {
+      scorer: ({ output, expected }) =>
+        exactMatch({ actual: output, expected }),
+    },
+  ],
+});
+```
+
+## Example: Prompt Comparison
+
+```ts
+evalite.each([
+  {
+    name: "Direct",
+    input: {
+      system: "Answer concisely.",
+    },
+  },
+  {
+    name: "Chain of Thought",
+    input: {
+      system: "Think step by step, then answer.",
+    },
+  },
+  {
+    name: "Few-Shot",
+    input: {
+      system: `Examples:
+Q: What's 2+2? A: 4
+Q: What's 5+3? A: 8
+Now answer the question.`,
+    },
+  },
+])("Prompt Strategies", {
+  data: async () => [
+    { input: "What's 12 * 15?", expected: "180" },
+    // ...
+  ],
+  task: async (input, variant) => {
+    return generateText({
+      model: openai("gpt-4o-mini"),
+      system: variant.system,
+      prompt: input,
+    });
+  },
+  scorers: [
+    {
+      scorer: ({ output, expected }) =>
+        exactMatch({ actual: output, expected }),
+    },
+  ],
+});
+```

@@ -1,0 +1,131 @@
+---
+title: answerRelevancy
+---
+
+Checks if your AI actually answered the question asked (vs going off-topic or being evasive).
+
+**When to use**: When you want to catch answers that are technically correct but don't address what was asked. Perfect for customer support bots, Q&A systems, or any scenario where staying on-topic matters.
+
+**When NOT to use**: If your use case allows tangential or exploratory responses, or when creative interpretations of questions are desired.
+
+## Example
+
+```ts
+import { openai } from "@ai-sdk/openai";
+import { evalite } from "evalite";
+import { answerRelevancy } from "evalite/scorers";
+
+evalite("Answer Relevancy", {
+  data: [
+    {
+      input: "What is the capital of France?",
+    },
+    {
+      input: "Who invented the telephone?",
+    },
+    {
+      input: "What are the health benefits of exercise?",
+    },
+  ],
+  task: async (input) => {
+    if (input.includes("capital of France")) {
+      return "Paris is the capital of France. It's known for the Eiffel Tower and the Louvre Museum.";
+    } else if (input.includes("telephone")) {
+      return "Alexander Graham Bell is credited with inventing the telephone in 1876.";
+    } else if (input.includes("health benefits")) {
+      return "I don't know about that topic.";
+    }
+    return "I'm not sure about that.";
+  },
+  scorers: [
+    {
+      scorer: ({ input, output }) =>
+        answerRelevancy({
+          question: input,
+          answer: output,
+          model: openai("gpt-4o-mini"),
+          embeddingModel: openai.embedding("text-embedding-3-small"),
+        }),
+    },
+  ],
+});
+```
+
+## Signature
+
+```ts
+function answerRelevancy(opts: {
+  question: string;
+  answer: string;
+  model: LanguageModel;
+  embeddingModel: EmbeddingModel;
+}): Promise<{
+  name: string;
+  description: string;
+  score: number;
+  metadata: {
+    generatedQuestions: string[];
+    similarities: number[];
+    allNoncommittal: boolean;
+  };
+}>;
+```
+
+## Parameters
+
+### question
+
+**Type:** `string`
+
+The original question being asked.
+
+### answer
+
+**Type:** `string`
+
+The AI's answer to evaluate. Note: Only supports string output, not multi-turn.
+
+### model
+
+**Type:** `LanguageModel`
+
+Language model to use for generating hypothetical questions.
+
+### embeddingModel
+
+**Type:** `EmbeddingModel`
+
+Embedding model to use for computing semantic similarity between questions.
+
+import { Aside } from "@astrojs/starlight/components";
+
+<Aside>
+  This scorer requires the AI SDK. This example uses OpenAI's models via
+  `@ai-sdk/openai`. The AI SDK supports [many
+  providers](https://sdk.vercel.ai/providers/ai-sdk-providers) including
+  Anthropic, Google, Mistral, and more.
+</Aside>
+
+## How It Works
+
+Looks at your AI's answer and generates hypothetical questions it could be answering (by default, 3 questions). Then compares those generated questions to your original question using embeddings and cosine similarity. If similar, your AI stayed on topic.
+
+Also detects evasive/noncommittal answers like "I don't know" or "I'm not sure" and scores them as 0.
+
+## Return Value
+
+Returns an object with:
+
+- `name`: "Answer Relevancy"
+- `description`: Description of what was evaluated
+- `score`: Number between 0-1 (mean cosine similarity of generated questions to original, or 0 if all answers are noncommittal)
+- `metadata`: Object containing:
+  - `generatedQuestions`: Array of hypothetical questions generated from the answer
+  - `similarities`: Array of cosine similarity scores for each generated question
+  - `allNoncommittal`: Boolean indicating if all generated questions were flagged as noncommittal
+
+## See Also
+
+- [createScorer()](/api/create-scorer)
+- [faithfulness](/api/scorers/faithfulness)
+- [answerCorrectness](/api/scorers/answer-correctness)
