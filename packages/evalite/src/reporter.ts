@@ -81,6 +81,7 @@ export default class EvaliteReporter implements Reporter {
       errors,
       failedDueToThreshold,
       scoreThreshold: this.opts.scoreThreshold,
+      failedThresholds: this.runner.getFailedThresholds(),
     });
   }
 
@@ -380,6 +381,7 @@ export default class EvaliteReporter implements Reporter {
           variantName: data.initialEval.variantName,
           variantGroup: data.initialEval.variantGroup,
           trialIndex: data.initialEval.trialIndex,
+          scoreThreshold: data.initialEval.scoreThreshold,
         },
       });
     }

@@ -6,6 +6,7 @@ import type { RunnerTestFile } from "vitest";
 import type { Evalite } from "../types.js";
 import { average, EvaliteFile } from "../utils.js";
 import type { TestModule } from "vitest/node";
+import type { FailedThresholdInfo } from "./EvaliteRunner.js";
 
 export function withLabel(
   color: "red" | "green" | "blue" | "cyan",
@@ -54,6 +55,7 @@ export function renderWatcherStart(
     errors: unknown[];
     failedDueToThreshold: boolean;
     scoreThreshold: number | undefined;
+    failedThresholds: FailedThresholdInfo[];
   }
 ) {
   logger.log("");
@@ -91,9 +93,26 @@ export function renderWatcherStart(
       withLabel(
         "red",
         "FAIL",
-        `${opts.scoreThreshold}% threshold not met. Watching for file changes...`
+        "Score threshold not met. Watching for file changes..."
       )
     );
+
+    if (opts.failedThresholds.length > 0) {
+      for (const failed of opts.failedThresholds) {
+        const scoreDisplay =
+          failed.score === null
+            ? c.red("no score")
+            : c.red(`${Math.round(failed.score * 100)}%`);
+        logger.log(
+          BADGE_PADDING +
+            c.dim("- ") +
+            failed.suiteName +
+            c.dim(": ") +
+            scoreDisplay +
+            c.dim(` < ${failed.threshold}%`)
+        );
+      }
+    }
   } else {
     logger.log(withLabel("green", "PASS", "Waiting for file changes..."));
   }
