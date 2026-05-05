@@ -50,3 +50,43 @@ it("should not call opts.data() for a skipped test with .each().skip()", async (
   expect(output).toContain("opts.data() called in Regular Each Test");
   expect(output).not.toContain("opts.data() called in Skipped Each Test");
 });
+
+it("should only run tests marked with .only()", async () => {
+  await using fixture = await loadFixture("test-modifiers-only");
+
+  await fixture.run({
+    mode: "run-once-and-exit",
+  });
+
+  const output = fixture.getOutput();
+
+  expect(output).toContain("task() called in Only Test");
+  expect(output).not.toContain("task() called in Regular Test");
+});
+
+it("should run all tests marked with .only()", async () => {
+  await using fixture = await loadFixture("test-modifiers-multiple-only");
+
+  await fixture.run({
+    mode: "run-once-and-exit",
+  });
+
+  const output = fixture.getOutput();
+
+  expect(output).toContain("task() called in Only Test 1");
+  expect(output).toContain("task() called in Only Test 2");
+  expect(output).not.toContain("task() called in Regular Test");
+});
+
+it("should only run tests marked with .each().only()", async () => {
+  await using fixture = await loadFixture("each-only");
+
+  await fixture.run({
+    mode: "run-once-and-exit",
+  });
+
+  const output = fixture.getOutput();
+
+  expect(output).toContain("task() called in Only Each Test");
+  expect(output).not.toContain("task() called in Regular Each Test");
+});

@@ -146,13 +146,18 @@ evalite.skip = <TInput, TOutput, TExpected = undefined>(
   opts: Evalite.RunnerOpts<TInput, TOutput, TExpected>
 ) => registerEvalite(evalName, opts, { modifier: "skip" });
 
+evalite.only = <TInput, TOutput, TExpected = undefined>(
+  evalName: string,
+  opts: Evalite.RunnerOpts<TInput, TOutput, TExpected>
+) => registerEvalite(evalName, opts, { modifier: "only" });
+
 evalite.each = <TVariant>(
   variants: Array<{ name: string; input: TVariant; only?: boolean }>
 ) => {
   function createEvals<TInput, TOutput, TExpected = undefined>(
     evalName: string,
     opts: Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant>,
-    modifier?: "skip"
+    modifier?: "skip" | "only"
   ) {
     const hasOnlyFlag = variants.some((v) => v.only === true);
     const filteredVariants = hasOnlyFlag
@@ -183,6 +188,13 @@ evalite.each = <TVariant>(
     opts: Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant>
   ) => {
     return createEvals(evalName, opts, "skip");
+  };
+
+  eachFn.only = <TInput, TOutput, TExpected = undefined>(
+    evalName: string,
+    opts: Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant>
+  ) => {
+    return createEvals(evalName, opts, "only");
   };
 
   return eachFn;
@@ -223,7 +235,12 @@ function registerEvalite<TInput, TOutput, TExpected>(
     variantGroup?: string;
   } = {}
 ) {
-  const describeFn = vitestOpts.modifier === "skip" ? describe.skip : describe;
+  const describeFn =
+    vitestOpts.modifier === "skip"
+      ? describe.skip
+      : vitestOpts.modifier === "only"
+        ? describe.only
+        : describe;
   const datasetPromise: Promise<Result<any, Error>> =
     vitestOpts.modifier === "skip"
       ? Promise.resolve({ success: true, data: [] })

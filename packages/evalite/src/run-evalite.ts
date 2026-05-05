@@ -354,6 +354,7 @@ export const runEvalite = async (opts: {
       mode: "test",
       browser: undefined,
       config: false,
+      allowOnly: true,
     },
     {
       ...mergedViteConfig,
