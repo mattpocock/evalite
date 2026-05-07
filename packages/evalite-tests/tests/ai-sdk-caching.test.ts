@@ -94,3 +94,26 @@ it("Should let runEvalite cacheEnabled override config cacheEnabled", async () =
   // Should have no cache logs because runEvalite overrides config
   expect(cachelogs.length).toBe(0);
 });
+
+it("Should respect caching: false on wrapAISDKModel even when global cache is enabled", async () => {
+  await using fixture = await loadFixture("ai-sdk-caching-local-disabled");
+
+  // Two runs with the same input. Global cache is enabled (default), but each
+  // model is wrapped with `wrapAISDKModel(..., { caching: false })`, so neither
+  // run should fetch or store anything in the cache.
+  await fixture.run({
+    mode: "run-once-and-exit",
+    cacheDebug: true,
+    enableServer: true,
+  });
+
+  await fixture.run({
+    mode: "run-once-and-exit",
+    cacheDebug: true,
+    enableServer: true,
+  });
+
+  const allLogs = fixture.getOutput().split("\n");
+  const cachelogs = allLogs.filter((log) => log.includes("[CACHE]"));
+  expect(cachelogs.length).toBe(0);
+});
