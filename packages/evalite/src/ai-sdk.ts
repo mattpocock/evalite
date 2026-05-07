@@ -113,7 +113,7 @@ export const wrapAISDKModel = (
         const cacheContext = getCacheContext();
 
         // Try cache if enabled
-        if (cacheContext) {
+        if (cacheContext && enableCaching) {
           const keyHash = generateCacheKey({
             model: modelId,
             params: opts.params,
@@ -163,7 +163,7 @@ export const wrapAISDKModel = (
           const duration = performance.now() - start;
 
           // Store in cache if caching enabled
-          if (cacheContext) {
+          if (cacheContext && enableCaching) {
             const keyHash = generateCacheKey({
               model: modelId,
               params: opts.params,
@@ -237,7 +237,7 @@ export const wrapAISDKModel = (
         const reportTraceFromContext = reportTraceLocalStorage.getStore();
 
         // Try cache if enabled
-        if (cacheContext) {
+        if (cacheContext && enableCaching) {
           const keyHash = generateCacheKey({
             model: modelId,
             params: params,
@@ -318,7 +318,7 @@ export const wrapAISDKModel = (
               const duration = performance.now() - start;
 
               // Store in cache if enabled
-              if (cacheContext) {
+              if (cacheContext && enableCaching) {
                 const keyHash = generateCacheKey({
                   model: modelId,
                   params: params,
