@@ -9,13 +9,20 @@ import { reportTrace, shouldReportTrace } from "./traces.js";
 
 const handlePromptContent = (
   content: LanguageModelV2CallOptions["prompt"][number]["content"][number]
-): unknown => {
+): unknown | null => {
   if (typeof content === "string") {
     return {
       type: "text" as const,
       text: content,
     };
   }
+
+  const contentType = (content as { type: string }).type;
+
+  if (contentType === "reasoning") {
+    return null;
+  }
+
   if (content.type === "text") {
     return {
       type: "text" as const,
@@ -55,28 +62,36 @@ const handlePromptContent = (
 
   // Unsupported content types are image and file
   throw new Error(
-    `Unsupported content type: ${content.type}. Not supported yet.`
+    `Unsupported content type: ${contentType}. Not supported yet.`
   );
 };
 
 const processPromptForTracing = (
   prompt: LanguageModelV2CallOptions["prompt"]
 ) => {
-  return prompt.map((prompt) => {
-    if (!Array.isArray(prompt.content)) {
+  return prompt
+    .map((prompt) => {
+      if (!Array.isArray(prompt.content)) {
+        return {
+          role: prompt.role,
+          content: prompt.content,
+        };
+      }
+
+      const content = prompt.content
+        .map(handlePromptContent)
+        .filter((content) => content !== null);
+
+      if (content.length === 0) {
+        return null;
+      }
+
       return {
         role: prompt.role,
-        content: prompt.content,
+        content,
       };
-    }
-
-    const content = prompt.content.map(handlePromptContent);
-
-    return {
-      role: prompt.role,
-      content,
-    };
-  });
+    })
+    .filter((prompt) => prompt !== null);
 };
 
 export const traceAISDKModel = (model: LanguageModelV2): LanguageModelV2 => {
