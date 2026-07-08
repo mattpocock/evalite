@@ -67,7 +67,8 @@
     "jiti": "^2.6.1",
     "js-levenshtein": "^1.1.6",
     "table": "^6.9.0",
-    "tinyrainbow": "^3.0.3"
+    "tinyrainbow": "^3.0.3",
+    "vitest": "^4.0.0"
   },
   "peerDependencies": {
     "better-sqlite3": "^11.6.0",
