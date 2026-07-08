@@ -12,7 +12,11 @@ it("Should set exitCode to 1 if the score is below the threshold", async () => {
     scoreThreshold: 50,
   });
 
-  expect(fixture.getOutput()).toContain("Threshold  50% (failed)");
+  const output = fixture.getOutput();
+
+  expect(output).toContain("Threshold  50% (failed)");
+  expect(output).toContain("XYZ");
+  expect(output).toContain("20%");
   expect(exit).toHaveBeenCalledWith(1);
 });
 

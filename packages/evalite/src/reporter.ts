@@ -30,6 +30,26 @@ import { average, max } from "./utils.js";
 const F_POINTER = "❯";
 const separator = c.dim(" > ");
 
+function getScorersBelowThreshold(
+  scores: Evalite.Score[],
+  scoreThreshold: number
+) {
+  const scoresByName = new Map<string, number[]>();
+
+  for (const score of scores) {
+    const existingScores = scoresByName.get(score.name) ?? [];
+    existingScores.push(score.score ?? 0);
+    scoresByName.set(score.name, existingScores);
+  }
+
+  return Array.from(scoresByName, ([name, scorerScores]) => ({
+    name,
+    score: average(scorerScores, (score) => score),
+  }))
+    .filter((scorer) => scorer.score * 100 < scoreThreshold)
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export interface EvaliteReporterOptions {
   isWatching: boolean;
   port: number;
@@ -244,7 +264,12 @@ export default class EvaliteReporter implements Reporter {
     );
 
     if (typeof this.opts.scoreThreshold === "number") {
-      renderThreshold(this.ctx.logger, this.opts.scoreThreshold, averageScore);
+      renderThreshold(
+        this.ctx.logger,
+        this.opts.scoreThreshold,
+        averageScore,
+        getScorersBelowThreshold(scores, this.opts.scoreThreshold)
+      );
     }
 
     renderSummaryStats(this.ctx.logger, {
