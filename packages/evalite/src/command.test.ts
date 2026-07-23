@@ -1,6 +1,41 @@
 import { describe, expect, it, vitest } from "vitest";
-import { createProgram } from "./command.js";
+import { createProgram, program } from "./command.js";
 import { run } from "@stricli/core";
+import { runEvalite } from "./run-evalite.js";
+
+vitest.mock("./run-evalite.js", () => ({
+  runEvalite: vitest.fn(),
+}));
+
+describe("program", () => {
+  it("forwards --hideTable to runEvalite in serve mode", async () => {
+    await run(program, ["serve", "--hideTable"], { process });
+
+    expect(runEvalite).toHaveBeenCalledWith({
+      path: undefined,
+      scoreThreshold: undefined,
+      cwd: undefined,
+      mode: "run-once-and-serve",
+      outputPath: undefined,
+      hideTable: true,
+      cacheEnabled: undefined,
+    });
+  });
+
+  it("forwards --hideTable to runEvalite in run mode", async () => {
+    await run(program, ["--hideTable"], { process });
+
+    expect(runEvalite).toHaveBeenCalledWith({
+      path: undefined,
+      scoreThreshold: undefined,
+      cwd: undefined,
+      mode: "run-once-and-exit",
+      outputPath: undefined,
+      hideTable: true,
+      cacheEnabled: undefined,
+    });
+  });
+});
 
 describe("createCommand", () => {
   it("evalite without path", async () => {

@@ -223,6 +223,7 @@ export const program = createProgram({
       cwd: undefined,
       mode: "run-once-and-exit",
       outputPath: path.outputPath,
+      hideTable: path.hideTable,
       cacheEnabled: path.noCache ? false : undefined,
     });
   },
@@ -233,6 +234,7 @@ export const program = createProgram({
       cwd: undefined,
       mode: "run-once-and-serve",
       outputPath: path.outputPath,
+      hideTable: path.hideTable,
       cacheEnabled: path.noCache ? false : undefined,
     });
   },
