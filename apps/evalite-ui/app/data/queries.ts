@@ -1,5 +1,5 @@
-import { getMenuItems, getServerState, getResult, getEvalByName } from "~/sdk";
 import { queryOptions } from "@tanstack/react-query";
+import { getEval, getMenuItems, getServerState, getSuiteByName } from "~/sdk";
 
 export const getMenuItemsQueryOptions = queryOptions({
   queryKey: ["menu-items"] as const,
@@ -11,21 +11,21 @@ export const getServerStateQueryOptions = queryOptions({
   queryFn: getServerState,
 });
 
-export const getEvalByNameQueryOptions = (
+export const getSuiteByNameQueryOptions = (
   name: string,
   timestamp: string | null | undefined
 ) =>
   queryOptions({
-    queryKey: ["eval-by-name", name, timestamp] as const,
-    queryFn: () => getEvalByName(name, timestamp),
+    queryKey: ["suite-by-name", name, timestamp] as const,
+    queryFn: () => getSuiteByName(name, timestamp),
   });
 
-export const getResultQueryOptions = (opts: {
-  evalName: string;
-  evalTimestamp: string | null | undefined;
-  resultIndex: string;
+export const getEvalQueryOptions = (opts: {
+  suiteName: string;
+  suiteTimestamp: string | null | undefined;
+  evalIndex: string;
 }) =>
   queryOptions({
-    queryKey: ["result", opts] as const,
-    queryFn: () => getResult(opts),
+    queryKey: ["eval", opts] as const,
+    queryFn: () => getEval(opts),
   });

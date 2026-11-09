@@ -1,0 +1,201 @@
+---
+title: createScorer()
+---
+
+Create a reusable scorer function for evaluating LLM outputs.
+
+## Signature
+
+```typescript
+createScorer<TInput, TOutput, TExpected = TOutput>(opts: {
+  name: string;
+  description?: string;
+  scorer: (input: {
+    input: TInput;
+    output: TOutput;
+    expected?: TExpected;
+  }) => Promise<number | { score: number; metadata?: unknown }> | number | { score: number; metadata?: unknown };
+}): Scorer<TInput, TOutput, TExpected>
+```
+
+## Parameters
+
+### `opts.name`
+
+**Type:** `string` (required)
+
+The name of the scorer. Displayed in the UI and test output.
+
+```typescript
+createScorer({
+  name: "Exact Match",
+  scorer: ({ output, expected }) => (output === expected ? 1 : 0),
+});
+```
+
+### `opts.description`
+
+**Type:** `string` (optional)
+
+A description of what the scorer evaluates. Helps document scoring logic.
+
+```typescript
+createScorer({
+  name: "Length Check",
+  description: "Checks if output is at least 10 characters",
+  scorer: ({ output }) => (output.length >= 10 ? 1 : 0),
+});
+```
+
+### `opts.scorer`
+
+**Type:** `(input: { input, output, expected }) => number | { score: number; metadata?: unknown }`
+
+The scoring function. Receives input, output, and expected values. Must return:
+
+- A number between 0 and 1, or
+- An object with `score` (0-1) and optional `metadata`
+
+```typescript
+createScorer({
+  name: "Word Count",
+  scorer: ({ output }) => {
+    const wordCount = output.split(" ").length;
+    return {
+      score: wordCount >= 10 ? 1 : 0,
+      metadata: { wordCount },
+    };
+  },
+});
+```
+
+## Return Value
+
+Returns a `Scorer` function that can be used in the `scorers` array of [evalite()](/api/evalite).
+
+## Usage
+
+### Basic Scorer
+
+```typescript
+import { createScorer, evalite } from "evalite";
+
+const exactMatch = createScorer({
+  name: "Exact Match",
+  scorer: ({ output, expected }) => {
+    return output === expected ? 1 : 0;
+  },
+});
+
+evalite("My Eval", {
+  data: [{ input: "Hello", expected: "Hi" }],
+  task: async (input) => callLLM(input),
+  scorers: [exactMatch],
+});
+```
+
+### Scorer with Metadata
+
+```typescript
+const lengthChecker = createScorer({
+  name: "Length Check",
+  description: "Validates output length is within acceptable range",
+  scorer: ({ output }) => {
+    const length = output.length;
+    const isValid = length >= 10 && length <= 100;
+
+    return {
+      score: isValid ? 1 : 0,
+      metadata: {
+        length,
+        minLength: 10,
+        maxLength: 100,
+      },
+    };
+  },
+});
+```
+
+### Async Scorer
+
+Scorers can be async for LLM-based evaluation:
+
+```typescript
+const llmScorer = createScorer({
+  name: "LLM Judge",
+  description: "Uses GPT-4 to evaluate output quality",
+  scorer: async ({ output, expected }) => {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: "Rate the output quality from 0 to 1.",
+        },
+        {
+          role: "user",
+          content: `Output: ${output}\nExpected: ${expected}`,
+        },
+      ],
+    });
+
+    const score = parseFloat(response.choices[0].message.content);
+    return score;
+  },
+});
+```
+
+### Reusable Scorers
+
+Create a library of scorers to reuse across evals:
+
+```typescript
+// scorers.ts
+import { createScorer } from "evalite";
+
+export const hasEmoji = createScorer({
+  name: "Has Emoji",
+  scorer: ({ output }) => (/\p{Emoji}/u.test(output) ? 1 : 0),
+});
+
+export const containsKeyword = (keyword: string) =>
+  createScorer({
+    name: `Contains "${keyword}"`,
+    scorer: ({ output }) => (output.includes(keyword) ? 1 : 0),
+  });
+
+// my-eval.eval.ts
+import { evalite } from "evalite";
+import { hasEmoji, containsKeyword } from "./scorers";
+
+evalite("My Eval", {
+  data: [{ input: "Hello" }],
+  task: async (input) => callLLM(input),
+  scorers: [hasEmoji, containsKeyword("greeting")],
+});
+```
+
+## Inline Scorers
+
+You can also define scorers inline without `createScorer()`:
+
+```typescript
+evalite("My Eval", {
+  data: [{ input: "Hello", expected: "Hi" }],
+  task: async (input) => callLLM(input),
+  scorers: [
+    // Inline scorer (same shape as createScorer opts)
+    {
+      name: "Exact Match",
+      scorer: ({ output, expected }) => (output === expected ? 1 : 0),
+    },
+  ],
+});
+```
+
+Both approaches are equivalent. Use `createScorer()` when you want to reuse the scorer across multiple evals.
+
+## See Also
+
+- [Scorers Guide](/guides/scorers) - Overview of scoring strategies
+- [evalite()](/api/evalite) - Using scorers in evals

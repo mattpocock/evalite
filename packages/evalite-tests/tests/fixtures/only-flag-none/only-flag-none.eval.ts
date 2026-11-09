@@ -1,5 +1,4 @@
 import { evalite } from "evalite";
-import { Levenshtein } from "autoevals";
 
 evalite("Only Flag None", {
   data: () => {
@@ -21,5 +20,10 @@ evalite("Only Flag None", {
   task: async (input) => {
     return input;
   },
-  scorers: [Levenshtein],
+  scorers: [
+    {
+      name: "Pass",
+      scorer: () => ({ score: 1 }),
+    },
+  ],
 });

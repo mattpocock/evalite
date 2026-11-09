@@ -3,12 +3,36 @@ import starlight from "@astrojs/starlight";
 
 // https://astro.build/config
 export default defineConfig({
+  redirects: {
+    // Top-level pages moved to guides
+    "/what-is-evalite": "/guides/what-is-evalite",
+    "/quickstart": "/guides/quickstart",
+
+    // Guides reorganization
+    "/guides/traces": "/api/report-trace",
+    "/guides/variant-comparison": "/tips/comparing-different-approaches",
+    "/guides/multi-modal": "/tips/images-and-media",
+    "/guides/cli": "/api/cli",
+    "/guides/running-programmatically": "/api/run-evalite",
+    "/guides/ci": "/tips/run-evals-on-ci-cd",
+    "/guides/customizing-the-ui": "/tips/customize-the-ui",
+    "/guides/environment-variables": "/guides/quickstart",
+    "/guides/streams": "/guides/quickstart",
+    "/guides/skipping": "/guides/dev-loop",
+
+    // Examples moved to tips
+    "/examples/ai-sdk": "/tips/vercel-ai-sdk",
+
+    // Documentation reorganization
+    "/tips/adding-traces": "/tips/vercel-ai-sdk",
+    "/api/traces": "/api/report-trace",
+  },
   integrations: [
     starlight({
       title: "Evalite",
       favicon: "/favicon.ico",
       components: {
-        Banner: "./src/components/Banner.astro",
+        Banner: "./src/components/Header.astro",
       },
       editLink: {
         baseUrl:
@@ -91,74 +115,148 @@ export default defineConfig({
       },
       sidebar: [
         {
-          label: "Getting Started",
-          items: [
-            {
-              label: "What Is Evalite?",
-              slug: "what-is-evalite",
-            },
-            {
-              label: "Quickstart",
-              slug: "quickstart",
-            },
-          ],
-        },
-        {
           label: "Guides",
           items: [
             {
-              label: "Environment Variables",
-              slug: "guides/environment-variables",
+              label: "What Is Evalite?",
+              slug: "guides/what-is-evalite",
+            },
+            {
+              label: "Quickstart",
+              slug: "guides/quickstart",
+            },
+            {
+              label: "The Dev Loop",
+              slug: "guides/dev-loop",
             },
             {
               label: "Scorers",
               slug: "guides/scorers",
             },
             {
-              label: "Traces",
-              slug: "guides/traces",
-            },
-            {
-              label: "A/B Testing",
-              slug: "guides/variant-comparison",
-            },
-            {
-              label: "Multi-Modal",
-              slug: "guides/multi-modal",
-            },
-            {
               label: "Configuration",
               slug: "guides/configuration",
             },
             {
-              label: "Streams",
-              slug: "guides/streams",
-            },
-            {
-              label: "CLI",
-              slug: "guides/cli",
-            },
-            {
-              label: "Running Programmatically",
-              slug: "guides/running-programmatically",
-            },
-            {
-              label: "CI/CD",
-              slug: "guides/ci",
-            },
-            {
-              label: "Skipping Evals",
-              slug: "guides/skipping",
-            },
-            {
-              label: "Customizing The UI",
-              slug: "guides/customizing-the-ui",
+              label: "Storage",
+              slug: "guides/storage",
             },
           ],
         },
         {
-          label: "Integrations",
-          items: [{ label: "Vercel AI SDK", slug: "examples/ai-sdk" }],
+          label: "Tips",
+          items: [
+            {
+              label: "Customize The UI",
+              slug: "tips/customize-the-ui",
+            },
+            {
+              label: "A/B Testing",
+              slug: "tips/comparing-different-approaches",
+            },
+            {
+              label: "Vercel AI SDK",
+              slug: "tips/vercel-ai-sdk",
+            },
+            {
+              label: "Images And Media",
+              slug: "tips/images-and-media",
+            },
+            {
+              label: "CI/CD",
+              slug: "tips/run-evals-on-ci-cd",
+            },
+          ],
+        },
+        {
+          label: "Scorers",
+          items: [
+            {
+              label: "Overview",
+              slug: "api/scorers",
+            },
+            {
+              label: "answerCorrectness",
+              slug: "api/scorers/answer-correctness",
+            },
+            {
+              label: "answerRelevancy",
+              slug: "api/scorers/answer-relevancy",
+            },
+            {
+              label: "answerSimilarity",
+              slug: "api/scorers/answer-similarity",
+            },
+            {
+              label: "contains",
+              slug: "api/scorers/contains",
+            },
+            {
+              label: "contextRecall",
+              slug: "api/scorers/context-recall",
+            },
+            {
+              label: "exactMatch",
+              slug: "api/scorers/exact-match",
+            },
+            {
+              label: "faithfulness",
+              slug: "api/scorers/faithfulness",
+            },
+            {
+              label: "levenshtein",
+              slug: "api/scorers/levenshtein",
+            },
+            {
+              label: "noiseSensitivity",
+              slug: "api/scorers/noise-sensitivity",
+            },
+            {
+              label: "toolCallAccuracy",
+              slug: "api/scorers/tool-call-accuracy",
+            },
+          ],
+        },
+        {
+          label: "Reference",
+          items: [
+            {
+              label: "evalite()",
+              slug: "api/evalite",
+            },
+            {
+              label: "CLI",
+              slug: "api/cli",
+            },
+            {
+              label: "defineConfig()",
+              slug: "api/define-config",
+            },
+            {
+              label: "createScorer()",
+              slug: "api/create-scorer",
+            },
+            {
+              label: "EvaliteFile",
+              slug: "api/evalite-file",
+            },
+            {
+              label: "wrapAISDKModel()",
+              slug: "api/ai-sdk",
+            },
+            {
+              label: "reportTrace()",
+              slug: "api/report-trace",
+            },
+            {
+              label: "runEvalite()",
+              slug: "api/run-evalite",
+            },
+            {
+              label: "Storage",
+              slug: "api/storage",
+            },
+          ],
         },
       ],
     }),

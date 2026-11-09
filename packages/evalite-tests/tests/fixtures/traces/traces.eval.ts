@@ -1,6 +1,5 @@
 import { evalite } from "evalite";
 import { reportTrace } from "evalite/traces";
-import { Levenshtein } from "autoevals";
 
 evalite("Traces", {
   data: () => {
@@ -30,5 +29,10 @@ evalite("Traces", {
     });
     return input + "def";
   },
-  scorers: [Levenshtein],
+  scorers: [
+    {
+      name: "Pass",
+      scorer: () => ({ score: 1 }),
+    },
+  ],
 });

@@ -4,6 +4,7 @@ import { captureStdout, loadFixture } from "./test-utils.js";
 import { existsSync } from "fs";
 import { readFile } from "fs/promises";
 import path from "path";
+import type { Evalite } from "evalite";
 
 it("Should export results to JSON when outputPath is specified", async () => {
   await using fixture = await loadFixture("basics");
@@ -20,7 +21,7 @@ it("Should export results to JSON when outputPath is specified", async () => {
 
   // Read and parse the JSON file
   const fileContent = await readFile(outputPath, "utf-8");
-  const output = JSON.parse(fileContent);
+  const output: Evalite.Exported.Output = JSON.parse(fileContent);
 
   // Verify run structure
   expect(output).toHaveProperty("run");
@@ -30,36 +31,36 @@ it("Should export results to JSON when outputPath is specified", async () => {
   expect(output.run.runType).toBe("full");
 
   // Verify evals array
-  expect(output).toHaveProperty("evals");
-  expect(Array.isArray(output.evals)).toBe(true);
-  expect(output.evals.length).toBeGreaterThan(0);
+  expect(output).toHaveProperty("suites");
+  expect(Array.isArray(output.suites)).toBe(true);
+  expect(output.suites.length).toBeGreaterThan(0);
 
   // Verify each eval has the expected properties
-  output.evals.forEach((evaluation: any) => {
-    expect(evaluation).toHaveProperty("id");
-    expect(evaluation).toHaveProperty("name");
-    expect(evaluation).toHaveProperty("filepath");
-    expect(evaluation).toHaveProperty("duration");
-    expect(evaluation).toHaveProperty("status");
-    expect(evaluation).toHaveProperty("createdAt");
-    expect(evaluation).toHaveProperty("averageScore");
-    expect(evaluation).toHaveProperty("results");
-    expect(Array.isArray(evaluation.results)).toBe(true);
+  output.suites.forEach((suite) => {
+    expect(suite).toHaveProperty("id");
+    expect(suite).toHaveProperty("name");
+    expect(suite).toHaveProperty("filepath");
+    expect(suite).toHaveProperty("duration");
+    expect(suite).toHaveProperty("status");
+    expect(suite).toHaveProperty("createdAt");
+    expect(suite).toHaveProperty("averageScore");
+    expect(suite).toHaveProperty("evals");
+    expect(Array.isArray(suite.evals)).toBe(true);
 
     // Verify each result in the eval
-    evaluation.results.forEach((result: any) => {
-      expect(result).toHaveProperty("id");
-      expect(result).toHaveProperty("duration");
-      expect(result).toHaveProperty("input");
-      expect(result).toHaveProperty("output");
-      expect(result).toHaveProperty("status");
-      expect(result).toHaveProperty("createdAt");
-      expect(result).toHaveProperty("colOrder");
-      expect(result).toHaveProperty("averageScore");
-      expect(result).toHaveProperty("scores");
-      expect(result).toHaveProperty("traces");
-      expect(Array.isArray(result.scores)).toBe(true);
-      expect(Array.isArray(result.traces)).toBe(true);
+    suite.evals.forEach((_eval) => {
+      expect(_eval).toHaveProperty("id");
+      expect(_eval).toHaveProperty("duration");
+      expect(_eval).toHaveProperty("input");
+      expect(_eval).toHaveProperty("output");
+      expect(_eval).toHaveProperty("status");
+      expect(_eval).toHaveProperty("createdAt");
+      expect(_eval).toHaveProperty("colOrder");
+      expect(_eval).toHaveProperty("averageScore");
+      expect(_eval).toHaveProperty("scores");
+      expect(_eval).toHaveProperty("traces");
+      expect(Array.isArray(_eval.scores)).toBe(true);
+      expect(Array.isArray(_eval.traces)).toBe(true);
     });
   });
 });
@@ -83,7 +84,7 @@ it("Should support relative output paths", async () => {
   const output = JSON.parse(fileContent);
 
   expect(output).toHaveProperty("run");
-  expect(output).toHaveProperty("evals");
+  expect(output).toHaveProperty("suites");
 });
 
 it("Should create nested directories if they don't exist", async () => {
@@ -97,8 +98,10 @@ it("Should create nested directories if they don't exist", async () => {
   const outputPath = path.join(fixture.dir, "deeply/nested/path/results.json");
   expect(existsSync(outputPath)).toBe(true);
 
-  const output = JSON.parse(await readFile(outputPath, "utf-8"));
-  expect(output.evals.length).toBeGreaterThan(0);
+  const output: Evalite.Exported.Output = JSON.parse(
+    await readFile(outputPath, "utf-8")
+  );
+  expect(output.suites.length).toBeGreaterThan(0);
 });
 
 it("Should include result scores in the output", async () => {
@@ -111,22 +114,22 @@ it("Should include result scores in the output", async () => {
 
   const outputPath = path.join(fixture.dir, "results.json");
   const fileContent = await readFile(outputPath, "utf-8");
-  const output = JSON.parse(fileContent);
+  const output: Evalite.Exported.Output = JSON.parse(fileContent);
 
   // Verify that each eval has an average score
-  output.evals.forEach((evaluation: any) => {
-    expect(typeof evaluation.averageScore).toBe("number");
-    expect(evaluation.averageScore).toBeGreaterThanOrEqual(0);
-    expect(evaluation.averageScore).toBeLessThanOrEqual(1);
+  output.suites.forEach((suite) => {
+    expect(typeof suite.averageScore).toBe("number");
+    expect(suite.averageScore).toBeGreaterThanOrEqual(0);
+    expect(suite.averageScore).toBeLessThanOrEqual(1);
 
     // Verify that each result has an average score and individual scores
-    evaluation.results.forEach((result: any) => {
-      expect(typeof result.averageScore).toBe("number");
-      expect(result.averageScore).toBeGreaterThanOrEqual(0);
-      expect(result.averageScore).toBeLessThanOrEqual(1);
+    suite.evals.forEach((_eval) => {
+      expect(typeof _eval.averageScore).toBe("number");
+      expect(_eval.averageScore).toBeGreaterThanOrEqual(0);
+      expect(_eval.averageScore).toBeLessThanOrEqual(1);
 
-      expect(Array.isArray(result.scores)).toBe(true);
-      result.scores.forEach((score: any) => {
+      expect(Array.isArray(_eval.scores)).toBe(true);
+      _eval.scores.forEach((score) => {
         expect(score).toHaveProperty("id");
         expect(score).toHaveProperty("name");
         expect(score).toHaveProperty("score");

@@ -1,0 +1,153 @@
+---
+title: noiseSensitivity
+---
+
+Checks if your AI is being misled by irrelevant documents in retrieval results.
+
+**When to use**: Use to debug RAG systems with accuracy issues. Identifies if problems come from bad retrieval or poor reasoning. Helps diagnose whether you're retrieving bad documents, or if your AI isn't using good ones correctly.
+
+**When NOT to use**: Skip for non-RAG systems, or when you haven't identified accuracy issues yet (start with faithfulness first).
+
+## Example
+
+```ts
+import { openai } from "@ai-sdk/openai";
+import { evalite } from "evalite";
+import { noiseSensitivity } from "evalite/scorers";
+
+evalite("RAG Noise Sensitivity", {
+  data: [
+    {
+      input: "What is the capital of France?",
+      expected: {
+        reference: "Paris is the capital of France.",
+        groundTruth: [
+          "Paris is the capital and largest city of France. It is located in the north-central part of the country.",
+          "Lyon is the third-largest city in France and an important cultural center.",
+          "Marseille is a major French port city on the Mediterranean coast.",
+        ],
+      },
+    },
+  ],
+  task: async () => {
+    return "Lyon is the capital of France. Paris is the largest city in France.";
+  },
+  scorers: [
+    {
+      scorer: ({ input, output, expected }) =>
+        noiseSensitivity({
+          question: input,
+          answer: output,
+          reference: expected.reference,
+          groundTruth: expected.groundTruth,
+          model: openai("gpt-4o-mini"),
+          mode: "relevant",
+        }),
+    },
+  ],
+});
+```
+
+## Signature
+
+```ts
+function noiseSensitivity(opts: {
+  question: string;
+  answer: string;
+  reference: string;
+  groundTruth: string[];
+  model: LanguageModel;
+  mode?: "relevant" | "irrelevant";
+}): Promise<{
+  name: string;
+  description: string;
+  score: number;
+  metadata: {
+    referenceStatements: string[];
+    answerStatements: string[];
+    incorrectStatements: string[];
+    relevantContextIndices: number[];
+    irrelevantContextIndices: number[];
+    mode: "relevant" | "irrelevant";
+    retrievedToGroundTruth: boolean[][];
+    retrievedToAnswer: boolean[][];
+    groundTruthToAnswer: boolean[];
+  };
+}>;
+```
+
+## Parameters
+
+### question
+
+**Type:** `string`
+
+The question being asked.
+
+### answer
+
+**Type:** `string`
+
+The AI's answer to evaluate. Note: Only supports string output, not multi-turn.
+
+### reference
+
+**Type:** `string`
+
+Correct/reference answer to the question.
+
+### groundTruth
+
+**Type:** `string[]`
+
+Array of retrieved context documents.
+
+### model
+
+**Type:** `LanguageModel`
+
+Language model to use for evaluation.
+
+### mode
+
+**Type:** `"relevant" | "irrelevant"`
+**Default:** `"relevant"`
+
+Evaluation mode:
+
+- `"relevant"`: Measures how often your AI makes mistakes even when correct docs are present
+- `"irrelevant"`: Measures how often your AI is confused by wrong/irrelevant documents
+
+import { Aside } from "@astrojs/starlight/components";
+
+<Aside>
+  This scorer requires the AI SDK. This example uses OpenAI's models via
+  `@ai-sdk/openai`. The AI SDK supports [many
+  providers](https://sdk.vercel.ai/providers/ai-sdk-providers) including
+  Anthropic, Google, Mistral, and more.
+</Aside>
+
+## Return Value
+
+Returns an object with:
+
+- `name`: "Noise Sensitivity"
+- `description`: Description of what was evaluated
+- `score`: Number between 0-1 (percentage of incorrect statements attributed to relevant or irrelevant contexts, depending on mode)
+- `metadata`: Extensive attribution data including:
+  - `referenceStatements`: Statements decomposed from reference answer
+  - `answerStatements`: Statements decomposed from AI answer
+  - `incorrectStatements`: AI statements not supported by reference
+  - `relevantContextIndices`: Indices of contexts containing reference information
+  - `irrelevantContextIndices`: Indices of contexts not containing reference information
+  - `mode`: Mode used for evaluation
+  - `retrievedToGroundTruth`: Boolean matrix mapping contexts to reference statements
+  - `retrievedToAnswer`: Boolean matrix mapping contexts to answer statements
+  - `groundTruthToAnswer`: Boolean array mapping reference to answer statements
+
+## See Also
+
+- [createScorer()](/api/create-scorer)
+- [faithfulness](/api/scorers/faithfulness)
+- [contextRecall](/api/scorers/context-recall)
+- [answerCorrectness](/api/scorers/answer-correctness)

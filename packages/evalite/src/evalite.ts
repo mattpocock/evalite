@@ -3,26 +3,12 @@ import path from "path";
 import { describe, inject, it } from "vitest";
 import { reportTraceLocalStorage } from "./traces.js";
 import { writeFileQueueLocalStorage } from "./write-file-queue-local-storage.js";
-import { createEvaliteFileIfNeeded } from "./utils.js";
+import { createEvaliteFileIfNeeded } from "./internal-utils.js";
 import type { Evalite } from "./types.js";
 import { FILES_LOCATION } from "./backend-only-constants.js";
 import { createScorer } from "./index.js";
 import { serializeAnnotation } from "./reporter/events.js";
-
-const joinArrayOfUnknownResults = (results: unknown[]): unknown => {
-  return results.reduce((acc, result) => {
-    if (
-      typeof result === "string" ||
-      typeof result === "number" ||
-      typeof result === "boolean"
-    ) {
-      return `${acc}${result}`;
-    }
-    throw new Error(
-      `Cannot display results of stream: stream contains non-string, non-number, non-boolean chunks.`
-    );
-  }, "");
-};
+import { cacheContextLocalStorage, type CacheContextConfig } from "./cache.js";
 
 const makeSerializable = (obj: unknown): unknown => {
   try {
@@ -52,23 +38,19 @@ const executeTask = async <TInput, TOutput, TVariant = undefined>(
   input: TInput,
   variant: TVariant
 ): Promise<TOutput> => {
-  const taskResultOrStream = await task(input, variant);
+  const taskResult = await task(input, variant);
 
   if (
-    typeof taskResultOrStream === "object" &&
-    taskResultOrStream &&
-    Symbol.asyncIterator in taskResultOrStream
+    typeof taskResult === "object" &&
+    taskResult &&
+    Symbol.asyncIterator in taskResult
   ) {
-    const chunks: TOutput[] = [];
-
-    for await (const chunk of taskResultOrStream) {
-      chunks.push(chunk);
-    }
-
-    return joinArrayOfUnknownResults(chunks) as TOutput;
+    console.warn(
+      "Streaming support has been removed. Process the stream before returning from task() (e.g., await result.text for AI SDK)"
+    );
   }
 
-  return taskResultOrStream;
+  return taskResult;
 };
 
 const runTask = async <TInput, TOutput, TExpected, TVariant = undefined>(
@@ -77,10 +59,10 @@ const runTask = async <TInput, TOutput, TExpected, TVariant = undefined>(
     expected: TExpected | undefined;
     variant: TVariant;
     traces: Evalite.Trace[];
-  } & Omit<
-    Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant>,
-    "data" | "experimental_customColumns"
-  >
+    cacheContext: CacheContextConfig;
+    cacheDebug: boolean;
+    cacheEnabled: boolean;
+  } & Omit<Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant>, "data">
 ) => {
   const start = performance.now();
   const output = await executeTask(opts.task, opts.input, opts.variant);
@@ -88,19 +70,52 @@ const runTask = async <TInput, TOutput, TExpected, TVariant = undefined>(
 
   const scores = await Promise.all(
     (opts.scorers || []).map(async (scorerOrOpts) => {
-      if (typeof scorerOrOpts === "function") {
-        return scorerOrOpts({
-          input: opts.input,
-          output,
-          expected: opts.expected,
-        });
-      } else {
-        return createScorer(scorerOrOpts)({
-          input: opts.input,
-          output,
-          expected: opts.expected,
-        });
-      }
+      // Isolate scorer traces - LLM calls in scorers still get traced
+      // but traces are discarded (not collected in parent eval)
+      return reportTraceLocalStorage.run(
+        () => {
+          // no-op: discard traces
+        },
+        () => {
+          const scorerCacheHits: Array<Evalite.CacheHit> = [];
+          return cacheContextLocalStorage.run(
+            {
+              ...opts.cacheContext,
+              reportCacheHit: (hit) => {
+                if (!opts.cacheEnabled) {
+                  return;
+                }
+                scorerCacheHits.push(hit);
+                if (opts.cacheDebug) {
+                  console.log(
+                    `[CACHE] Scorer cache ${hit.hit ? "HIT" : "MISS"}${hit.hit ? ` (saved ${hit.savedDuration.toFixed(0)}ms)` : ""}`
+                  );
+                }
+              },
+            },
+            async (): Promise<Evalite.ScoreWithCacheHits> => {
+              const score =
+                typeof scorerOrOpts === "function"
+                  ? await scorerOrOpts({
+                      input: opts.input,
+                      output,
+                      expected: opts.expected as TExpected,
+                    })
+                  : await createScorer(scorerOrOpts)({
+                      input: opts.input,
+                      output,
+                      expected: opts.expected as TExpected,
+                    });
+
+              // Attach cache hits to score if there were any
+              return {
+                ...score,
+                cacheHits: scorerCacheHits,
+              };
+            }
+          );
+        }
+      );
     })
   );
 
@@ -121,39 +136,56 @@ const runTask = async <TInput, TOutput, TExpected, TVariant = undefined>(
   };
 };
 
-export const evalite = <TInput, TOutput, TExpected = TOutput>(
+export const evalite = <TInput, TOutput, TExpected = undefined>(
   evalName: string,
   opts: Evalite.RunnerOpts<TInput, TOutput, TExpected>
 ) => registerEvalite(evalName, opts);
 
-evalite.skip = <TInput, TOutput, TExpected>(
+evalite.skip = <TInput, TOutput, TExpected = undefined>(
   evalName: string,
   opts: Evalite.RunnerOpts<TInput, TOutput, TExpected>
 ) => registerEvalite(evalName, opts, { modifier: "skip" });
 
-/**
- * @deprecated Use `evalite.skip` instead.
- */
-evalite.experimental_skip = evalite.skip;
-
 evalite.each = <TVariant>(
-  variants: Array<{ name: string; input: TVariant }>
+  variants: Array<{ name: string; input: TVariant; only?: boolean }>
 ) => {
-  return <TInput, TOutput, TExpected = TOutput>(
+  function createEvals<TInput, TOutput, TExpected = undefined>(
     evalName: string,
-    opts: Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant>
-  ) => {
-    for (const variant of variants) {
+    opts: Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant>,
+    modifier?: "skip"
+  ) {
+    const hasOnlyFlag = variants.some((v) => v.only === true);
+    const filteredVariants = hasOnlyFlag
+      ? variants.filter((v) => v.only === true)
+      : variants;
+
+    for (const variant of filteredVariants) {
       registerEvalite(
         evalName,
         {
           ...opts,
           task: (input) => opts.task(input, variant.input),
         },
-        { variantName: variant.name, variantGroup: evalName }
+        { variantName: variant.name, variantGroup: evalName, modifier }
       );
     }
+  }
+
+  function eachFn<TInput, TOutput, TExpected = undefined>(
+    evalName: string,
+    opts: Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant>
+  ) {
+    return createEvals(evalName, opts);
+  }
+
+  eachFn.skip = <TInput, TOutput, TExpected = undefined>(
+    evalName: string,
+    opts: Evalite.RunnerOpts<TInput, TOutput, TExpected, TVariant>
+  ) => {
+    return createEvals(evalName, opts, "skip");
   };
+
+  return eachFn;
 };
 
 type Result<TSuccess, TFailure> =
@@ -166,9 +198,9 @@ type Result<TSuccess, TFailure> =
       error: TFailure;
     };
 
-const resolveData = async <TInput, TExpected>(
-  datasetFunction: Evalite.DataShapeAsyncResolver<TInput, TExpected>
-): Promise<Result<Evalite.DataShape<TInput, TExpected>[], Error>> => {
+const resolveData = async <Output>(
+  datasetFunction: Evalite.AsyncResolver<Output>
+): Promise<Result<Output, Error>> => {
   try {
     return {
       success: true,
@@ -192,9 +224,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
   } = {}
 ) {
   const describeFn = vitestOpts.modifier === "skip" ? describe.skip : describe;
-  const datasetPromise: Promise<
-    Result<Evalite.DataShape<TInput, TExpected>[], Error>
-  > =
+  const datasetPromise: Promise<Result<any, Error>> =
     vitestOpts.modifier === "skip"
       ? Promise.resolve({ success: true, data: [] })
       : typeof opts.data === "function"
@@ -212,9 +242,9 @@ function registerEvalite<TInput, TOutput, TExpected>(
       it(fullEvalName, async ({ annotate, task }) => {
         await annotate(
           serializeAnnotation({
-            type: "RESULT_SUBMITTED",
-            result: {
-              evalName: fullEvalName,
+            type: "EVAL_SUBMITTED",
+            eval: {
+              suiteName: fullEvalName,
               filepath: task.file.filepath,
               order: 0,
               status: "fail",
@@ -227,6 +257,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
               output: datasetResult.error,
               scores: [],
               traces: [],
+              taskCacheHits: [],
               renderedColumns: [],
             },
           })
@@ -237,7 +268,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
       return;
     }
 
-    const dataset = datasetResult.data;
+    const dataset: Evalite.DataShape<TInput, TExpected>[] = datasetResult.data;
 
     // Filter dataset if any entry has `only: true`
     const hasOnlyFlag = dataset.some((d) => d.only === true);
@@ -252,7 +283,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
     // Expand dataset with trials
     const expandedDataset: Array<{
       input: TInput;
-      expected?: TExpected;
+      expected: TExpected | undefined;
       dataIndex: number;
       trialIndex?: number;
       index: number;
@@ -286,12 +317,12 @@ function registerEvalite<TInput, TOutput, TExpected>(
 
         const rootDir = path.join(cwd, FILES_LOCATION);
 
-        // Send RESULT_STARTED annotation immediately
+        // Send EVAL_STARTED annotation immediately
         await annotate(
           serializeAnnotation({
-            type: "RESULT_STARTED",
-            initialResult: {
-              evalName: fullEvalName,
+            type: "EVAL_STARTED",
+            initialEval: {
+              suiteName: fullEvalName,
               filepath: task.file.filepath,
               order: data.index,
               variantName: vitestOpts.variantName,
@@ -320,6 +351,32 @@ function registerEvalite<TInput, TOutput, TExpected>(
         const traces: Evalite.Trace[] = [];
         reportTraceLocalStorage.enterWith((trace) => traces.push(trace));
 
+        const taskCacheHits: Array<Evalite.CacheHit> = [];
+
+        const cacheContext: CacheContextConfig = {
+          trialCount: inject("trialCount"),
+          evalName: evalName,
+          serverPort: inject("serverPort"),
+        };
+
+        const cacheDebug = inject("cacheDebug");
+        const cacheEnabled = inject("cacheEnabled");
+
+        cacheContextLocalStorage.enterWith({
+          ...cacheContext,
+          reportCacheHit: (hit) => {
+            if (!cacheEnabled) {
+              return;
+            }
+            taskCacheHits.push(hit);
+            if (cacheDebug) {
+              console.log(
+                `[CACHE] Task cache HIT (saved ${hit.savedDuration.toFixed(0)}ms)`
+              );
+            }
+          },
+        });
+
         const [inputForMeta, expectedForMeta] = await Promise.all([
           createEvaliteFileIfNeeded({ rootDir, input: data.input }),
           createEvaliteFileIfNeeded({ rootDir, input: data.expected }),
@@ -331,14 +388,17 @@ function registerEvalite<TInput, TOutput, TExpected>(
 
         try {
           // Pass raw data (from closure) to scorers - allows non-serializable data
-          const { output, scores, duration, columns } = await runTask({
+          const { output, scores, columns } = await runTask({
             expected: data.expected,
             input: data.input,
             variant: undefined,
             scorers: opts.scorers,
             task: opts.task,
-            columns: opts.columns || opts.experimental_customColumns,
+            columns: opts.columns,
             traces,
+            cacheContext,
+            cacheDebug,
+            cacheEnabled,
           });
 
           const [outputWithFiles, tracesWithFiles, renderedColumns] =
@@ -353,12 +413,12 @@ function registerEvalite<TInput, TOutput, TExpected>(
 
           const serializableOutput = makeSerializable(outputWithFiles);
 
-          // Send RESULT_SUBMITTED annotation
+          // Send EVAL_SUBMITTED annotation
           await annotate(
             serializeAnnotation({
-              type: "RESULT_SUBMITTED",
-              result: {
-                evalName: fullEvalName,
+              type: "EVAL_SUBMITTED",
+              eval: {
+                suiteName: fullEvalName,
                 filepath: task.file.filepath,
                 order: data.index,
                 duration: Math.round(performance.now() - start),
@@ -367,6 +427,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
                 output: serializableOutput,
                 scores,
                 traces: tracesWithFiles,
+                taskCacheHits: taskCacheHits,
                 status: "success",
                 renderedColumns,
                 variantName: vitestOpts.variantName,
@@ -388,12 +449,12 @@ function registerEvalite<TInput, TOutput, TExpected>(
                 }
               : e;
 
-          // Send RESULT_SUBMITTED annotation for failure
+          // Send EVAL_SUBMITTED annotation for failure
           await annotate(
             serializeAnnotation({
-              type: "RESULT_SUBMITTED",
-              result: {
-                evalName: fullEvalName,
+              type: "EVAL_SUBMITTED",
+              eval: {
+                suiteName: fullEvalName,
                 filepath: task.file.filepath,
                 order: data.index,
                 duration,
@@ -402,6 +463,7 @@ function registerEvalite<TInput, TOutput, TExpected>(
                 output: serializedError,
                 scores: [],
                 traces: await handleFilesInTraces(rootDir, traces),
+                taskCacheHits: taskCacheHits,
                 status: "fail",
                 renderedColumns: [],
                 variantName: vitestOpts.variantName,

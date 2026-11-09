@@ -1,5 +1,4 @@
 import { evalite } from "evalite";
-import { Levenshtein } from "autoevals";
 import { setTimeout } from "timers/promises";
 
 evalite("Failing In Data", {
@@ -7,8 +6,13 @@ evalite("Failing In Data", {
     throw new Error("This is a failing test");
   },
   task: async (input) => {
-    await setTimeout(500);
+    await setTimeout(10);
     return "def";
   },
-  scorers: [Levenshtein],
+  scorers: [
+    {
+      name: "Pass",
+      scorer: () => ({ score: 1 }),
+    },
+  ],
 });

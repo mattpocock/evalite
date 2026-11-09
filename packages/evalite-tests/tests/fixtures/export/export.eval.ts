@@ -1,5 +1,4 @@
 import { evalite, EvaliteFile, type Evalite } from "evalite";
-import { Levenshtein } from "autoevals";
 import { reportTrace, reportTraceLocalStorage } from "evalite/traces";
 import path from "path";
 

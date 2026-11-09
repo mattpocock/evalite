@@ -1,14 +1,20 @@
 import { generateText } from "ai";
-import { MockLanguageModelV2 } from "ai/test";
-import { traceAISDKModel } from "evalite/ai-sdk";
+import { MockLanguageModelV3 } from "ai/test";
+import { wrapAISDKModel } from "evalite/ai-sdk";
 import { evalite } from "evalite";
-import { Levenshtein } from "autoevals";
 
-const model = new MockLanguageModelV2({
-  doGenerate: async (options) => ({
-    rawCall: { rawPrompt: null, rawSettings: {} },
-    finishReason: "stop",
-    usage: { inputTokens: 10, outputTokens: 20, totalTokens: 35 },
+const model = new MockLanguageModelV3({
+  doGenerate: {
+    finishReason: { unified: "stop", raw: undefined },
+    usage: {
+      inputTokens: {
+        total: 10,
+        noCache: undefined,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: { total: 20, text: undefined, reasoning: undefined },
+    },
     content: [
       { type: "text", text: `Hello, world!` },
       {
@@ -19,13 +25,10 @@ const model = new MockLanguageModelV2({
       },
     ],
     warnings: [],
-    providerMetadata: undefined,
-    request: undefined,
-    response: undefined,
-  }),
+  },
 });
 
-const tracedModel = traceAISDKModel(model);
+const tracedModel = wrapAISDKModel(model);
 
 evalite("AI SDK Traces", {
   data: () => {
@@ -44,5 +47,10 @@ evalite("AI SDK Traces", {
     });
     return result.text;
   },
-  scorers: [Levenshtein],
+  scorers: [
+    {
+      name: "Pass",
+      scorer: () => ({ score: 1 }),
+    },
+  ],
 });
