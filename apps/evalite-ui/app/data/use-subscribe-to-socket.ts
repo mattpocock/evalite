@@ -11,9 +11,7 @@ export const useSubscribeToSocket = (queryClient: QueryClient) => {
       return;
     }
 
-    const socket = new WebSocket(
-      `${window.location.origin}/api/socket`
-    );
+    const socket = new WebSocket(`${window.location.origin}/api/socket`);
 
     socket.onmessage = async (event) => {
       const newState: Evalite.ServerState = JSON.parse(event.data);
