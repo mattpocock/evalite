@@ -1,6 +1,19 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it, vitest } from "vitest";
 import { createProgram } from "./command.js";
 import { run } from "@stricli/core";
+
+const packageJson = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8")
+) as {
+  dependencies?: Record<string, string>;
+};
+
+describe("package manifest", () => {
+  it("declares vitest as a runtime dependency", () => {
+    expect(packageJson.dependencies).toHaveProperty("vitest");
+  });
+});
 
 describe("createCommand", () => {
   it("evalite without path", async () => {
