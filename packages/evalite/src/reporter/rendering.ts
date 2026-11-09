@@ -285,7 +285,8 @@ export function renderScoreDisplay(
 export function renderThreshold(
   logger: { log: (msg: string) => void },
   scoreThreshold: number,
-  averageScore: number | null
+  averageScore: number | null,
+  failingScorers: { name: string; score: number }[] = []
 ): "passed" | "failed" {
   let thresholdScoreSuffix = "";
   let result: "passed" | "failed";
@@ -307,6 +308,19 @@ export function renderThreshold(
       thresholdScoreSuffix,
     ].join("")
   );
+
+  if (result === "failed" && failingScorers.length > 0) {
+    logger.log(
+      [
+        "    ",
+        c.dim("Scorers"),
+        "  ",
+        failingScorers
+          .map((scorer) => `${scorer.name} ${displayScore(scorer.score)}`)
+          .join(c.dim(", ")),
+      ].join("")
+    );
+  }
 
   return result;
 }
